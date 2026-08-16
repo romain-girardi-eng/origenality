@@ -3,6 +3,8 @@
 A bibliographic map of Origen studies: what has been written on Origen of
 Alexandria, where the scholarship is dense, and where it is thin.
 
+Site: https://origenality.com · Source: https://github.com/romain-girardi-eng/origenality
+
 ## The problem
 
 Anyone starting a piece of work on Origen faces the same question, and no

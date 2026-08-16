@@ -24,6 +24,8 @@ authors:
     email: romain.girardi@univ-cotedazur.fr
 date-released: 2026-08-16
 version: "0.1.0"
+url: "https://origenality.com"
+repository-code: "https://github.com/romain-girardi-eng/origenality"
 keywords:
   - Origen of Alexandria
   - patristics
