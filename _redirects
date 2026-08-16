@@ -1,4 +1,25 @@
+# Cloudflare Pages — les adresses courtes.
+#
+# Le dépôt est publié tel quel : les pages vivent sous /site/, la couche de
+# données sous /data/, et les chemins qu'elles se donnent entre elles sont
+# relatifs. Une réécriture 200 depuis la racine servirait donc index.html sous
+# l'adresse « / », où « assets/base.css » se résoudrait en « /assets/base.css » :
+# 404 sur la feuille, la police et le script. C'est une redirection, pas une
+# réécriture, tant que les pages n'ont pas de chemins absolus.
+#
+# Pages retire de lui-même l'extension .html : /site/methode.html répond 308
+# vers /site/methode. Les lignes ci-dessous visent donc l'adresse sans extension,
+# celle que Pages sert en 200, pour éviter un saut inutile.
+# Les balises canoniques et le plan du site donnent, elles, l'adresse sans
+# extension, celle que Pages sert en 200.
+
+/                 /site/               302
+
 /explorer     /site/               302
-/observatory  /site/observatoire.html  302
-/method       /site/methode.html   302
-/credits      /site/credits.html   302
+/observatory  /site/observatoire   302
+/method       /site/methode        302
+/credits      /site/credits        302
+
+# Les deux fichiers que les agents cherchent parfois sous /site/.
+/site/llms.txt    /llms.txt            301
+/site/robots.txt  /robots.txt          301

@@ -27,3 +27,4 @@ data/merged/
 
 # Clone de contrôle creusé par scripts/selftest_public.sh.
 _selftest/
+.wrangler/

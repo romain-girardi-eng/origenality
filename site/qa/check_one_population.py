@@ -14,7 +14,7 @@ disagreement, so a later change that reintroduces a second population fails here
 before anybody has to notice it by eye.
 
     python3 site/build-c/qa/check_one_population.py
-    python3 site/build-c/qa/check_one_population.py --measured qa/measured_2026-08-16.json
+    python3 site/build-c/qa/check_one_population.py --measured qa/measured_2026-08-17.json
 """
 
 from __future__ import annotations
@@ -255,7 +255,7 @@ def describe_capture(path: str, measured: dict) -> None:
 
 def main() -> int:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--measured", default=os.path.join(HERE, "measured_2026-08-16.json"))
+    parser.add_argument("--measured", default=os.path.join(HERE, "measured_2026-08-17.json"))
     parser.add_argument("--print-expected", action="store_true")
     args = parser.parse_args()
 

@@ -484,5 +484,5 @@
  ],
  "observatory_review": "173 records of the 1 632 the wave classed are flagged for review: the classifier answered below its confidence floor, read metadata too thin to decide, hesitated between two adjacent classes and took the lower one, or returned a value that had to be repaired when it was checked against the vocabulary. They fall where a thin record falls: 1 are classed as not about Origen, 154 as mentioned only, and 18 are inside the counted population. 9 of the whole set carry a repair. They are counted where they stand, and marked in the Explorer.",
  "observatory_timenote": "Decades from 1900 to the 2020s, on the 1 402 counted records. 28 of them carry no year and 16 are earlier than 1900; the last column stops in mid-2026. 225 records mention Origen only, and 5 are held outside the count as not about him or without a class: 230 in all, outside this figure and every other one here.",
- "_measured": "2026-08-16 19:25, http://127.0.0.1:8020/build-c/, 1440x900 at DPR 2, headless render"
+ "_measured": "2026-08-17 00:28, http://127.0.0.1:8020/site/, 1440x900 at DPR 2, headless render"
 }

@@ -3,14 +3,95 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Origenality — Method</title>
+<title>Method: how the Origen bibliography is built · Origenality</title>
 <meta name="description" content="How the corpus is built, how summaries are credited and how to have them removed, how the controlled vocabulary works, and what the density figure means.">
 <meta name="author" content="Romain Girardi">
+<meta name="theme-color" content="#EFE9DA">
+<link rel="canonical" href="https://origenality.com/site/methode">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Origenality">
+<meta property="og:locale" content="en_GB">
+<meta property="og:url" content="https://origenality.com/site/methode">
+<meta property="og:title" content="Method: how the Origen bibliography is built">
+<meta property="og:description" content="How the corpus is built, how summaries are credited and removed on request, what the controlled vocabulary holds, and what the density figure does not measure.">
+<meta property="og:image" content="https://origenality.com/site/assets/marks/og.png">
+<meta property="og:image:type" content="image/png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Origenality, a bibliographic map of Origen studies">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Method: how the Origen bibliography is built">
+<meta name="twitter:description" content="How the corpus is built, how summaries are credited and removed on request, what the controlled vocabulary holds, and what the density figure does not measure.">
+<meta name="twitter:image" content="https://origenality.com/site/assets/marks/og.png">
 <link rel="icon" href="assets/marks/favicon.svg" type="image/svg+xml">
 <link rel="preload" href="assets/fonts/EBGaramond-VF.subset.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="assets/fonts/literata-var.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="assets/base.css">
 <link rel="stylesheet" href="assets/pages.css">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "WebPage",
+      "@id": "https://origenality.com/site/methode#webpage",
+      "url": "https://origenality.com/site/methode",
+      "name": "Method: how the Origen bibliography is built",
+      "description": "How the corpus is built, how summaries are credited and removed, what the controlled vocabulary holds, and what the density figure measures.",
+      "isPartOf": { "@id": "https://origenality.com/#website" },
+      "about": { "@id": "https://origenality.com/#dataset" },
+      "author": { "@id": "https://origenality.com/#romain" },
+      "inLanguage": "en",
+      "dateModified": "2026-08-16",
+      "breadcrumb": { "@id": "https://origenality.com/site/methode#breadcrumb" }
+    },
+    {
+      "@type": "BreadcrumbList",
+      "@id": "https://origenality.com/site/methode#breadcrumb",
+      "itemListElement": [
+        { "@type": "ListItem", "position": 1, "name": "Explorer", "item": "https://origenality.com/site/" },
+        { "@type": "ListItem", "position": 2, "name": "Method" }
+      ]
+    },
+    {
+      "@type": "Dataset",
+      "@id": "https://origenality.com/#dataset",
+      "name": "Origenality: a bibliographic map of Origen studies",
+      "description": "Records of scholarship on Origen of Alexandria, harvested from open bibliographic catalogues, deduplicated into one record per work, and classified against a controlled vocabulary of themes, works of Origen, approaches and relevance. The published version draws the Index Theologicus harvest of August 2026; every figure counts the records where Origen is the subject or holds a section of the argument.",
+      "url": "https://origenality.com/site/",
+      "mainEntityOfPage": { "@id": "https://origenality.com/site/methode#webpage" },
+      "creator": { "@id": "https://origenality.com/#romain" },
+      "publisher": { "@id": "https://origenality.com/#romain" },
+      "license": "https://origenality.com/DATA_POLICY.md",
+      "isAccessibleForFree": true,
+      "inLanguage": ["en", "de", "fr", "it", "es"],
+      "temporalCoverage": "1677/2026",
+      "datePublished": "2026-08-16",
+      "dateModified": "2026-08-16",
+      "version": "0.1.0",
+      "keywords": ["Origen of Alexandria", "patristics", "bibliography", "digital humanities", "bibliometrics", "Index Theologicus", "controlled vocabulary"],
+      "measurementTechnique": "Harvest of open bibliographic catalogues, deduplication by DOI, ISBN and normalised title, classification against a versioned controlled vocabulary, and a citation percentile computed inside a cohort of the same decade, document type and language.",
+      "variableMeasured": [
+        { "@type": "PropertyValue", "name": "Density", "description": "The number of records filed under a named node of the controlled vocabulary. It measures how much has been written in a neighbourhood, not the originality of a project." },
+        { "@type": "PropertyValue", "name": "Relevance class", "description": "core, partial, mentioned only, or not about Origen. Only core and partial enter a published figure." },
+        { "@type": "PropertyValue", "name": "Academic weight", "description": "A citation percentile inside a cohort of the same decade, document type and language, drawn as a disc size and never used as a filter." },
+        "Theme", "Work of Origen", "Approach", "Language of publication", "Decade of publication", "Format"
+      ],
+      "isBasedOn": [
+        { "@type": "Dataset", "name": "Index Theologicus (IxTheo)", "url": "https://ixtheo.de" },
+        { "@type": "Dataset", "name": "K10plus", "url": "https://kxp.k10plus.de" }
+      ],
+      "citation": "Romain Girardi, Origenality: a bibliographic map of Origen studies, 2026.",
+      "distribution": [
+        { "@type": "DataDownload", "name": "graph.json", "description": "The map layer: one entry per record, with its cluster, its tags and its link back to the catalogue.", "contentUrl": "https://origenality.com/data/graph.json", "encodingFormat": "application/json" },
+        { "@type": "DataDownload", "name": "stats.json", "description": "The counts the Observatory draws.", "contentUrl": "https://origenality.com/data/stats.json", "encodingFormat": "application/json" },
+        { "@type": "DataDownload", "name": "abstracts.json", "description": "The summaries shown in the Explorer, each with the database that wrote it and a link to its record.", "contentUrl": "https://origenality.com/data/abstracts.json", "encodingFormat": "application/json" },
+        { "@type": "DataDownload", "name": "META.json", "description": "The harvest itself: source, date, scope and fields published.", "contentUrl": "https://origenality.com/data/META.json", "encodingFormat": "application/json" }
+      ]
+    }
+  ]
+}
+</script>
 </head>
 <body>
 
@@ -30,10 +111,12 @@
 
   <div class="lede">
     <h1>Method</h1>
-    <p>Origenality maps what has already been written on Origen of Alexandria, so that a
-      reader can see where the scholarship is thick and where it is thin. This page says
-      how the corpus is assembled, what is published and under what terms, and what
-      the density figure does and does not measure.</p>
+    <p>Origenality is a bibliographic map of the scholarship on Origen of Alexandria. It
+      gathers the records of open catalogues, keeps one record per work, files each under a
+      controlled vocabulary of themes, works of Origen and approaches, and draws the result
+      so that a reader sees where the field is thick and where it is thin.</p>
+    <p>This page says how the corpus is assembled, what is published and under what terms,
+      and what the density figure does and does not measure.</p>
 <!-- FIGURES:population-stamp -->
     <p class="stamp">Version of August 2026 · one source · 1 632 records harvested, 1 402 counted</p>
 <!-- /FIGURES:population-stamp -->
@@ -300,6 +383,62 @@
     <p>A third party who runs the same vocabulary, the same instructions and the same schema on
       the same records can measure the difference record by record. That is the sense in which
       a classification of this kind can be checked at all.</p>
+  </section>
+
+  <section id="questions">
+    <h2>7. Questions</h2>
+    <p class="sub">Short answers, each standing on its own.</p>
+
+    <h3>What does the density figure measure?</h3>
+<!-- FIGURES:population-questions -->
+    <p>A density is a count of records inside a named node of the vocabulary, and nothing
+      more. When the map says forty-seven works sit in a perimeter, forty-seven records of
+      this harvest are filed under that node, out of the 1 402 the site counts. The node
+      has a name, a path and a definition, so the figure can be checked against the same data.
+      What a density does not measure is the originality of a project: thin ground may be
+      unexplored, or exhausted, or written in a language this catalogue indexes poorly, and the
+      map cannot tell those three apart. It opens a question rather than settling one. Academic
+      weight, drawn as the size of a disc, is a separate thing again: a citation percentile
+      inside a cohort of the same decade, type and language, which never filters a search and
+      never enters a count.</p>
+<!-- /FIGURES:population-questions -->
+
+    <h3>Which sources does the map draw on?</h3>
+    <p>One catalogue, and the site names it on every page: the Index Theologicus of Tübingen,
+      hydrated from K10plus and harvested through the authority record for Origen,
+      <a href="https://d-nb.info/gnd/118590235" rel="noopener">GND 118590235</a>, on 15 August
+      2026. Its metadata are published under CC0, and every entry in the Explorer links back to
+      the record it came from. Nine further harvests exist in the working data: OpenAlex,
+      Crossref, Semantic Scholar, Isidore, theses.fr, Dialnet, the Italian SBN, the Adamantius
+      repertorio and the BIBP of Laval. None of them puts a record on this map and none of them
+      moves a figure, because their relevance filtering is not finished. They serve one purpose
+      here: where one of them summarises a publication the catalogue also holds, that summary is
+      attached to the record and credited to whoever wrote it. Subscription indexes cannot be
+      harvested and are absent, so coverage before 1980 is thinner than the counts suggest.</p>
+
+    <h3>How are the summaries credited, and how are they removed?</h3>
+    <p>Every summary shown in the Explorer names the database that wrote it and links to the
+      record there; a summary written for this project says so instead of naming a database.
+      The regime is attribution and takedown. A publisher, a partner database or an author who
+      wants their summaries off the site writes to
+      <a href="mailto:romain.girardi@univ-cotedazur.fr">romain.girardi@univ-cotedazur.fr</a>,
+      naming the database, the imprint or the article, and those summaries come off the site and
+      out of the next data release. No justification is asked for and none is needed. The
+      removal is scripted rather than done by hand, so it lands in one pass and cannot be half
+      applied. The record keeps its bibliographic metadata and its link, so nothing is lost to
+      the reader but the paragraph. The partner databases were written to on 15 August 2026,
+      before any of this was published.</p>
+
+    <h3>How should Origenality be cited?</h3>
+    <p>In a footnote: Romain Girardi, <em>Origenality: a bibliographic map of Origen studies</em>,
+      2026, https://origenality.com. The machine-readable form is in <code>CITATION.cff</code> at
+      the root of the repository, which carries the version, the date of release and the
+      affiliation. Cite the underlying databases as well when you cite a record: each source has
+      its attribution template in <code>ATTRIBUTION.md</code>, and Semantic Scholar in particular
+      requires attribution under ODC-BY. The site is a pointer rather than a substitute, and a
+      record found here should be read in the catalogue that describes it. The code is under the
+      MIT licence; the data are published under attribution and takedown, source by source, as
+      <code>DATA_POLICY.md</code> sets out, and no single licence is asserted over the whole.</p>
   </section>
 
   <div class="foot">

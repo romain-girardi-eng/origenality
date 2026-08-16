@@ -1,0 +1,54 @@
+# Origenality · https://origenality.com
+# A bibliographic map of Origen studies. Everything here is meant to be read,
+# indexed and quoted: the pages, the documentation and the data layer alike.
+# See /llms.txt for the short guide and /sitemap.xml for the pages.
+
+User-agent: *
+Allow: /
+# Content signals (Cloudflare's Content Signals Policy). Search and AI answers
+# are granted. Nothing is said about ai-train: the summaries displayed here are
+# other people's prose, shown under attribution and removed on request, and this
+# project holds no right to license them for training. Silence on a signal
+# neither grants nor restricts.
+Content-Signal: search=yes, ai-input=yes
+
+# Named for clarity rather than necessity: the wildcard above already allows
+# them. Romain Girardi wants the project quotable in AI answers as well as in
+# search results.
+User-agent: GPTBot
+Allow: /
+
+User-agent: OAI-SearchBot
+Allow: /
+
+User-agent: ChatGPT-User
+Allow: /
+
+User-agent: ClaudeBot
+Allow: /
+
+User-agent: Claude-SearchBot
+Allow: /
+
+User-agent: Claude-User
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+User-agent: Perplexity-User
+Allow: /
+
+User-agent: Google-Extended
+Allow: /
+
+User-agent: Applebot
+Allow: /
+
+User-agent: Applebot-Extended
+Allow: /
+
+User-agent: Bingbot
+Allow: /
+
+Sitemap: https://origenality.com/sitemap.xml

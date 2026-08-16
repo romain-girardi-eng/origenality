@@ -1,0 +1,42 @@
+# Origenality
+
+> A bibliographic map of the scholarship on Origen of Alexandria. It federates open bibliographic sources, merges them into one record per work, classifies each record against a controlled vocabulary of themes, works of Origen and approaches, and draws the result as a map that says where the scholarship is dense and where it is thin. Written and maintained by Romain Girardi, doctoral candidate, Université Côte d'Azur and University of Geneva. The site is static: no request leaves the page.
+
+## Pages
+
+- [Explorer](https://origenality.com/site/): the map of the field, a free-text bar and four questions that lead to a neighbourhood of the scholarship.
+- [Observatory](https://origenality.com/site/observatoire): the harvest counted by decade, language, format, theme and work of Origen, with what those counts cannot say.
+- [Method](https://origenality.com/site/methode): how the corpus is built, how summaries are credited and removed, what the controlled vocabulary holds, and what the density figure measures.
+- [Credits](https://origenality.com/site/credits): the sources behind the map, their licences, the required attributions and the removal procedure.
+
+## Documentation
+
+- [Read me](https://origenality.com/README.md): The repository read me: the problem, the state of the data, the limits, and the commands that reproduce it.
+- [Methodology](https://origenality.com/docs/methodology.md): Federation, deduplication rules, classification and the density figure, each rule named with the code that enforces it.
+- [Sources](https://origenality.com/docs/sources.md): The ten harvested sources, their access method and their licences.
+- [Data policy](https://origenality.com/DATA_POLICY.md): What is published and under what regime: metadata, summaries, tags (in French).
+- [Attribution](https://origenality.com/ATTRIBUTION.md): The attribution template required by each source.
+- [Source code](https://github.com/romain-girardi-eng/origenality): the harvesters, the merge, the classification and the site, under the MIT licence.
+
+## Data files
+
+- [graph.json](https://origenality.com/data/graph.json): the map layer: one entry per record, with its cluster, its tags and its link back to the catalogue
+- [stats.json](https://origenality.com/data/stats.json): the counts the Observatory draws
+- [abstracts.json](https://origenality.com/data/abstracts.json): the summaries shown in the Explorer, each with the database that wrote it and a link to its record
+- [META.json](https://origenality.com/data/META.json): the harvest itself: source, date, scope, fields published
+- [openapi.yaml](https://origenality.com/api-spec/openapi.yaml): the contract the site consumes
+
+## Key facts
+
+- The published map draws one catalogue: the Index Theologicus (IxTheo, Tübingen) hydrated from K10plus, harvested through the authority record for Origen (GND 118590235) on 15 August 2026.
+- That harvest returned 1 632 publications about Origen. 1 402 of them are counted in every figure on the site, 225 mention him only and 5 are held outside the count; the last two are returned by a search and enter no figure.
+- The working corpus behind the classification is wider: ten open sources merged into 42 210 clusters, of which 21 104 have been classified against the vocabulary and 6 742 are about Origen or give him a section of the argument. No record of that wider corpus is on the published map yet.
+- The density figure is a count of records inside a named node of the vocabulary. It measures how much has been written in a neighbourhood, not whether a project is original: a thin area may be unexplored, or empty for a reason, or written in a language this catalogue indexes thinly.
+- Citation weight is drawn as a percentile inside a cohort of the same decade, document type and language. It never filters a search and never enters a count.
+- The classification is machine-assisted and checked against a hand-tagged reference set. No agreement figure is published until it has been measured under the current instructions.
+- Every summary displayed names the database that wrote it and links to the record there.
+
+## Citing and contact
+
+- Cite as: Romain Girardi, *Origenality: a bibliographic map of Origen studies*, 2026. The machine-readable form is in `CITATION.cff`; cite the underlying databases as well, following `ATTRIBUTION.md`.
+- Corrections, and removal of any summary, at romain.girardi@univ-cotedazur.fr. A publisher, a database or an author who asks for a summary to be removed gets it removed, without having to explain.

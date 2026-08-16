@@ -1,0 +1,45 @@
+# Cloudflare Pages — en-têtes.
+#
+# Deux choses ici : une politique de sécurité qui dit en machine ce que le
+# README promet en prose — aucune requête ne quitte la page —, et un cache
+# proportionné à ce qui change.
+#
+# Sur le cache : les fichiers de ce site ne portent pas d'empreinte dans leur
+# nom. `explorer.js` reste `explorer.js` d'une version à l'autre, donc un
+# `immutable` d'un an y garderait une ancienne version chez le lecteur jusqu'en
+# 2027. L'année ferme est réservée aux fontes, dont le contenu ne bouge pas sans
+# que le nom bouge ; le reste prend un cache court doublé de
+# `stale-while-revalidate`, qui sert la copie en cache pendant que le
+# navigateur va chercher la neuve. Le jour où le build empreinte les noms, tout
+# ce qui est sous /site/assets/ peut passer en immutable.
+#
+# Les règles vont du général au particulier. Si Pages applique la dernière règle
+# qui correspond, les fontes gagnent leur année ; s'il applique la première, elles
+# gardent le cache court — un fichier périmé n'est servi dans aucun des deux cas.
+# `curl -I` sur le site déployé tranche, la marche est dans docs/seo-geo.md.
+
+/*
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+  Permissions-Policy: accelerometer=(), camera=(), display-capture=(), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), midi=(), payment=(), usb=()
+  Cross-Origin-Opener-Policy: same-origin
+  Strict-Transport-Security: max-age=31536000; includeSubDomains
+  Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'; object-src 'none'; upgrade-insecure-requests
+
+# La couche de données : réécrite par une passe de publication, sous un nom
+# stable. Cache court, revalidation en arrière-plan, et l'origine ouverte que
+# Pages pose déjà — ces fichiers sont faits pour être repris ailleurs.
+/data/*
+  Cache-Control: public, max-age=600, stale-while-revalidate=86400
+  Access-Control-Allow-Origin: *
+
+/site/assets/*
+  Cache-Control: public, max-age=600, stale-while-revalidate=86400
+
+# La marque et l'image de partage bougent avec les chiffres, pas avec le code.
+/site/assets/marks/*
+  Cache-Control: public, max-age=604800, stale-while-revalidate=86400
+
+# Les fontes : leur contenu est figé, un changement passerait par un autre nom.
+/site/assets/fonts/*
+  Cache-Control: public, max-age=31536000, immutable

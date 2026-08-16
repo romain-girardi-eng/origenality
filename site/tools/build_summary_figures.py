@@ -489,6 +489,27 @@ def method_rule_block(values: dict) -> str:
 """.format(counted=spaced(values["counted"])))
 
 
+def method_questions_block(values: dict) -> str:
+    """La réponse courte sur la densité, en bas de la page de méthode.
+
+    Elle se tient seule — c'est à quoi sert une réponse de ce genre — et elle
+    porte donc la population, comme les paragraphes qui la précèdent. Générée
+    pour la même raison qu'eux : le jour où la population bouge, elle bouge.
+    """
+    return ("""
+    <p>A density is a count of records inside a named node of the vocabulary, and nothing
+      more. When the map says forty-seven works sit in a perimeter, forty-seven records of
+      this harvest are filed under that node, out of the {counted} the site counts. The node
+      has a name, a path and a definition, so the figure can be checked against the same data.
+      What a density does not measure is the originality of a project: thin ground may be
+      unexplored, or exhausted, or written in a language this catalogue indexes poorly, and the
+      map cannot tell those three apart. It opens a question rather than settling one. Academic
+      weight, drawn as the size of a disc, is a separate thing again: a citation percentile
+      inside a cohort of the same decade, type and language, which never filters a search and
+      never enters a count.</p>
+""".format(counted=spaced(values["counted"])))
+
+
 def credits_source_block(values: dict) -> str:
     return ("""
             <td>the {harvest} records mapped here: titles, authors, years, languages, containers,
@@ -656,6 +677,7 @@ def population_blocks():
         ("FIGURES:population-bias", "methode.html", method_bias_block),
         ("FIGURES:population-counted", "methode.html", method_counted_block),
         ("FIGURES:population-rule", "methode.html", method_rule_block),
+        ("FIGURES:population-questions", "methode.html", method_questions_block),
         ("FIGURES:population-source", "credits.html", credits_source_block),
         ("FIGURES:population-reservoirs", "README.md", readme_reservoirs_block),
         ("FIGURES:population-screen", "README.md", readme_population_block),
