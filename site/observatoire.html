@@ -1,0 +1,185 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Origenality — Observatory</title>
+<!-- FIGURES:population-meta -->
+<meta name="description" content="What one harvest of the scholarship on Origen contains: 1 402 counted records out of 1 632 from IxTheo, by period, language, format, theme and work.">
+<!-- /FIGURES:population-meta -->
+<meta name="author" content="Romain Girardi">
+<link rel="icon" href="assets/marks/favicon.svg" type="image/svg+xml">
+<link rel="preload" href="assets/fonts/EBGaramond-VF.subset.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="assets/fonts/literata-var.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="assets/base.css">
+<link rel="stylesheet" href="assets/pages.css">
+</head>
+<body>
+
+<a class="skip" href="#main">Skip to the content</a>
+
+<header class="bar">
+  <a class="wordmark" href="index.html"><svg class="mk" viewBox="0 0 100 100" width="13" height="13" aria-hidden="true"><g stroke="currentColor" stroke-width="11" fill="none"><path d="M50 14 L50 86"/><path d="M14 50 L86 50"/></g><g fill="currentColor"><circle cx="27" cy="27" r="8"/><circle cx="73" cy="27" r="8"/><circle cx="27" cy="73" r="8"/><circle cx="73" cy="73" r="8"/></g></svg><span>Origenality</span></a>
+  <nav class="nav" aria-label="Pages">
+    <a href="index.html">Explorer</a>
+    <a href="observatoire.html" aria-current="page">Observatory</a>
+    <a href="methode.html">Method</a>
+    <a href="credits.html">Credits</a>
+  </nav>
+</header>
+
+<main class="page" id="main">
+
+  <div class="lede">
+    <h1>Observatory</h1>
+    <p>What this harvest holds, and what it cannot tell you. Every figure below is a count
+      of one catalogue on one day. It measures how a library indexes Origen; it does not
+      measure the field.</p>
+<!-- FIGURES:population-lede -->
+    <p><strong>One population, on every figure here and in the Explorer alike.</strong> A count
+      on this site is a count of the 1 402 records where Origen is the subject or holds a
+      section of the argument. Of the 1 632 harvested, 225 mention him only and 5 are
+      held outside the count: they stay in the index, they answer
+      a search, and they enter no figure. The three sets are drawn below before anything is
+      counted.</p>
+<!-- /FIGURES:population-lede -->
+    <p class="stamp" id="stamp">Loading the harvest…</p>
+  </div>
+
+  <section id="sets">
+    <h2>Three sets, kept apart</h2>
+    <p class="sub">A count is readable only when it says what it counts. Each record is classed
+      against the vocabulary, and no class is deleted: the noise stays in the index, where it can
+      be measured instead of hidden.</p>
+    <div class="card">
+      <div class="band" id="band-sets" role="img" aria-label="Share of the harvest by relevance class"></div>
+      <div class="band-key" id="key-sets"></div>
+    </div>
+    <p class="note" id="review-note"></p>
+    <div class="note">
+<!-- FIGURES:population-reservoir -->
+      <p><strong>What the third set holds.</strong> The rule of the first wave filed a record as
+        <em>not about Origen</em> whenever its metadata did not name him. On a catalogue where
+        librarians have already attached every record to Origen's authority record, that rule was
+        too severe: it swept in studies where he is one witness among several, and the figure it
+        produced had to be read as a ceiling on the noise rather than as a measurement of it. The
+        instructions were rewritten and the harvest classed again. On that curated perimeter the
+        class now floors at <em>mentioned only</em>, and <em>not about Origen</em> is kept for
+        what it was meant for. The third set now holds 5 records where the first wave held
+        223, and the second holds 225 where it held 9. A record of that second set is
+        retrieved by a search, listed under the count, and added to no figure.
+        Of the 5 held aside, 5 are classed: 4 are editions of texts by Origen catalogued as studies of him and 1 is a title where the word is not the name. None is held aside for want of a tag: a record the deduplication left behind goes back to the tagger, and the build refuses to publish while one is missing.
+        The <a href="methode.html">Method</a> page says what that costs.</p>
+<!-- /FIGURES:population-reservoir -->
+    </div>
+  </section>
+
+  <section id="scope">
+    <h2>Scope of the harvest</h2>
+    <p class="sub">One source, one day. The editions of Origen's own works are set aside: they are
+      primary sources, not scholarship about him.</p>
+    <div class="grid" id="scope-grid"></div>
+  </section>
+
+  <section id="time">
+    <h2>Publication over time</h2>
+    <p class="sub">By decade of publication, stacked by language, on the counted records.
+      Those without a year, and the handful printed before 1900, are not in this series; the
+      note under the chart says how many. The figures are given as a table under the columns.</p>
+    <div class="card">
+      <div class="fig-h"><h3>Records per decade</h3><span class="tot" id="time-tot"></span></div>
+      <div class="cols" id="cols-decade" role="img" aria-label="Records per decade, stacked by language"></div>
+      <div class="band-key" id="key-lang"></div>
+      <details class="data-table">
+        <summary>The figures behind this chart</summary>
+        <p class="tbl-cap" id="table-decade-cap"></p>
+        <div class="tbl-wrap"><table class="tbl num-tbl" id="table-decade"
+          aria-labelledby="table-decade-cap"></table></div>
+      </details>
+      <figcaption id="time-note"></figcaption>
+    </div>
+  </section>
+
+  <section id="languages">
+    <h2>Languages and formats</h2>
+<!-- FIGURES:population-languages -->
+    <p class="sub">Language and format as coded in the catalogue record, not as inferred from the
+      title. Counted on the same 1 402 records as every other figure, which is why these totals
+      run below the size of the harvest.</p>
+<!-- /FIGURES:population-languages -->
+    <div class="figs">
+      <figure class="card">
+        <div class="fig-h"><h3>Language of publication</h3><span class="tot" id="lang-tot"></span></div>
+        <div class="bars" id="bars-lang"></div>
+      </figure>
+      <figure class="card">
+        <div class="fig-h"><h3>Format</h3><span class="tot" id="fmt-tot"></span></div>
+        <div class="bars" id="bars-fmt"></div>
+      </figure>
+    </div>
+  </section>
+
+  <section id="themes">
+    <h2>Themes</h2>
+    <p class="sub">Sixteen domains of the controlled vocabulary. A publication may carry up to five
+      theme leaves; it is counted here under the first one, the one that files it on the map, and it
+      remains findable under the others.</p>
+<!-- FIGURES:population-themes -->
+    <p class="sub">Counted on the same 1 402 records as the figures above: a record that
+      merely mentions Origen thickens no theme, no work and no angle, and is listed rather
+      than counted wherever the Explorer returns it.</p>
+<!-- /FIGURES:population-themes -->
+    <div class="card">
+      <div class="fig-h"><h3>Domain of the leading theme</h3><span class="tot" id="dom-tot"></span></div>
+      <div class="bars" id="bars-dom"></div>
+    </div>
+  </section>
+
+  <section id="works">
+    <h2>Works of Origen</h2>
+    <p class="sub">Works named in the record or clearly implied by it. Most publications name none:
+      they treat a doctrine, a reader, a milieu.</p>
+    <div class="figs">
+      <figure class="card">
+        <div class="fig-h"><h3>Works most often studied</h3><span class="tot" id="work-tot"></span></div>
+        <div class="bars" id="bars-work"></div>
+      </figure>
+      <figure class="card">
+        <div class="fig-h"><h3>Angle of approach</h3><span class="tot" id="appr-tot"></span></div>
+        <div class="bars" id="bars-appr"></div>
+      </figure>
+    </div>
+  </section>
+
+  <section id="limits" class="prose">
+    <h2>What these figures cannot say</h2>
+    <p class="sub">Stated with the numbers, not after them.</p>
+    <ul>
+      <li><strong>One catalogue.</strong> IxTheo is a theological index built in Tübingen. It reads
+        German and European theology closely and other regions less closely. A count of its records
+        is a count of its indexing policy.</li>
+      <li><strong>Uneven indexing.</strong> Subject headings are richer on recent records, which pushes
+        every subject count toward the well-indexed decades.</li>
+      <li><strong>The 2020s are open.</strong> The last column stops in mid-2026 and will keep filling.</li>
+      <li><strong>Automatic classing.</strong> Themes, works, angles and relevance are assigned by
+        a program against a closed vocabulary, checked against a set of records tagged by hand.
+        The rate of records flagged for review is published above; where the agreement figure
+        stands, and why it carries no number this month, is on the
+        <a href="methode.html">Method</a> page.</li>
+      <li><strong>No reading or download figures anywhere.</strong> No source holds them reliably, and
+        an invented one would be worse than none.</li>
+    </ul>
+  </section>
+
+  <div class="foot">
+    <span>Origenality · Romain Girardi</span>
+    <a href="methode.html">Method</a>
+    <a href="credits.html">Credits and licences</a>
+    <span id="foot-stamp"></span>
+  </div>
+
+</main>
+
+<script src="assets/observatory.js"></script>
+</body>
+</html>

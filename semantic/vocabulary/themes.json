@@ -1,0 +1,1887 @@
+{
+ "$schema": "https://json-schema.org/draft/2020-12/schema",
+ "title": "Origenality Controlled Vocabulary — Themes",
+ "description": "Two-level closed thematic vocabulary (16 domains, 61 leaves). Only leaf identifiers may be written into a tag record; domains exist for aggregation and for the topic tree. Construction: the leaves were derived by crossing the section list published by the Adamantius repertorio bibliografico (data/raw/adamantius/sections.json) with the subject headings and subject chains attested in the IxTheo notices about Origen (data/raw/ixtheo/records.jsonl, relation in about|both, n = 1632). Each leaf records the attested headings that motivated it in ix_headings (verbatim, with their observed frequency in the field ix_freq when it was computed) and, where relevant, the Adamantius section in adamantius_sections (verbatim).",
+ "version": "1.1.0",
+ "axis": "themes",
+ "cardinality": "0..5 leaf ids per notice: 1 to 5 when relevance is core, partial or marginal, and 0 when relevance is none — a notice out of the dossier has no theme, and used to be given a filler one.",
+ "label_policy": "English label = the working label of the project. German labels are the IxTheo headings themselves when one exists; Italian labels follow the Adamantius section wording when one exists; otherwise German, French and Italian equivalents are standard renderings supplied by this vocabulary and are marked with \"supplied\": true.",
+ "domains": {
+  "exegesis": {
+   "label": "Exegesis and hermeneutics",
+   "labels": {
+    "de": "Exegese und Hermeneutik",
+    "fr": "Exégèse et herméneutique",
+    "it": "Esegesi ed ermeneutica"
+   },
+   "color": "#8c2f39"
+  },
+  "scripture": {
+   "label": "Bible, text and canon",
+   "labels": {
+    "de": "Bibel, Text und Kanon",
+    "fr": "Bible, texte et canon",
+    "it": "Bibbia, testo e canone"
+   },
+   "color": "#a4551f"
+  },
+  "god": {
+   "label": "God, Trinity and Logos",
+   "labels": {
+    "de": "Gott, Trinität und Logos",
+    "fr": "Dieu, Trinité et Logos",
+    "it": "Dio, Trinità e Logos"
+   },
+   "color": "#8a7524"
+  },
+  "christ": {
+   "label": "Christ and salvation",
+   "labels": {
+    "de": "Christus und Heil",
+    "fr": "Le Christ et le salut",
+    "it": "Cristo e la salvezza"
+   },
+   "color": "#1f6f5c"
+  },
+  "cosmos": {
+   "label": "Creation, providence and the invisible world",
+   "labels": {
+    "de": "Schöpfung, Vorsehung und unsichtbare Welt",
+    "fr": "Création, providence et monde invisible",
+    "it": "Creazione, provvidenza e mondo invisibile"
+   },
+   "color": "#2f5d8c"
+  },
+  "anthropology": {
+   "label": "Human being, soul and freedom",
+   "labels": {
+    "de": "Mensch, Seele und Freiheit",
+    "fr": "L'homme, l'âme et la liberté",
+    "it": "Uomo, anima e libertà"
+   },
+   "color": "#6b4c9a"
+  },
+  "eschatology": {
+   "label": "Last things",
+   "labels": {
+    "de": "Eschatologie",
+    "fr": "Fins dernières",
+    "it": "Escatologia"
+   },
+   "color": "#3c6e71"
+  },
+  "spirituality": {
+   "label": "Prayer, martyrdom and ascetic life",
+   "labels": {
+    "de": "Gebet, Martyrium und asketisches Leben",
+    "fr": "Prière, martyre et vie ascétique",
+    "it": "Preghiera, martirio e vita ascetica"
+   },
+   "color": "#9a5b3c"
+  },
+  "church": {
+   "label": "Church, ministry and liturgy",
+   "labels": {
+    "de": "Kirche, Amt und Liturgie",
+    "fr": "Église, ministère et liturgie",
+    "it": "Chiesa, ministero e liturgia"
+   },
+   "color": "#4a6d3c"
+  },
+  "ethics": {
+   "label": "Ethics, society and education",
+   "labels": {
+    "de": "Ethik, Gesellschaft und Erziehung",
+    "fr": "Éthique, société et éducation",
+    "it": "Etica, società ed educazione"
+   },
+   "color": "#7a5c2e"
+  },
+  "philosophy": {
+   "label": "Philosophical context",
+   "labels": {
+    "de": "Philosophischer Kontext",
+    "fr": "Contexte philosophique",
+    "it": "Contesto filosofico"
+   },
+   "color": "#39587a"
+  },
+  "judaism": {
+   "label": "Judaism and Jewish-Christian relations",
+   "labels": {
+    "de": "Judentum und jüdisch-christliche Beziehungen",
+    "fr": "Judaïsme et relations judéo-chrétiennes",
+    "it": "Giudaismo e rapporti giudaico-cristiani"
+   },
+   "color": "#6d4a4a"
+  },
+  "heresy": {
+   "label": "Gnosticism, apologetics and polemic",
+   "labels": {
+    "de": "Gnosis, Apologetik und Polemik",
+    "fr": "Gnose, apologétique et polémique",
+    "it": "Gnosticismo, apologetica e polemica"
+   },
+   "color": "#5c3c6d"
+  },
+  "context": {
+   "label": "Life, milieu and historical setting",
+   "labels": {
+    "de": "Leben, Umfeld und historischer Kontext",
+    "fr": "Vie, milieu et contexte historique",
+    "it": "Vita, ambiente e contesto storico"
+   },
+   "color": "#4a4a4a"
+  },
+  "reception": {
+   "label": "Reception and Origenism",
+   "labels": {
+    "de": "Rezeption und Origenismus",
+    "fr": "Réception et origénisme",
+    "it": "Ricezione e origenismo"
+   },
+   "color": "#8c6a2f"
+  },
+  "scholarship": {
+   "label": "Editions, transmission and research",
+   "labels": {
+    "de": "Editionen, Überlieferung und Forschung",
+    "fr": "Éditions, transmission et recherche",
+    "it": "Edizioni, tradizione e ricerca"
+   },
+   "color": "#7a7a7a"
+  }
+ },
+ "themes": {
+  "exegesis.allegory": {
+   "domain": "exegesis",
+   "label": "Allegory and the spiritual senses of Scripture",
+   "labels": {
+    "de": "Allegorese",
+    "fr": "Allégorie et sens spirituels",
+    "it": "Allegoria e sensi spirituali"
+   },
+   "ix_headings": [
+    "Allegorese",
+    "Allegorie",
+    "Allegory",
+    "Allegorische Exegese",
+    "Symbolism in the Bible",
+    "Symbolisme dans la Bible"
+   ],
+   "aliases": [
+    "allegory",
+    "allegorese",
+    "allegoria",
+    "allegorical",
+    "spiritual sense",
+    "sens spirituel",
+    "geistiger sinn",
+    "anagogy"
+   ],
+   "status": "active"
+  },
+  "exegesis.hermeneutic-theory": {
+   "domain": "exegesis",
+   "label": "Hermeneutic theory and principles of interpretation",
+   "labels": {
+    "de": "Hermeneutik",
+    "fr": "Herméneutique",
+    "it": "Ermeneutica"
+   },
+   "ix_headings": [
+    "Hermeneutik",
+    "Hermeneutics",
+    "hermeneutics",
+    "Schriftverständnis",
+    "Neutestamentliche Hermeneutik"
+   ],
+   "aliases": [
+    "hermeneutic",
+    "hermeneutik",
+    "ermeneutica",
+    "herméneutique",
+    "interpretation theory",
+    "schriftverstandnis",
+    "scriptural principles"
+   ],
+   "status": "active"
+  },
+  "exegesis.typology-and-figure": {
+   "domain": "exegesis",
+   "label": "Typology, figure and metaphor",
+   "labels": {
+    "de": "Typologie und Metapher",
+    "fr": "Typologie et métaphore",
+    "it": "Tipologia e metafora"
+   },
+   "ix_headings": [
+    "Typologie",
+    "Metapher",
+    "Mythos"
+   ],
+   "aliases": [
+    "typology",
+    "typologie",
+    "tipologia",
+    "figure",
+    "metaphor",
+    "metapher",
+    "metafora",
+    "symbol"
+   ],
+   "status": "active"
+  },
+  "exegesis.genres": {
+   "domain": "exegesis",
+   "label": "Exegetical genres: commentary, homily, scholia",
+   "labels": {
+    "de": "Kommentar und Homilie",
+    "fr": "Commentaire et homélie",
+    "it": "Commento e omelia"
+   },
+   "ix_headings": [
+    "Kommentar",
+    "Homilie",
+    "Predigt",
+    "sermon",
+    "Sermons, Greek",
+    "Sermons, Latin"
+   ],
+   "adamantius_sections": [
+    "12. Origene"
+   ],
+   "aliases": [
+    "commentary",
+    "kommentar",
+    "commento",
+    "homily",
+    "homilie",
+    "omelia",
+    "sermon",
+    "predigt",
+    "scholia",
+    "preaching"
+   ],
+   "status": "active"
+  },
+  "scripture.hexapla": {
+   "domain": "scripture",
+   "label": "Hexapla and textual criticism of the Bible",
+   "labels": {
+    "de": "Textkritik und Hexapla",
+    "fr": "Hexaples et critique textuelle",
+    "it": "Esapla e critica testuale"
+   },
+   "ix_headings": [
+    "Textkritik",
+    "Textgeschichte"
+   ],
+   "aliases": [
+    "hexapla",
+    "hexaples",
+    "esapla",
+    "textual criticism",
+    "textkritik",
+    "critica testuale",
+    "recension",
+    "variant"
+   ],
+   "status": "active"
+  },
+  "scripture.versions": {
+   "domain": "scripture",
+   "label": "Septuagint, biblical versions and translation",
+   "labels": {
+    "de": "Septuaginta und Bibelübersetzung",
+    "fr": "Septante et versions bibliques",
+    "it": "Settanta e versioni bibliche"
+   },
+   "ix_headings": [
+    "Übersetzung",
+    "Bibel",
+    "Bible",
+    "Griechisch"
+   ],
+   "adamantius_sections": [
+    "4. LXX"
+   ],
+   "aliases": [
+    "septuagint",
+    "septuaginta",
+    "settanta",
+    "lxx",
+    "vetus latina",
+    "peshitta",
+    "translation",
+    "ubersetzung",
+    "traduzione"
+   ],
+   "status": "active"
+  },
+  "scripture.canon": {
+   "domain": "scripture",
+   "label": "Canon, inspiration and scriptural authority",
+   "labels": {
+    "de": "Kanon und Schriftautorität",
+    "fr": "Canon et autorité de l'Écriture",
+    "it": "Canone e autorità della Scrittura"
+   },
+   "ix_headings": [
+    "Kanon",
+    "Wort Gottes",
+    "Offenbarung",
+    "Pseudepigraphie",
+    "Neues Testament"
+   ],
+   "aliases": [
+    "canon",
+    "kanon",
+    "canone",
+    "inspiration",
+    "apocrypha",
+    "pseudepigrapha",
+    "word of god",
+    "revelation",
+    "offenbarung"
+   ],
+   "status": "active"
+  },
+  "god.doctrine-of-god": {
+   "domain": "god",
+   "label": "Doctrine of God and divine attributes",
+   "labels": {
+    "de": "Gotteslehre und Gottesvorstellung",
+    "fr": "Doctrine de Dieu et attributs divins",
+    "it": "Dottrina di Dio e attributi divini"
+   },
+   "ix_headings": [
+    "Gottesvorstellung",
+    "Gotteslehre",
+    "God",
+    "God (Christianity)",
+    "Monotheismus",
+    "Apathie Gottes",
+    "Gotteserkenntnis"
+   ],
+   "aliases": [
+    "doctrine of god",
+    "gotteslehre",
+    "monotheism",
+    "divine attributes",
+    "impassibility",
+    "apatheia",
+    "knowledge of god"
+   ],
+   "status": "active"
+  },
+  "god.trinity": {
+   "domain": "god",
+   "label": "Trinitarian theology",
+   "labels": {
+    "de": "Trinitätslehre",
+    "fr": "Théologie trinitaire",
+    "it": "Teologia trinitaria"
+   },
+   "ix_headings": [
+    "Trinität",
+    "Trinitätslehre",
+    "Trinity"
+   ],
+   "aliases": [
+    "trinity",
+    "trinitat",
+    "trinitarian",
+    "trinitaire",
+    "trinitaria",
+    "subordination",
+    "hypostasis",
+    "consubstantial"
+   ],
+   "status": "active"
+  },
+  "god.logos": {
+   "domain": "god",
+   "label": "Logos and Word of God",
+   "labels": {
+    "de": "Logos",
+    "fr": "Logos et Verbe",
+    "it": "Logos e Verbo"
+   },
+   "ix_headings": [
+    "Logos",
+    "Wort Gottes",
+    "Sohn Gottes"
+   ],
+   "aliases": [
+    "logos",
+    "word of god",
+    "verbe",
+    "verbo",
+    "son of god",
+    "sohn gottes",
+    "wisdom",
+    "sophia"
+   ],
+   "status": "active"
+  },
+  "god.holy-spirit": {
+   "domain": "god",
+   "label": "Holy Spirit and pneumatology",
+   "labels": {
+    "de": "Heiliger Geist",
+    "fr": "Esprit Saint",
+    "it": "Spirito Santo"
+   },
+   "ix_headings": [
+    "Heiliger Geist",
+    "Holy Spirit",
+    "Geist"
+   ],
+   "aliases": [
+    "holy spirit",
+    "heiliger geist",
+    "esprit saint",
+    "spirito santo",
+    "pneumatology",
+    "pneuma",
+    "charism"
+   ],
+   "status": "active"
+  },
+  "christ.christology": {
+   "domain": "christ",
+   "label": "Christology and the titles of Christ",
+   "labels": {
+    "de": "Christologie",
+    "fr": "Christologie",
+    "it": "Cristologia"
+   },
+   "ix_headings": [
+    "Christologie",
+    "Jesus Christus"
+   ],
+   "aliases": [
+    "christology",
+    "christologie",
+    "cristologia",
+    "epinoiai",
+    "titles of christ",
+    "jesus christ"
+   ],
+   "status": "active"
+  },
+  "christ.incarnation": {
+   "domain": "christ",
+   "label": "Incarnation and kenosis",
+   "labels": {
+    "de": "Inkarnation und Kenosis",
+    "fr": "Incarnation et kénose",
+    "it": "Incarnazione e kenosi"
+   },
+   "ix_headings": [
+    "Inkarnation",
+    "Kenosis"
+   ],
+   "aliases": [
+    "incarnation",
+    "inkarnation",
+    "incarnazione",
+    "kenosis",
+    "kenose",
+    "soul of christ",
+    "human nature of christ"
+   ],
+   "status": "active"
+  },
+  "christ.soteriology": {
+   "domain": "christ",
+   "label": "Soteriology and redemption",
+   "labels": {
+    "de": "Soteriologie und Erlösung",
+    "fr": "Sotériologie et rédemption",
+    "it": "Soteriologia e redenzione"
+   },
+   "ix_headings": [
+    "Soteriologie",
+    "Erlösung",
+    "Salvation",
+    "Rechtfertigung",
+    "Heilsgeschichte"
+   ],
+   "aliases": [
+    "soteriology",
+    "soteriologie",
+    "soteriologia",
+    "redemption",
+    "erlosung",
+    "salvation",
+    "justification",
+    "rechtfertigung"
+   ],
+   "status": "active"
+  },
+  "christ.sacrifice": {
+   "domain": "christ",
+   "label": "Sacrifice, cross and atonement",
+   "labels": {
+    "de": "Opfer und Kreuz",
+    "fr": "Sacrifice et croix",
+    "it": "Sacrificio e croce"
+   },
+   "ix_headings": [
+    "Opfer",
+    "Kult"
+   ],
+   "aliases": [
+    "sacrifice",
+    "opfer",
+    "sacrificio",
+    "cross",
+    "kreuz",
+    "croix",
+    "atonement",
+    "ransom",
+    "expiation"
+   ],
+   "status": "active"
+  },
+  "cosmos.creation": {
+   "domain": "cosmos",
+   "label": "Creation and cosmology",
+   "labels": {
+    "de": "Schöpfung und Kosmologie",
+    "fr": "Création et cosmologie",
+    "it": "Creazione e cosmologia"
+   },
+   "ix_headings": [
+    "Schöpfung",
+    "Creation",
+    "Kosmologie",
+    "Cosmology, Ancient",
+    "Cosmogony"
+   ],
+   "aliases": [
+    "creation",
+    "schopfung",
+    "creazione",
+    "cosmology",
+    "kosmologie",
+    "cosmogony",
+    "matter",
+    "hyle",
+    "aeon",
+    "world"
+   ],
+   "status": "active"
+  },
+  "cosmos.providence-and-evil": {
+   "domain": "cosmos",
+   "label": "Providence, theodicy and the problem of evil",
+   "labels": {
+    "de": "Vorsehung und Theodizee",
+    "fr": "Providence et théodicée",
+    "it": "Provvidenza e teodicea"
+   },
+   "ix_headings": [
+    "Theodizee",
+    "Das Böse",
+    "Leid",
+    "Prädestination"
+   ],
+   "aliases": [
+    "providence",
+    "vorsehung",
+    "providenza",
+    "theodicy",
+    "theodizee",
+    "teodicea",
+    "evil",
+    "suffering",
+    "predestination",
+    "pradestination"
+   ],
+   "status": "active"
+  },
+  "cosmos.angels-and-demons": {
+   "domain": "cosmos",
+   "label": "Angels, demons and spiritual powers",
+   "labels": {
+    "de": "Engel und Dämonen",
+    "fr": "Anges et démons",
+    "it": "Angeli e demoni"
+   },
+   "ix_headings": [
+    "Engel",
+    "Dämon",
+    "Magie",
+    "Wunder"
+   ],
+   "aliases": [
+    "angel",
+    "engel",
+    "angelo",
+    "demon",
+    "damon",
+    "demone",
+    "devil",
+    "satan",
+    "magic",
+    "miracle"
+   ],
+   "status": "active"
+  },
+  "cosmos.time-and-history": {
+   "domain": "cosmos",
+   "label": "Time, history and the economy of salvation",
+   "labels": {
+    "de": "Zeit und Heilsgeschichte",
+    "fr": "Temps et histoire du salut",
+    "it": "Tempo e storia della salvezza"
+   },
+   "ix_headings": [
+    "Zeit",
+    "Geschichtlichkeit",
+    "Heilsgeschichte",
+    "Geschichte"
+   ],
+   "aliases": [
+    "time",
+    "zeit",
+    "tempo",
+    "history of salvation",
+    "heilsgeschichte",
+    "historicity",
+    "economy",
+    "oikonomia",
+    "aion"
+   ],
+   "status": "active"
+  },
+  "anthropology.image-of-god": {
+   "domain": "anthropology",
+   "label": "Theological anthropology and the image of God",
+   "labels": {
+    "de": "Theologische Anthropologie und Gottebenbildlichkeit",
+    "fr": "Anthropologie théologique et image de Dieu",
+    "it": "Antropologia teologica e immagine di Dio"
+   },
+   "ix_headings": [
+    "Anthropologie",
+    "Theologische Anthropologie",
+    "Theological anthropology",
+    "Gottebenbildlichkeit",
+    "Menschenwürde"
+   ],
+   "aliases": [
+    "anthropology",
+    "anthropologie",
+    "antropologia",
+    "image of god",
+    "gottebenbildlichkeit",
+    "imago dei",
+    "likeness",
+    "human dignity"
+   ],
+   "status": "active"
+  },
+  "anthropology.soul-and-preexistence": {
+   "domain": "anthropology",
+   "label": "Soul, body and pre-existence",
+   "labels": {
+    "de": "Seele, Leib und Präexistenz",
+    "fr": "Âme, corps et préexistence",
+    "it": "Anima, corpo e preesistenza"
+   },
+   "ix_headings": [
+    "Seele",
+    "Präexistenz",
+    "Leib-Seele-Problem",
+    "Seelenwanderung",
+    "Unsterblichkeit"
+   ],
+   "aliases": [
+    "soul",
+    "seele",
+    "anima",
+    "body",
+    "preexistence",
+    "praexistenz",
+    "preesistenza",
+    "transmigration",
+    "metempsychosis",
+    "immortality"
+   ],
+   "status": "active"
+  },
+  "anthropology.free-will": {
+   "domain": "anthropology",
+   "label": "Free will, determinism and moral responsibility",
+   "labels": {
+    "de": "Willensfreiheit und Determinismus",
+    "fr": "Libre arbitre et déterminisme",
+    "it": "Libero arbitrio e determinismo"
+   },
+   "ix_headings": [
+    "Willensfreiheit",
+    "Freiheit",
+    "Free will and determinism",
+    "Liberty"
+   ],
+   "aliases": [
+    "free will",
+    "willensfreiheit",
+    "libero arbitrio",
+    "libre arbitre",
+    "freedom",
+    "freiheit",
+    "autexousios",
+    "determinism",
+    "fate",
+    "responsibility"
+   ],
+   "status": "active"
+  },
+  "anthropology.sin-and-grace": {
+   "domain": "anthropology",
+   "label": "Sin, fall and grace",
+   "labels": {
+    "de": "Sünde, Fall und Gnade",
+    "fr": "Péché, chute et grâce",
+    "it": "Peccato, caduta e grazia"
+   },
+   "ix_headings": [
+    "Sünde",
+    "Erbsünde",
+    "Pelagianismus",
+    "Pelagius"
+   ],
+   "aliases": [
+    "sin",
+    "sunde",
+    "peccato",
+    "fall",
+    "original sin",
+    "erbsunde",
+    "grace",
+    "gnade",
+    "grazia",
+    "pelagian",
+    "pelagianismus"
+   ],
+   "status": "active"
+  },
+  "eschatology.apokatastasis": {
+   "domain": "eschatology",
+   "label": "Apokatastasis and universal restoration",
+   "labels": {
+    "de": "Apokatastasis",
+    "fr": "Apocatastase",
+    "it": "Apocatastasi"
+   },
+   "ix_headings": [
+    "Apokatastasis"
+   ],
+   "aliases": [
+    "apokatastasis",
+    "apocatastase",
+    "apocatastasi",
+    "universal restoration",
+    "universal salvation",
+    "restitution"
+   ],
+   "status": "active"
+  },
+  "eschatology.resurrection": {
+   "domain": "eschatology",
+   "label": "Resurrection of the body",
+   "labels": {
+    "de": "Auferstehung",
+    "fr": "Résurrection",
+    "it": "Risurrezione"
+   },
+   "ix_headings": [
+    "Auferstehung"
+   ],
+   "aliases": [
+    "resurrection",
+    "auferstehung",
+    "risurrezione",
+    "resurrection body",
+    "spiritual body",
+    "corporeality"
+   ],
+   "status": "active"
+  },
+  "eschatology.judgment-and-hell": {
+   "domain": "eschatology",
+   "label": "Judgment, punishment and hell",
+   "labels": {
+    "de": "Gericht und Hölle",
+    "fr": "Jugement et enfer",
+    "it": "Giudizio e inferno"
+   },
+   "ix_headings": [
+    "Hölle",
+    "Gericht"
+   ],
+   "aliases": [
+    "judgment",
+    "gericht",
+    "giudizio",
+    "hell",
+    "holle",
+    "inferno",
+    "punishment",
+    "purification",
+    "fire"
+   ],
+   "status": "active"
+  },
+  "eschatology.last-things": {
+   "domain": "eschatology",
+   "label": "Eschatological hope and the end",
+   "labels": {
+    "de": "Eschatologie",
+    "fr": "Eschatologie",
+    "it": "Escatologia"
+   },
+   "ix_headings": [
+    "Eschatologie",
+    "Eschatology",
+    "eschatology",
+    "escatology"
+   ],
+   "aliases": [
+    "eschatology",
+    "eschatologie",
+    "escatologia",
+    "end of the world",
+    "parousia",
+    "millenarianism",
+    "beatitude",
+    "vision of god"
+   ],
+   "status": "active"
+  },
+  "spirituality.prayer": {
+   "domain": "spirituality",
+   "label": "Prayer",
+   "labels": {
+    "de": "Gebet",
+    "fr": "Prière",
+    "it": "Preghiera"
+   },
+   "ix_headings": [
+    "Gebet"
+   ],
+   "aliases": [
+    "prayer",
+    "gebet",
+    "preghiera",
+    "priere",
+    "lord's prayer",
+    "intercession",
+    "contemplation"
+   ],
+   "status": "active"
+  },
+  "spirituality.martyrdom": {
+   "domain": "spirituality",
+   "label": "Martyrdom",
+   "labels": {
+    "de": "Martyrium",
+    "fr": "Martyre",
+    "it": "Martirio"
+   },
+   "ix_headings": [
+    "Martyrium"
+   ],
+   "aliases": [
+    "martyrdom",
+    "martyrium",
+    "martirio",
+    "martyre",
+    "confessor",
+    "persecution and witness"
+   ],
+   "status": "active"
+  },
+  "spirituality.asceticism": {
+   "domain": "spirituality",
+   "label": "Asceticism and monastic life",
+   "labels": {
+    "de": "Askese und Mönchtum",
+    "fr": "Ascèse et vie monastique",
+    "it": "Ascesi e monachesimo"
+   },
+   "ix_headings": [
+    "Askese",
+    "Mönchtum",
+    "Geistliches Leben",
+    "Christliche Existenz"
+   ],
+   "adamantius_sections": [
+    "10. Cristianesimo alessandrino ed ambiente egiziano"
+   ],
+   "aliases": [
+    "asceticism",
+    "askese",
+    "ascesi",
+    "ascese",
+    "monasticism",
+    "monchtum",
+    "monachesimo",
+    "spiritual life",
+    "renunciation"
+   ],
+   "status": "active"
+  },
+  "spirituality.mysticism-and-virtue": {
+   "domain": "spirituality",
+   "label": "Mysticism, virtue and spiritual progress",
+   "labels": {
+    "de": "Mystik und Tugend",
+    "fr": "Mystique et vertu",
+    "it": "Mistica e virtù"
+   },
+   "ix_headings": [
+    "Mystik",
+    "Spiritualität",
+    "Tugend",
+    "Glaube",
+    "Liebe",
+    "Gottesbeziehung",
+    "Theologische Erkenntnistheorie"
+   ],
+   "aliases": [
+    "mysticism",
+    "mystik",
+    "mistica",
+    "mystique",
+    "spirituality",
+    "virtue",
+    "tugend",
+    "virtu",
+    "faith",
+    "love",
+    "perfection",
+    "deification"
+   ],
+   "status": "active"
+  },
+  "church.ecclesiology": {
+   "domain": "church",
+   "label": "Ecclesiology and the nature of the Church",
+   "labels": {
+    "de": "Ekklesiologie",
+    "fr": "Ecclésiologie",
+    "it": "Ecclesiologia"
+   },
+   "ix_headings": [
+    "Ekklesiologie",
+    "Kirche",
+    "Church"
+   ],
+   "aliases": [
+    "ecclesiology",
+    "ekklesiologie",
+    "ecclesiologia",
+    "church",
+    "kirche",
+    "chiesa",
+    "body of christ",
+    "bride"
+   ],
+   "status": "active"
+  },
+  "church.ministry": {
+   "domain": "church",
+   "label": "Priesthood, ministry and church order",
+   "labels": {
+    "de": "Priestertum und kirchliches Amt",
+    "fr": "Sacerdoce et ministère",
+    "it": "Sacerdozio e ministero"
+   },
+   "ix_headings": [
+    "Priester",
+    "Kirchliches Amt",
+    "Bischof",
+    "Klerus",
+    "Kirchliche Rechtsgeschichte"
+   ],
+   "aliases": [
+    "priesthood",
+    "priester",
+    "sacerdozio",
+    "sacerdoce",
+    "ministry",
+    "bishop",
+    "bischof",
+    "clergy",
+    "ordination",
+    "church order",
+    "penance"
+   ],
+   "status": "active"
+  },
+  "church.sacraments": {
+   "domain": "church",
+   "label": "Baptism, Eucharist and sacramental theology",
+   "labels": {
+    "de": "Taufe und Eucharistie",
+    "fr": "Baptême et eucharistie",
+    "it": "Battesimo ed eucaristia"
+   },
+   "ix_headings": [
+    "Eucharistie",
+    "Taufe"
+   ],
+   "aliases": [
+    "baptism",
+    "taufe",
+    "battesimo",
+    "bapteme",
+    "eucharist",
+    "eucharistie",
+    "eucaristia",
+    "sacrament",
+    "mystagogy"
+   ],
+   "status": "active"
+  },
+  "church.liturgy": {
+   "domain": "church",
+   "label": "Liturgy, feasts and preaching in context",
+   "labels": {
+    "de": "Liturgie und Feste",
+    "fr": "Liturgie et fêtes",
+    "it": "Liturgia e feste"
+   },
+   "ix_headings": [
+    "Liturgie",
+    "Passah",
+    "Kult",
+    "Bibelpastoral",
+    "Bibelarbeit"
+   ],
+   "aliases": [
+    "liturgy",
+    "liturgie",
+    "liturgia",
+    "feast",
+    "passover",
+    "passah",
+    "pasqua",
+    "easter",
+    "worship",
+    "lectionary"
+   ],
+   "status": "active"
+  },
+  "ethics.moral-theology": {
+   "domain": "ethics",
+   "label": "Ethics and moral theology",
+   "labels": {
+    "de": "Ethik",
+    "fr": "Éthique",
+    "it": "Etica"
+   },
+   "ix_headings": [
+    "Ethik",
+    "Ethik/Sittenlehre",
+    "ethics",
+    "Christliche Ethik",
+    "conscience"
+   ],
+   "aliases": [
+    "ethics",
+    "ethik",
+    "etica",
+    "ethique",
+    "morality",
+    "conscience",
+    "gewissen",
+    "moral theology",
+    "virtue ethics"
+   ],
+   "status": "active"
+  },
+  "ethics.body-and-marriage": {
+   "domain": "ethics",
+   "label": "Marriage, virginity and the body",
+   "labels": {
+    "de": "Ehe und Jungfräulichkeit",
+    "fr": "Mariage et virginité",
+    "it": "Matrimonio e verginità"
+   },
+   "ix_headings": [
+    "Ehe",
+    "Jungfräulichkeit"
+   ],
+   "aliases": [
+    "marriage",
+    "ehe",
+    "matrimonio",
+    "mariage",
+    "virginity",
+    "jungfraulichkeit",
+    "verginita",
+    "sexuality",
+    "body",
+    "gender",
+    "women"
+   ],
+   "status": "active"
+  },
+  "ethics.violence": {
+   "domain": "ethics",
+   "label": "Violence, war and nonviolence",
+   "labels": {
+    "de": "Gewalt und Gewaltlosigkeit",
+    "fr": "Violence et non-violence",
+    "it": "Violenza e nonviolenza"
+   },
+   "ix_headings": [
+    "Gewalt",
+    "violence",
+    "Gewaltlosigkeit",
+    "non-violence",
+    "Recht"
+   ],
+   "aliases": [
+    "violence",
+    "gewalt",
+    "violenza",
+    "war",
+    "krieg",
+    "guerra",
+    "nonviolence",
+    "pacifism",
+    "military service",
+    "law"
+   ],
+   "status": "active"
+  },
+  "ethics.education": {
+   "domain": "ethics",
+   "label": "Education, paideia and culture",
+   "labels": {
+    "de": "Erziehung und Bildung",
+    "fr": "Éducation et paideia",
+    "it": "Educazione e paideia"
+   },
+   "ix_headings": [
+    "Erziehung",
+    "Christliche Erziehung",
+    "Christian education",
+    "Schule",
+    "Kultur",
+    "Humanism"
+   ],
+   "aliases": [
+    "education",
+    "erziehung",
+    "educazione",
+    "paideia",
+    "formation",
+    "school",
+    "schule",
+    "scuola",
+    "culture",
+    "humanism",
+    "curriculum"
+   ],
+   "status": "active"
+  },
+  "philosophy.platonism": {
+   "domain": "philosophy",
+   "label": "Platonism, Middle Platonism and Neoplatonism",
+   "labels": {
+    "de": "Platonismus und Neuplatonismus",
+    "fr": "Platonisme et néoplatonisme",
+    "it": "Platonismo e neoplatonismo"
+   },
+   "ix_headings": [
+    "Platonismus",
+    "Neuplatonismus",
+    "Platonismus/Platon",
+    "Platonism/Plato"
+   ],
+   "aliases": [
+    "platonism",
+    "platonismus",
+    "platonismo",
+    "platonisme",
+    "middle platonism",
+    "neoplatonism",
+    "plotinus",
+    "numenius",
+    "plato"
+   ],
+   "status": "active"
+  },
+  "philosophy.hellenistic-schools": {
+   "domain": "philosophy",
+   "label": "Stoicism and other Hellenistic schools",
+   "labels": {
+    "de": "Stoa und hellenistische Schulen",
+    "fr": "Stoïcisme et écoles hellénistiques",
+    "it": "Stoicismo e scuole ellenistiche"
+   },
+   "ix_headings": [
+    "Philosophie",
+    "Christliche Philosophie",
+    "Philosophy and religion",
+    "Antike",
+    "Vernunft",
+    "Ontologie"
+   ],
+   "adamantius_sections": [
+    "2. Ellenismo e cultura alessandrina"
+   ],
+   "aliases": [
+    "stoicism",
+    "stoa",
+    "stoicisme",
+    "stoicismo",
+    "aristotle",
+    "peripatetic",
+    "epicurean",
+    "scepticism",
+    "logic",
+    "physics",
+    "ontology"
+   ],
+   "status": "active"
+  },
+  "philosophy.alexandrian-school": {
+   "domain": "philosophy",
+   "label": "Alexandrian school, Philo and Clement",
+   "labels": {
+    "de": "Alexandrinische Schule, Philo und Clemens",
+    "fr": "École alexandrine, Philon et Clément",
+    "it": "Scuola alessandrina, Filone e Clemente"
+   },
+   "ix_headings": [
+    "Alexandrinische Schule",
+    "Philo",
+    "Clemens"
+   ],
+   "adamantius_sections": [
+    "7. Filone Alessandrino",
+    "11. Clemente Alessandrino"
+   ],
+   "aliases": [
+    "alexandrian school",
+    "alexandrinische schule",
+    "scuola alessandrina",
+    "ecole alexandrine",
+    "philo",
+    "philon",
+    "filone",
+    "clement of alexandria",
+    "clemens",
+    "didaskaleion",
+    "pantaenus"
+   ],
+   "status": "active"
+  },
+  "philosophy.rhetoric-and-language": {
+   "domain": "philosophy",
+   "label": "Rhetoric, language and literary form",
+   "labels": {
+    "de": "Rhetorik und Sprache",
+    "fr": "Rhétorique et langue",
+    "it": "Retorica e lingua"
+   },
+   "ix_headings": [
+    "Rhetorik",
+    "Sprache",
+    "Literatur",
+    "Griechische Literatur",
+    "Begriff",
+    "Dialog",
+    "dialogue"
+   ],
+   "aliases": [
+    "rhetoric",
+    "rhetorik",
+    "retorica",
+    "rhetorique",
+    "style",
+    "grammar",
+    "language",
+    "sprache",
+    "genre",
+    "diatribe",
+    "terminology"
+   ],
+   "status": "active"
+  },
+  "judaism.second-temple": {
+   "domain": "judaism",
+   "label": "Second Temple and Hellenistic Judaism",
+   "labels": {
+    "de": "Frühjudentum",
+    "fr": "Judaïsme du Second Temple",
+    "it": "Giudaismo del Secondo Tempio"
+   },
+   "ix_headings": [
+    "Frühjudentum",
+    "Judentum",
+    "Judaism"
+   ],
+   "adamantius_sections": [
+    "3. Giudaismo ellenistico",
+    "9. Flavio Giuseppe"
+   ],
+   "aliases": [
+    "second temple",
+    "fruhjudentum",
+    "hellenistic judaism",
+    "judaism",
+    "judentum",
+    "giudaismo",
+    "josephus",
+    "qumran",
+    "apocalyptic"
+   ],
+   "status": "active"
+  },
+  "judaism.rabbinic-contacts": {
+   "domain": "judaism",
+   "label": "Rabbinic literature and Jewish exegesis",
+   "labels": {
+    "de": "Rabbinische Literatur",
+    "fr": "Littérature rabbinique",
+    "it": "Letteratura rabbinica"
+   },
+   "ix_headings": [
+    "Rabbinische Literatur",
+    "Rabbinismus"
+   ],
+   "aliases": [
+    "rabbinic",
+    "rabbinisch",
+    "rabbinica",
+    "midrash",
+    "targum",
+    "jewish exegesis",
+    "hebrew",
+    "jewish teacher"
+   ],
+   "status": "active"
+  },
+  "judaism.anti-judaism": {
+   "domain": "judaism",
+   "label": "Anti-Judaism, Israel and supersession",
+   "labels": {
+    "de": "Antijudaismus und Israel",
+    "fr": "Antijudaïsme et Israël",
+    "it": "Antigiudaismo e Israele"
+   },
+   "ix_headings": [
+    "Antijudaismus",
+    "Antisemitismus",
+    "Israel",
+    "Christianity and other religions"
+   ],
+   "aliases": [
+    "anti-judaism",
+    "antijudaismus",
+    "antigiudaismo",
+    "antisemitism",
+    "israel",
+    "supersession",
+    "jews and christians",
+    "adversus iudaeos"
+   ],
+   "status": "active"
+  },
+  "heresy.gnosticism": {
+   "domain": "heresy",
+   "label": "Gnosticism, Valentinians and Marcion",
+   "labels": {
+    "de": "Gnosis",
+    "fr": "Gnose",
+    "it": "Gnosticismo"
+   },
+   "ix_headings": [
+    "Gnosis",
+    "Heracleon"
+   ],
+   "adamantius_sections": [
+    "10. Cristianesimo alessandrino ed ambiente egiziano"
+   ],
+   "aliases": [
+    "gnosticism",
+    "gnosis",
+    "gnose",
+    "gnosticismo",
+    "valentinian",
+    "heracleon",
+    "marcion",
+    "nag hammadi",
+    "hermetism",
+    "manichaeism"
+   ],
+   "status": "active"
+  },
+  "heresy.apologetics": {
+   "domain": "heresy",
+   "label": "Apologetics and pagan critics",
+   "labels": {
+    "de": "Apologetik",
+    "fr": "Apologétique",
+    "it": "Apologetica"
+   },
+   "ix_headings": [
+    "Apologetik",
+    "Celsus",
+    "Porphyrius",
+    "Religion",
+    "Religion and science"
+   ],
+   "aliases": [
+    "apologetics",
+    "apologetik",
+    "apologetica",
+    "apologetique",
+    "celsus",
+    "celse",
+    "porphyry",
+    "paganism",
+    "greek religion",
+    "defence of christianity"
+   ],
+   "status": "active"
+  },
+  "heresy.orthodoxy-and-polemic": {
+   "domain": "heresy",
+   "label": "Heresy, orthodoxy and polemic",
+   "labels": {
+    "de": "Häresie und Polemik",
+    "fr": "Hérésie et polémique",
+    "it": "Eresia e polemica"
+   },
+   "ix_headings": [
+    "Häresie",
+    "Häretiker",
+    "Christian heresies",
+    "Polemik",
+    "Dogma",
+    "Kontroverse",
+    "Arius",
+    "Konzil"
+   ],
+   "adamantius_sections": [
+    "18. Ario"
+   ],
+   "aliases": [
+    "heresy",
+    "haresie",
+    "eresia",
+    "heresie",
+    "orthodoxy",
+    "polemic",
+    "polemik",
+    "controversy",
+    "arianism",
+    "arius",
+    "monarchianism",
+    "council",
+    "dogma"
+   ],
+   "status": "active"
+  },
+  "context.biography": {
+   "domain": "context",
+   "label": "Life, career and biography",
+   "labels": {
+    "de": "Leben und Werk",
+    "fr": "Vie et carrière",
+    "it": "Vita e opera"
+   },
+   "ix_headings": [
+    "Origenes",
+    "Origen",
+    "Origen of Alexandria"
+   ],
+   "adamantius_sections": [
+    "12. Origene"
+   ],
+   "aliases": [
+    "biography",
+    "biographie",
+    "biografia",
+    "life of origen",
+    "career",
+    "ordination",
+    "chronology",
+    "leonides",
+    "ambrose"
+   ],
+   "status": "active"
+  },
+  "context.general-presentation": {
+   "domain": "context",
+   "label": "General presentations and reference notices",
+   "labels": {
+    "de": "Gesamtdarstellungen und Nachschlagewerke",
+    "fr": "Présentations d'ensemble et notices de référence",
+    "it": "Presentazioni d'insieme e voci di riferimento"
+   },
+   "ix_headings": [
+    "Origenes",
+    "Einführung",
+    "Lexikon"
+   ],
+   "adamantius_sections": [
+    "1. Miscellanee e studi di carattere generale"
+   ],
+   "aliases": [
+    "general survey",
+    "overview",
+    "introduction",
+    "einfuhrung",
+    "einleitung",
+    "presentation d'ensemble",
+    "presentazione generale",
+    "dictionary entry",
+    "lexikonartikel",
+    "encyclopaedia entry",
+    "voce di dizionario",
+    "notice de dictionnaire",
+    "handbook chapter",
+    "companion chapter",
+    "profile",
+    "portrait"
+   ],
+   "note": "Added in vocabulary 1.1.0: the pilot showed exegesis.hermeneutic-theory absorbing notices that are general presentations rather than hermeneutic theory. Distinct from scholarship.research-surveys, which is for research reports and bibliographies.",
+   "status": "active"
+  },
+  "context.alexandria-and-caesarea": {
+   "domain": "context",
+   "label": "Alexandria, Caesarea and institutional setting",
+   "labels": {
+    "de": "Alexandria und Caesarea",
+    "fr": "Alexandrie et Césarée",
+    "it": "Alessandria e Cesarea"
+   },
+   "ix_headings": [
+    "Alexandria",
+    "Caesarea Maritima",
+    "Ägypten",
+    "Griechenland"
+   ],
+   "adamantius_sections": [
+    "10. Cristianesimo alessandrino ed ambiente egiziano"
+   ],
+   "aliases": [
+    "alexandria",
+    "alessandria",
+    "alexandrie",
+    "caesarea",
+    "cesarea",
+    "egypt",
+    "agypten",
+    "library",
+    "scriptorium",
+    "school of caesarea"
+   ],
+   "status": "active"
+  },
+  "context.empire-and-society": {
+   "domain": "context",
+   "label": "Empire, persecution and society",
+   "labels": {
+    "de": "Römisches Reich und Verfolgung",
+    "fr": "Empire romain et persécution",
+    "it": "Impero romano e persecuzione"
+   },
+   "ix_headings": [
+    "Römisches Reich",
+    "Frühchristentum",
+    "Urchristentum",
+    "Geschichte 200-300",
+    "Church history",
+    "Kirchengeschichte"
+   ],
+   "aliases": [
+    "roman empire",
+    "romisches reich",
+    "impero romano",
+    "persecution",
+    "verfolgung",
+    "society",
+    "third century",
+    "decius",
+    "christianisation"
+   ],
+   "status": "active"
+  },
+  "reception.origenist-controversies": {
+   "domain": "reception",
+   "label": "Origenist controversies and condemnations",
+   "labels": {
+    "de": "Origenismus und origenistische Streitigkeiten",
+    "fr": "Origénisme et controverses origénistes",
+    "it": "Origenismo e controversie origeniste"
+   },
+   "ix_headings": [
+    "Origenismus",
+    "Kontroverse",
+    "Epiphanius",
+    "Theophilus"
+   ],
+   "adamantius_sections": [
+    "13. L`origenismo e la fortuna di Origene"
+   ],
+   "aliases": [
+    "origenism",
+    "origenismus",
+    "origenismo",
+    "origenist controversy",
+    "condemnation",
+    "553",
+    "anathema",
+    "justinian",
+    "epiphanius"
+   ],
+   "status": "active"
+  },
+  "reception.latin-transmission": {
+   "domain": "reception",
+   "label": "Latin transmission: Rufinus, Jerome, Ambrose, Augustine",
+   "labels": {
+    "de": "Lateinische Überlieferung",
+    "fr": "Transmission latine",
+    "it": "Tradizione latina"
+   },
+   "ix_headings": [
+    "Rufinus",
+    "Hieronymus, Sophronius Eusebius",
+    "Ambrosius",
+    "Augustinus",
+    "Augustine",
+    "Lateinische Kirchenväter",
+    "Hilarius"
+   ],
+   "adamantius_sections": [
+    "25. Rufino di Aquileia",
+    "28. Gerolamo",
+    "29. Agostino",
+    "22. Ambrogio di Milano"
+   ],
+   "aliases": [
+    "rufinus",
+    "rufin",
+    "jerome",
+    "hieronymus",
+    "girolamo",
+    "ambrose",
+    "augustine",
+    "augustinus",
+    "agostino",
+    "latin translation",
+    "latin fathers"
+   ],
+   "status": "active"
+  },
+  "reception.greek-and-byzantine": {
+   "domain": "reception",
+   "label": "Greek, monastic and Byzantine reception",
+   "labels": {
+    "de": "Griechische und byzantinische Rezeption",
+    "fr": "Réception grecque et byzantine",
+    "it": "Ricezione greca e bizantina"
+   },
+   "ix_headings": [
+    "Evagrius",
+    "Gregorius",
+    "Basilius",
+    "Didymus",
+    "Eusebius",
+    "Athanasius",
+    "Cyrillus",
+    "Maximus",
+    "Kappadokier",
+    "Griechische Kirchenväter"
+   ],
+   "adamantius_sections": [
+    "19. Eusebio di Cesarea",
+    "20. Atanasio",
+    "21. I Padri Cappadoci",
+    "23. Didimo il Cieco",
+    "24. Evagrio",
+    "36. Massimo il Confessore"
+   ],
+   "aliases": [
+    "evagrius",
+    "evagre",
+    "gregory of nyssa",
+    "gregory of nazianzus",
+    "basil",
+    "didymus",
+    "eusebius",
+    "athanasius",
+    "cyril",
+    "maximus the confessor",
+    "byzantine",
+    "cappadocian"
+   ],
+   "status": "active"
+  },
+  "reception.modern": {
+   "domain": "reception",
+   "label": "Medieval, modern and contemporary reception",
+   "labels": {
+    "de": "Mittelalterliche und moderne Rezeption",
+    "fr": "Réception médiévale et moderne",
+    "it": "Ricezione medievale e moderna"
+   },
+   "ix_headings": [
+    "Rezeption",
+    "Mittelalter",
+    "Influence (Literary, artistic, etc.)",
+    "Balthasar, Hans Urs von",
+    "Thomas",
+    "Bernard",
+    "Europa"
+   ],
+   "aliases": [
+    "reception",
+    "rezeption",
+    "ricezione",
+    "nachleben",
+    "middle ages",
+    "mittelalter",
+    "renaissance",
+    "erasmus",
+    "de lubac",
+    "balthasar",
+    "ressourcement",
+    "modern theology"
+   ],
+   "status": "active"
+  },
+  "scholarship.editions": {
+   "domain": "scholarship",
+   "label": "Editions and translations",
+   "labels": {
+    "de": "Editionen und Übersetzungen",
+    "fr": "Éditions et traductions",
+    "it": "Edizioni e traduzioni"
+   },
+   "ix_headings": [
+    "Edition",
+    "Übersetzung",
+    "Kommentar"
+   ],
+   "adamantius_sections": [
+    "12. Origene"
+   ],
+   "aliases": [
+    "edition",
+    "kritische ausgabe",
+    "edizione",
+    "critical edition",
+    "translation",
+    "traduction",
+    "traduzione",
+    "sources chretiennes",
+    "gcs",
+    "fontes"
+   ],
+   "status": "active"
+  },
+  "scholarship.manuscripts": {
+   "domain": "scholarship",
+   "label": "Manuscripts, catenae and transmission",
+   "labels": {
+    "de": "Handschriften und Katenen",
+    "fr": "Manuscrits et chaînes",
+    "it": "Manoscritti e catene"
+   },
+   "ix_headings": [
+    "Handschrift",
+    "Textgeschichte",
+    "Fälschung",
+    "Papyrus"
+   ],
+   "aliases": [
+    "manuscript",
+    "handschrift",
+    "manoscritto",
+    "manuscrit",
+    "codex",
+    "catena",
+    "katenen",
+    "papyrus",
+    "palaeography",
+    "stemma",
+    "authenticity"
+   ],
+   "status": "active"
+  },
+  "scholarship.research-surveys": {
+   "domain": "scholarship",
+   "label": "Research surveys, bibliography and historiography",
+   "labels": {
+    "de": "Forschungsbericht und Bibliographie",
+    "fr": "Bilan de recherche et bibliographie",
+    "it": "Rassegna di studi e bibliografia"
+   },
+   "ix_headings": [
+    "Forschungsbericht",
+    "Forschung",
+    "Literaturverzeichnis/Bibliographie",
+    "bibliography",
+    "Patrologie",
+    "Patrology"
+   ],
+   "adamantius_sections": [
+    "0. Bibliografie, repertori e rassegne; profili di studiosi",
+    "1. Miscellanee e studi di carattere generale"
+   ],
+   "aliases": [
+    "research survey",
+    "forschungsbericht",
+    "rassegna",
+    "status quaestionis",
+    "bibliography",
+    "bibliographie",
+    "historiography",
+    "festschrift",
+    "conference volume",
+    "obituary"
+   ],
+   "status": "active"
+  },
+  "scholarship.digital": {
+   "domain": "scholarship",
+   "label": "Digital humanities and quantitative study",
+   "labels": {
+    "de": "Digital Humanities",
+    "fr": "Humanités numériques",
+    "it": "Informatica umanistica"
+   },
+   "ix_headings": [
+    "Electronic books"
+   ],
+   "aliases": [
+    "digital humanities",
+    "digital edition",
+    "database",
+    "corpus linguistics",
+    "stylometry",
+    "tlg",
+    "computational",
+    "network analysis",
+    "biblindex"
+   ],
+   "status": "active"
+  }
+ }
+}

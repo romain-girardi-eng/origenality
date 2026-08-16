@@ -1,0 +1,29 @@
+# L'arbre public est produit par la passe de publication du dépôt de
+# travail. Ce qui suit ne doit jamais y entrer.
+
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.DS_Store
+
+# Répertoire de travail de la suite de tests et du harnais de preuves.
+# data/ porte par ailleurs la couche de données du site, qui est versionnée.
+data/_proofs_tmp/
+
+# Moissons brutes et corpus fusionné : régénérés par les moissonneurs.
+data/raw/
+data/merged/
+
+# États de reprise, sessions, secrets.
+**/s2_bulk_state.json
+**/*.session.json
+*_secrets.json
+.env
+.env.*
+
+# Copies de conflit d'iCloud sur un dossier synchronisé.
+* [0-9].*
+* [0-9]
+
+# Clone de contrôle creusé par scripts/selftest_public.sh.
+_selftest/

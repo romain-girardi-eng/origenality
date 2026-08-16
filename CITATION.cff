@@ -1,0 +1,32 @@
+cff-version: 1.2.0
+message: "If you use Origenality, please cite it as below."
+title: "Origenality: a bibliographic map of Origen studies"
+# Le résumé est écrit par site/build-c/tools/build_summary_figures.py depuis les
+# fichiers de tags livrés : un fichier lu par une machine ne porte pas de chiffre
+# tapé à la main. Les balises tiennent dans des commentaires YAML, que le schéma
+# 1.2.0 ignore.
+# <!-- FIGURES:classification -->
+abstract: >-
+  A federated, deduplicated and thematically classified bibliography of
+  scholarship on Origen of Alexandria, published as a queryable map of the
+  field. Ten open bibliographic sources, deduplicated into one record per work,
+  of which 21 104 are classified against a controlled vocabulary of themes,
+  works of Origen and approaches: 6 742 of them — 4 909 core and 1 833
+  partial — form the citable dossier. The code is under the MIT licence; the data
+  are not, and DATA_POLICY.md states the regime that covers them, source by
+  source.
+# <!-- /FIGURES:classification -->
+type: dataset
+authors:
+  - family-names: Girardi
+    given-names: Romain
+    affiliation: "Université Côte d'Azur / Université de Genève"
+    email: romain.girardi@univ-cotedazur.fr
+date-released: 2026-08-16
+version: "0.1.0"
+keywords:
+  - Origen of Alexandria
+  - patristics
+  - bibliography
+  - digital humanities
+  - bibliometrics

@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" role="img" aria-label="Hexaplaric asterisk">
+  <title>Hexaplaric asterisk</title>
+  <defs>
+    <linearGradient id="incision" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#0D0C0F" stop-opacity=".92"/>
+      <stop offset=".52" stop-color="#0D0C0F" stop-opacity=".28"/>
+      <stop offset=".54" stop-color="#EDE9DF" stop-opacity=".55"/>
+      <stop offset="1" stop-color="#EDE9DF" stop-opacity=".10"/>
+    </linearGradient>
+  </defs>
+  <g fill="none" stroke="currentColor" stroke-linecap="butt">
+    <path d="M50 12 L50 88" stroke-width="7"/>
+    <path d="M12 50 L88 50" stroke-width="7"/>
+  </g>
+  <g fill="currentColor">
+    <circle cx="28" cy="28" r="6"/>
+    <circle cx="72" cy="28" r="6"/>
+    <circle cx="28" cy="72" r="6"/>
+    <circle cx="72" cy="72" r="6"/>
+  </g>
+</svg>

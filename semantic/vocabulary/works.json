@@ -1,0 +1,486 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Origenality Controlled Vocabulary — Works of Origen",
+  "description": "Closed enumeration of the works of Origen used as tagging targets. Sigla and Latin titles follow the usage of the Clavis Origenis and of the standard editions (SC, GCS, FC). Every identifier is stable: it is the enum value written into tag records and into the topic tree. Categories group the works by literary genre.",
+  "version": "1.0.0",
+  "axis": "works",
+  "cardinality": "1..4 per notice: at least one identifier, at most four, the list being truncated to the first four when a longer one is returned; use [\"unspecified\"] alone when no work is identifiable.",
+  "unspecified_id": "unspecified",
+  "categories": {
+    "systematic": {
+      "description": "Systematic and doctrinal treatises",
+      "color": "#8c2f39"
+    },
+    "apologetic": {
+      "description": "Apologetic works",
+      "color": "#a4551f"
+    },
+    "commentary": {
+      "description": "Running commentaries and scholia on biblical books",
+      "color": "#1f6f5c"
+    },
+    "homily": {
+      "description": "Homilies, preserved in Greek or in Latin translation",
+      "color": "#2f5d8c"
+    },
+    "practical": {
+      "description": "Spiritual and practical treatises",
+      "color": "#6b4c9a"
+    },
+    "philological": {
+      "description": "Text-critical and philological work on Scripture",
+      "color": "#8a7524"
+    },
+    "correspondence": {
+      "description": "Letters",
+      "color": "#4a4a4a"
+    },
+    "collection": {
+      "description": "Ancient anthologies and collections of Origenian material",
+      "color": "#3c6e71"
+    },
+    "indirect": {
+      "description": "Fragments, catenae, disputed and spurious material",
+      "color": "#7a7a7a"
+    },
+    "none": {
+      "description": "No single work identifiable",
+      "color": "#bdbdbd"
+    }
+  },
+  "works": {
+    "princ": {
+      "label": "De principiis",
+      "category": "systematic",
+      "aliases": [
+        "peri archon",
+        "de principiis",
+        "on first principles",
+        "traite des principes",
+        "traité des principes",
+        "vier bucher von den prinzipien",
+        "über die prinzipien",
+        "i principi",
+        "first principles"
+      ],
+      "status": "active"
+    },
+    "cels": {
+      "label": "Contra Celsum",
+      "category": "apologetic",
+      "aliases": [
+        "contra celsum",
+        "against celsus",
+        "contre celse",
+        "gegen kelsos",
+        "gegen celsus",
+        "contro celso",
+        "celsus",
+        "celse",
+        "kelsos",
+        "celso"
+      ],
+      "status": "active"
+    },
+    "comm-jo": {
+      "label": "Commentarii in Iohannem",
+      "category": "commentary",
+      "aliases": [
+        "commentary on john",
+        "commentaire sur jean",
+        "johanneskommentar",
+        "commento a giovanni",
+        "in ioannem",
+        "in iohannem"
+      ],
+      "status": "active"
+    },
+    "comm-mt": {
+      "label": "Commentarium in Matthaeum (incl. Commentariorum series)",
+      "category": "commentary",
+      "aliases": [
+        "commentary on matthew",
+        "commentaire sur matthieu",
+        "matthauskommentar",
+        "matthäuskommentar",
+        "commento a matteo",
+        "in matthaeum",
+        "commentariorum series"
+      ],
+      "status": "active"
+    },
+    "comm-rom": {
+      "label": "Commentarii in Epistulam ad Romanos",
+      "category": "commentary",
+      "aliases": [
+        "commentary on romans",
+        "commentaire sur l'epitre aux romains",
+        "commentaire sur l'épître aux romains",
+        "romerbriefkommentar",
+        "römerbriefkommentar",
+        "commento alla lettera ai romani",
+        "in epistulam ad romanos"
+      ],
+      "status": "active"
+    },
+    "comm-cant": {
+      "label": "Commentarius in Canticum canticorum",
+      "category": "commentary",
+      "aliases": [
+        "commentary on the song of songs",
+        "commentaire sur le cantique",
+        "hoheliedkommentar",
+        "commento al cantico dei cantici",
+        "in canticum canticorum"
+      ],
+      "status": "active"
+    },
+    "comm-gen": {
+      "label": "Commentarii in Genesim (fragmenta)",
+      "category": "commentary",
+      "aliases": [
+        "commentary on genesis",
+        "commentaire sur la genese",
+        "commentaire sur la genèse",
+        "genesiskommentar",
+        "in genesim"
+      ],
+      "status": "active"
+    },
+    "comm-ps": {
+      "label": "Commentarii et Excerpta in Psalmos",
+      "category": "commentary",
+      "aliases": [
+        "commentary on the psalms",
+        "commentaire sur les psaumes",
+        "psalmenkommentar",
+        "selecta in psalmos",
+        "excerpta in psalmos",
+        "in psalmos"
+      ],
+      "status": "active"
+    },
+    "comm-other": {
+      "label": "Other commentaries and scholia",
+      "category": "commentary",
+      "aliases": [
+        "commentary on ephesians",
+        "commentary on 1 corinthians",
+        "commentaire sur les ephesiens",
+        "commentaire sur la premiere aux corinthiens",
+        "scholia"
+      ],
+      "notes": "Use for the commentaries preserved only in fragments and not covered by a dedicated identifier (Eph., 1 Cor., Gal., Tit., Philem., Prov., Lam., Hebr.).",
+      "status": "active"
+    },
+    "hom-gen": {
+      "label": "Homiliae in Genesim",
+      "category": "homily",
+      "aliases": [
+        "homilies on genesis",
+        "homelies sur la genese",
+        "homélies sur la genèse",
+        "genesishomilien",
+        "omelie sulla genesi",
+        "in genesim homiliae"
+      ],
+      "status": "active"
+    },
+    "hom-ex": {
+      "label": "Homiliae in Exodum",
+      "category": "homily",
+      "aliases": [
+        "homilies on exodus",
+        "homelies sur l'exode",
+        "homélies sur l'exode",
+        "exodushomilien",
+        "omelie sull'esodo"
+      ],
+      "status": "active"
+    },
+    "hom-lev": {
+      "label": "Homiliae in Leviticum",
+      "category": "homily",
+      "aliases": [
+        "homilies on leviticus",
+        "homelies sur le levitique",
+        "homélies sur le lévitique",
+        "leviticushomilien",
+        "omelie sul levitico"
+      ],
+      "status": "active"
+    },
+    "hom-num": {
+      "label": "Homiliae in Numeros",
+      "category": "homily",
+      "aliases": [
+        "homilies on numbers",
+        "homelies sur les nombres",
+        "homélies sur les nombres",
+        "numerihomilien",
+        "omelie sui numeri"
+      ],
+      "status": "active"
+    },
+    "hom-ios": {
+      "label": "Homiliae in Iesu Nave",
+      "category": "homily",
+      "aliases": [
+        "homilies on joshua",
+        "homelies sur josue",
+        "homélies sur josué",
+        "josuahomilien",
+        "omelie su giosue",
+        "in iesu nave"
+      ],
+      "status": "active"
+    },
+    "hom-iud": {
+      "label": "Homiliae in Iudices",
+      "category": "homily",
+      "aliases": [
+        "homilies on judges",
+        "homelies sur les juges",
+        "homélies sur les juges",
+        "richterhomilien",
+        "omelie sui giudici"
+      ],
+      "status": "active"
+    },
+    "hom-reg": {
+      "label": "Homiliae in Regnorum I (Samuel)",
+      "category": "homily",
+      "aliases": [
+        "homilies on 1 samuel",
+        "homelies sur samuel",
+        "homélies sur samuel",
+        "samuelhomilien",
+        "witch of endor",
+        "sorciere d'endor",
+        "sorcière d'endor",
+        "hexe von endor"
+      ],
+      "status": "active"
+    },
+    "hom-ps": {
+      "label": "Homiliae in Psalmos",
+      "category": "homily",
+      "aliases": [
+        "homilies on the psalms",
+        "homelies sur les psaumes",
+        "homélies sur les psaumes",
+        "psalmenhomilien",
+        "omelie sui salmi",
+        "codex monacensis",
+        "munich codex",
+        "munich psalm homilies",
+        "münchner psalmenhomilien"
+      ],
+      "notes": "Includes the Greek homilies recovered in 2012 from the Munich manuscript (Codex Monacensis Graecus 314).",
+      "status": "active"
+    },
+    "hom-cant": {
+      "label": "Homiliae in Canticum canticorum",
+      "category": "homily",
+      "aliases": [
+        "homilies on the song of songs",
+        "homelies sur le cantique",
+        "homélies sur le cantique",
+        "hoheliedhomilien",
+        "omelie sul cantico"
+      ],
+      "status": "active"
+    },
+    "hom-is": {
+      "label": "Homiliae in Isaiam",
+      "category": "homily",
+      "aliases": [
+        "homilies on isaiah",
+        "homelies sur isaie",
+        "homélies sur isaïe",
+        "jesajahomilien",
+        "omelie su isaia"
+      ],
+      "status": "active"
+    },
+    "hom-ier": {
+      "label": "Homiliae in Ieremiam",
+      "category": "homily",
+      "aliases": [
+        "homilies on jeremiah",
+        "homelies sur jeremie",
+        "homélies sur jérémie",
+        "jeremiahomilien",
+        "omelie su geremia"
+      ],
+      "status": "active"
+    },
+    "hom-ez": {
+      "label": "Homiliae in Ezechielem",
+      "category": "homily",
+      "aliases": [
+        "homilies on ezekiel",
+        "homelies sur ezechiel",
+        "homélies sur ézéchiel",
+        "ezechielhomilien",
+        "omelie su ezechiele"
+      ],
+      "status": "active"
+    },
+    "hom-lc": {
+      "label": "Homiliae in Lucam",
+      "category": "homily",
+      "aliases": [
+        "homilies on luke",
+        "homelies sur luc",
+        "homélies sur luc",
+        "lukashomilien",
+        "omelie su luca"
+      ],
+      "status": "active"
+    },
+    "hom-other": {
+      "label": "Other homilies",
+      "category": "homily",
+      "aliases": [
+        "homilies on the song",
+        "hoheliedpredigt",
+        "homiliae"
+      ],
+      "notes": "Use for homiletic series without a dedicated identifier (Deut., Job, Prov., Acts, Hebr.) and for undetermined homiletic material.",
+      "status": "active"
+    },
+    "orat": {
+      "label": "De oratione",
+      "category": "practical",
+      "aliases": [
+        "on prayer",
+        "de oratione",
+        "sur la priere",
+        "sur la prière",
+        "uber das gebet",
+        "über das gebet",
+        "la preghiera",
+        "peri euches"
+      ],
+      "status": "active"
+    },
+    "mart": {
+      "label": "Exhortatio ad martyrium",
+      "category": "practical",
+      "aliases": [
+        "exhortation to martyrdom",
+        "exhortation au martyre",
+        "mahnrede zum martyrium",
+        "esortazione al martirio",
+        "exhortatio ad martyrium"
+      ],
+      "status": "active"
+    },
+    "pascha": {
+      "label": "De pascha",
+      "category": "practical",
+      "aliases": [
+        "on the passover",
+        "traite sur la paque",
+        "traité sur la pâque",
+        "osterfestpredigt",
+        "sulla pasqua",
+        "de pascha",
+        "tura",
+        "toura"
+      ],
+      "notes": "The treatise recovered in the Tura papyri.",
+      "status": "active"
+    },
+    "dial": {
+      "label": "Dialogus cum Heraclide",
+      "category": "practical",
+      "aliases": [
+        "dialogue with heraclides",
+        "entretien avec heraclide",
+        "entretien avec héraclide",
+        "gesprach mit herakleides",
+        "gespräch mit herakleides",
+        "dialogo con eraclide"
+      ],
+      "status": "active"
+    },
+    "hex": {
+      "label": "Hexapla",
+      "category": "philological",
+      "aliases": [
+        "hexapla",
+        "hexaple",
+        "hexaples",
+        "esapla",
+        "hexaplaric",
+        "hexaplarisch"
+      ],
+      "status": "active"
+    },
+    "epist": {
+      "label": "Epistulae",
+      "category": "correspondence",
+      "aliases": [
+        "letter to gregory",
+        "lettre a gregoire",
+        "lettre à grégoire",
+        "brief an gregorios",
+        "letter to africanus",
+        "ad africanum",
+        "epistula ad africanum",
+        "epistulae"
+      ],
+      "status": "active"
+    },
+    "philoc": {
+      "label": "Philocalia",
+      "category": "collection",
+      "aliases": [
+        "philocalia",
+        "philocalie",
+        "philokalie",
+        "filocalia"
+      ],
+      "notes": "The anthology assembled by Basil and Gregory of Nazianzus; tag it when the anthology itself is the object of study.",
+      "status": "active"
+    },
+    "frag": {
+      "label": "Fragments and catenae",
+      "category": "indirect",
+      "aliases": [
+        "fragment",
+        "fragmente",
+        "frammenti",
+        "catena",
+        "catenae",
+        "chaines exegetiques",
+        "chaînes exégétiques",
+        "katenen"
+      ],
+      "status": "active"
+    },
+    "dubia": {
+      "label": "Dubia and spuria",
+      "category": "indirect",
+      "aliases": [
+        "pseudo-origen",
+        "pseudo-origene",
+        "pseudo-origène",
+        "spurium",
+        "spuria",
+        "dubium",
+        "unecht"
+      ],
+      "status": "active"
+    },
+    "unspecified": {
+      "label": "No specific work / Origen in general",
+      "category": "none",
+      "aliases": [],
+      "notes": "Default value. Use it alone when the notice does not bear on an identifiable work; never combine it with another work identifier.",
+      "status": "active"
+    }
+  }
+}

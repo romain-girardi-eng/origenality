@@ -1,0 +1,130 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Origenality Controlled Vocabulary — Approaches",
+  "description": "Closed enumeration of the angle or method of a publication, as opposed to its subject matter (themes) or its object (works). A notice normally carries one or two approach identifiers. The axis exists so that the density measure can distinguish a saturated theme studied from one angle from a theme genuinely worked over from every side.",
+  "version": "1.0.0",
+  "axis": "approaches",
+  "cardinality": "1..2 per notice",
+  "approaches": {
+    "philological": {
+      "label": "Philological and text-critical",
+      "labels": {
+        "de": "Philologisch und textkritisch",
+        "fr": "Philologique et critique textuelle",
+        "it": "Filologico e critico-testuale"
+      },
+      "description": "Work on the text itself: manuscripts, recensions, variants, attribution, lexicon, translation technique.",
+      "aliases": ["textual criticism", "textkritik", "philology", "manuscript", "attribution", "lexical", "stemma"],
+      "color": "#8a7524",
+      "status": "active"
+    },
+    "exegetical": {
+      "label": "Exegetical",
+      "labels": {
+        "de": "Exegetisch",
+        "fr": "Exégétique",
+        "it": "Esegetico"
+      },
+      "description": "Study of how Origen reads a biblical book or passage, or of his exegetical procedures on a given text.",
+      "aliases": ["exegesis", "exegese", "esegesi", "interpretation of scripture", "commentary on", "reading of"],
+      "color": "#1f6f5c",
+      "status": "active"
+    },
+    "doctrinal": {
+      "label": "Doctrinal and systematic",
+      "labels": {
+        "de": "Dogmatisch und systematisch",
+        "fr": "Doctrinal et systématique",
+        "it": "Dottrinale e sistematico"
+      },
+      "description": "Reconstruction of a doctrine or a theological system, its coherence and its concepts.",
+      "aliases": ["doctrine", "dogmatik", "systematic theology", "teologia sistematica", "theological synthesis"],
+      "color": "#8c2f39",
+      "status": "active"
+    },
+    "historical": {
+      "label": "Historical and contextual",
+      "labels": {
+        "de": "Historisch und kontextuell",
+        "fr": "Historique et contextuel",
+        "it": "Storico e contestuale"
+      },
+      "description": "Situating Origen or a text in its historical, social, institutional or religious setting.",
+      "aliases": ["history", "kirchengeschichte", "social context", "storia", "milieu", "chronology", "prosopography"],
+      "color": "#2f5d8c",
+      "status": "active"
+    },
+    "reception": {
+      "label": "Reception history",
+      "labels": {
+        "de": "Rezeptionsgeschichte",
+        "fr": "Histoire de la réception",
+        "it": "Storia della ricezione"
+      },
+      "description": "Study of the later fortune of Origen: readers, translators, controversies, influence, historiography.",
+      "aliases": ["reception", "rezeption", "nachleben", "wirkungsgeschichte", "influence", "fortuna"],
+      "color": "#8c6a2f",
+      "status": "active"
+    },
+    "comparative": {
+      "label": "Comparative and philosophical",
+      "labels": {
+        "de": "Vergleichend und philosophisch",
+        "fr": "Comparatif et philosophique",
+        "it": "Comparativo e filosofico"
+      },
+      "description": "Comparison with another author, tradition or philosophical school, or conceptual analysis in philosophical terms.",
+      "aliases": ["comparison", "vergleich", "confronto", "philosophical analysis", "and plato", "und plotin", "parallels"],
+      "color": "#6b4c9a",
+      "status": "active"
+    },
+    "methodological": {
+      "label": "Methodological and digital",
+      "labels": {
+        "de": "Methodisch und digital",
+        "fr": "Méthodologique et numérique",
+        "it": "Metodologico e digitale"
+      },
+      "description": "Work on method, tools, databases, quantitative or digital treatment of the corpus.",
+      "aliases": ["method", "methode", "metodo", "digital humanities", "database", "quantitative", "corpus tools"],
+      "color": "#3c6e71",
+      "status": "active"
+    },
+    "edition": {
+      "label": "Edition or translation",
+      "labels": {
+        "de": "Edition oder Übersetzung",
+        "fr": "Édition ou traduction",
+        "it": "Edizione o traduzione"
+      },
+      "description": "The publication is itself an edition, a translation, or an annotated edition of an Origenian text.",
+      "aliases": ["edited by", "herausgegeben", "a cura di", "translated by", "traduit par", "ubersetzt", "critical text", "introduction traduction et notes"],
+      "color": "#a4551f",
+      "status": "active"
+    },
+    "review": {
+      "label": "Review or notice",
+      "labels": {
+        "de": "Rezension",
+        "fr": "Recension",
+        "it": "Recensione"
+      },
+      "description": "Book review, review article or short bibliographic notice.",
+      "aliases": ["review of", "rezension", "recension", "compte rendu", "recensione", "besprechung", "review article"],
+      "color": "#7a7a7a",
+      "status": "active"
+    },
+    "survey": {
+      "label": "Survey, reference or collective volume",
+      "labels": {
+        "de": "Überblick, Nachschlagewerk oder Sammelband",
+        "fr": "Synthèse, ouvrage de référence ou volume collectif",
+        "it": "Sintesi, opera di riferimento o volume collettivo"
+      },
+      "description": "State of the question, handbook or dictionary entry, bibliography, conference proceedings or Festschrift taken as a whole.",
+      "aliases": ["handbook", "companion", "dictionary", "encyclopedia", "forschungsbericht", "status quaestionis", "festschrift", "proceedings", "miscellanea"],
+      "color": "#4a4a4a",
+      "status": "active"
+    }
+  }
+}

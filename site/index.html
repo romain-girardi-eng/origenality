@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Origenality Explorer</title>
+<!-- FIGURES:population-meta -->
+<meta name="description" content="A map of the scholarship on Origen of Alexandria: 1 402 counted works out of a harvest of 1 632, grouped by theme or by work of Origen, coloured by language of publication.">
+<!-- /FIGURES:population-meta -->
+<meta name="author" content="Romain Girardi">
+<link rel="icon" href="assets/marks/favicon.svg" type="image/svg+xml">
+<link rel="preload" href="assets/fonts/EBGaramond-VF.subset.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="assets/fonts/literata-var.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="assets/base.css">
+<link rel="stylesheet" href="assets/explorer.css">
+</head>
+<body>
+
+<a class="skip" href="#ask-input">Skip to the search field</a>
+
+<div class="field" aria-hidden="true"></div>
+<canvas id="field-c" tabindex="0" role="application"
+  aria-label="Map of the corpus. Use the arrow keys to move between clusters and Enter to open one."></canvas>
+<p class="sr" id="live-cluster" aria-live="polite"></p>
+
+<header class="bar">
+  <a class="wordmark" href="index.html"><svg class="mk" viewBox="0 0 100 100" width="13" height="13" aria-hidden="true"><g stroke="currentColor" stroke-width="11" fill="none"><path d="M50 14 L50 86"/><path d="M14 50 L86 50"/></g><g fill="currentColor"><circle cx="27" cy="27" r="8"/><circle cx="73" cy="27" r="8"/><circle cx="27" cy="73" r="8"/><circle cx="73" cy="73" r="8"/></g></svg><span>Origenality</span></a>
+<!-- FIGURES:population-scope -->
+  <p class="scope"><b>1 402</b> works counted &middot; 225 mentioned only &middot; 5 held aside &middot; IxTheo, August 2026</p>
+<!-- /FIGURES:population-scope -->
+  <nav class="nav" aria-label="Pages">
+    <a href="index.html" aria-current="page">Explorer</a>
+    <a href="observatoire.html">Observatory</a>
+    <a href="methode.html">Method</a>
+    <a href="credits.html">Credits</a>
+  </nav>
+</header>
+
+<section class="ask" aria-label="Find a neighbourhood">
+  <div class="ask-field" id="ask-field">
+    <input id="ask-input" type="search" autocomplete="off" spellcheck="false"
+           placeholder="Describe your project" aria-label="Describe your project">
+    <button class="clear" id="ask-clear" type="button" aria-label="Clear the field">&times;</button>
+    <button class="go" id="ask-go" type="button">Explore</button>
+  </div>
+
+  <div class="ask-alt" id="ask-alt">
+    <button class="linkish" id="wiz-open" type="button">or answer four questions</button>
+    <span id="ask-state" aria-live="polite"></span>
+  </div>
+
+  <div class="wiz" id="wiz" role="group" aria-label="Four questions">
+    <div class="wiz-head">
+      <h2 class="wiz-q" id="wiz-q">Which works of Origen?</h2>
+      <span class="wiz-step" id="wiz-step">Question 1 of 4</span>
+    </div>
+    <p class="wiz-note" id="wiz-note"></p>
+    <div class="chips" id="wiz-chips"></div>
+    <div class="chips chips-none" id="wiz-none"></div>
+    <div class="wiz-foot">
+      <div class="dots" id="wiz-dots" aria-hidden="true"><i class="on"></i><i></i><i></i><i></i></div>
+      <div class="wiz-nav">
+        <button class="linkish" id="wiz-skip" type="button">Skip all</button>
+        <button class="btn-quiet" id="wiz-back" type="button" disabled>Back</button>
+        <button class="go" id="wiz-next" type="button">Next</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="legend-wrap">
+  <div class="grouping">
+    <span class="lbl" id="group-label">Grouped by</span>
+    <div class="seg" role="group" aria-labelledby="group-label">
+      <button type="button" id="mode-theme" aria-pressed="true">Theme</button>
+      <button type="button" id="mode-work" aria-pressed="false">Work of Origen</button>
+    </div>
+  </div>
+  <p class="legend-note">Colour: language of publication.<span class="wide"> Cluster size: number of works. Disc size: academic weight.</span></p>
+  <div class="legend" id="legend" role="group" aria-label="Filter by language of publication"></div>
+  <div class="held">
+    <span class="lbl" id="held-label">Held aside</span>
+    <div class="held-chips" id="held-chips" role="group" aria-labelledby="held-label"></div>
+<!-- FIGURES:population-held -->
+    <span class="held-note">Every count here counts the 1 402 works Origen is the subject of,
+      or holds a section of. The 225 that only mention him and the 5 held outside the
+      count stay in the index, answer a search, and enter no figure, here and in the Observatory alike.</span>
+<!-- /FIGURES:population-held -->
+  </div>
+</div>
+
+<div class="controls">
+  <p class="hint" id="hint">Drag to move &middot; scroll to zoom &middot; click a cluster to open it</p>
+  <div class="row">
+    <button class="btn-quiet" id="reset" type="button">Reset view</button>
+  </div>
+</div>
+
+<div class="peek" id="peek" aria-hidden="true"></div>
+
+<aside class="panel" id="panel" aria-label="Neighbourhood" tabindex="-1" inert>
+  <div class="panel-top">
+    <button id="panel-close" type="button" aria-label="Close the neighbourhood panel">&times;</button>
+    <p class="subject" id="p-subject"></p>
+    <p class="density" id="p-density"></p>
+    <p class="alt" id="p-alt"></p>
+    <div class="zones" id="p-zones"></div>
+    <div class="sep"></div>
+  </div>
+  <div class="panel-body" id="p-body"></div>
+</aside>
+
+<script src="assets/explorer.js"></script>
+</body>
+</html>

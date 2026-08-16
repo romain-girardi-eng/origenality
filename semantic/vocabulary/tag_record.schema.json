@@ -1,0 +1,198 @@
+{
+ "$schema": "https://json-schema.org/draft/2020-12/schema",
+ "$id": "https://origenality.org/schemas/tag_record-1.2.0.json",
+ "title": "Origenality Tag Record",
+ "description": "One line of the tagging output. The enum values of relevance, works, themes and approaches are not written out here: they are injected at run time from the four vocabulary files, so that the schema can never drift from the vocabulary. tag_notices.py --print-schema prints the resolved schema actually sent to the model. Two families of properties are written by the pipeline and never by the tagger: the record of what validation had to repair (repairs, relevance_floor_applied, relevance_ceiling_applied, output_mode) and the record of an identifier change after a re-merge of the corpus (remapped_from, remap_status). They are declared here because additionalProperties is false and a strict schema that its own outputs violate is not a schema.",
+ "version": "1.2.0",
+ "type": "object",
+ "additionalProperties": false,
+ "required": [
+  "notice_id",
+  "relevance",
+  "relevance_none_reason",
+  "works",
+  "themes",
+  "approaches",
+  "confidence",
+  "justification",
+  "needs_review",
+  "wave",
+  "run_id",
+  "source_model",
+  "auto_generated",
+  "tagged_at",
+  "vocabulary_version",
+  "prompt_version"
+ ],
+ "properties": {
+  "notice_id": {
+   "type": "string",
+   "description": "Deterministic identifier of the notice: <source>:<source_id> when both exist, otherwise a sha1 over the normalised title, first author and year."
+  },
+  "relevance": {
+   "type": "string",
+   "x-enum-source": "vocabulary/relevance.json#/relevance",
+   "description": "Exactly one value."
+  },
+  "relevance_none_reason": {
+   "type": "string",
+   "enum": [
+    "not-applicable",
+    "homonym",
+    "text-by-origen",
+    "insufficient-metadata",
+    "other-subject"
+   ],
+   "description": "Why relevance is \"none\". \"not-applicable\" whenever relevance is not \"none\". A homonym and a text by Origen keep \"none\" inside a curated perimeter; the other reasons do not."
+  },
+  "works": {
+   "type": "array",
+   "minItems": 1,
+   "maxItems": 4,
+   "uniqueItems": true,
+   "items": {
+    "type": "string",
+    "x-enum-source": "vocabulary/works.json#/works"
+   },
+   "description": "Works of Origen the publication bears on, at most four — a longer list is truncated to its first four. Use [\"unspecified\"] alone when none is identifiable."
+  },
+  "themes": {
+   "type": "array",
+   "minItems": 0,
+   "maxItems": 5,
+   "uniqueItems": true,
+   "items": {
+    "type": "string",
+    "x-enum-source": "vocabulary/themes.json#/themes"
+   },
+   "description": "Leaf theme identifiers, most central first. Empty when relevance is \"none\": a notice out of the dossier has no theme, and imposing one made general-presentation a filler."
+  },
+  "approaches": {
+   "type": "array",
+   "minItems": 1,
+   "maxItems": 2,
+   "uniqueItems": true,
+   "items": {
+    "type": "string",
+    "x-enum-source": "vocabulary/approaches.json#/approaches"
+   }
+  },
+  "confidence": {
+   "type": "number",
+   "minimum": 0,
+   "maximum": 1,
+   "description": "Self-reported confidence of the tagging as a whole. 0.9 and above: the metadata states it. 0.6 to 0.9: clear inference. Below 0.6: uncertain, and needs_review must be true."
+  },
+  "justification": {
+   "type": "string",
+   "maxLength": 300,
+   "description": "One line, in English, naming the elements of the notice that carried the decision. No new facts."
+  },
+  "needs_review": {
+   "type": "boolean",
+   "description": "True whenever confidence is below the review threshold, the metadata is too thin, or the tagger hesitated between two relevance values."
+  },
+  "wave": {
+   "type": "string",
+   "description": "Provenance wave, e.g. semantic_tags_ixtheo_2026_08."
+  },
+  "run_id": {
+   "type": "string",
+   "description": "Identifier of the individual run inside the wave."
+  },
+  "source_model": {
+   "type": "string",
+   "description": "Opaque identifier of the tagger, read from the environment at run time. Never hard-coded. The value manual-gold marks records annotated by hand."
+  },
+  "auto_generated": {
+   "type": "boolean",
+   "description": "False only for hand-annotated gold records."
+  },
+  "tagged_at": {
+   "type": "string",
+   "description": "UTC timestamp, ISO 8601."
+  },
+  "vocabulary_version": {
+   "type": "string",
+   "description": "Concatenated versions of the four vocabulary files, e.g. works=1.0.0;themes=1.0.0;approaches=1.0.0;relevance=1.0.0."
+  },
+  "prompt_version": {
+   "type": "string",
+   "description": "Version tag of the prompt template used."
+  },
+  "input_digest": {
+   "type": "string",
+   "description": "sha1 of the exact notice payload sent to the tagger. Two runs with the same digest and the same prompt_version are comparable."
+  },
+  "gold": {
+   "type": "boolean",
+   "description": "True on records of the hand-annotated calibration set."
+  },
+  "annotator": {
+   "type": "string",
+   "description": "Present on gold records only."
+  },
+  "curated_scope": {
+   "type": "boolean",
+   "description": "True when the notice comes from a perimeter curated against the authority record for Origen: IxTheo, BIBP, or sections 12 and 13 of the Adamantius repertorio. Inside such a perimeter the floor of relevance is \"marginal\"."
+  },
+  "relevance_floor_applied": {
+   "type": "boolean",
+   "description": "True when the curated-perimeter floor lifted a \"none\" to \"marginal\" after the answer. A policy, recorded as such, not a judgement of the tagger."
+  },
+  "themes_not_applicable": {
+   "type": "boolean",
+   "description": "Hand-tagged records only: the notice is out of the dossier and its themes are a filler the vocabulary imposes, to be excluded from theme agreement."
+  },
+  "repairs": {
+   "type": "array",
+   "items": {
+    "type": "string"
+   },
+   "description": "Written by validation, never by the tagger: one line per correction applied to the answer (a value dropped as outside the vocabulary, a confidence outside [0,1] clamped and flagged, a ceiling applied). A non-empty list forces needs_review."
+  },
+  "relevance_ceiling_applied": {
+   "type": "boolean",
+   "description": "True when the deterministic ceiling brought a notice catalogued as a text by Origen down to \"marginal\". A policy, recorded as such."
+  },
+  "output_mode": {
+   "type": "string",
+   "enum": [
+    "schema",
+    "json",
+    "off"
+   ],
+   "description": "How the answer was actually obtained for this line: under the resolved schema, under a plain JSON instruction, or with no output constraint at all. Recorded per line because the adapter may fall back, and a line obtained without the schema is not evidence of the same rigour as one obtained under it."
+  },
+  "remapped_from": {
+   "type": "string",
+   "description": "Former origenality_id of this notice, when a re-merge of the corpus renumbered its cluster. Written by semantic/remap_tag_ids.py."
+  },
+  "remap_status": {
+   "type": "string",
+   "enum": [
+    "identity",
+    "unique-successor",
+    "digest-matched",
+    "majority-fallback"
+   ],
+   "description": "How the new identifier was chosen. majority-fallback means the former cluster was split and the input digest did not settle which half was tagged: the line is kept, attributed to the larger half, and flagged needs_review."
+  },
+  "gold_version": {
+   "type": "string",
+   "description": "Version of the annotation rules the gold record was produced under — the prompt version and the theme vocabulary the annotator applied, e.g. v2.1. A gold set mixing versions measures nothing: report.py refuses to compare a run to gold records annotated under other rules."
+  },
+  "gold_batch": {
+   "type": "string",
+   "description": "Which batch of the gold set the record belongs to (ixtheo_30, federated_20…)."
+  },
+  "revision": {
+   "type": "string",
+   "description": "What changed at the last re-annotation of this gold record, in one line: which rule or vocabulary version moved it and how. Free text, kept so that a gold value can be argued with rather than merely trusted."
+  },
+  "notice_id_pilot": {
+   "type": "string",
+   "description": "Identifier the notice carried in the pilot, when it differs from the identifier of the merged corpus."
+  }
+ }
+}

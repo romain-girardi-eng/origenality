@@ -1,0 +1,325 @@
+openapi: 3.1.0
+info:
+  title: Origenality API
+  version: "0.1.0"
+  summary: Read access to the Origenality bibliographic map.
+  description: |
+    The contract the Origenality front end consumes. It is deliberately small and
+    deliberately neutral: four read operations over a bibliographic corpus, with
+    no assumption about what implements them. Any server that honours these four
+    responses can serve the site.
+
+    Three conventions hold across every response.
+
+    Counts. A figure counts records classed `core` or `partial` and nothing else.
+    Records classed `marginal` are returned by searches and listed under counts;
+    they are never added to one. Records classed `none` are not published.
+
+    Attribution. A summary is always returned with the database that wrote it and
+    a link to the record it wrote it for. A summary without both is not returned.
+
+    Density. The `density` of a neighbourhood is the number of distinct records
+    it carries, inside the citable perimeter. It is a headcount, not a score.
+  license:
+    name: MIT
+    identifier: MIT
+  contact:
+    name: Romain Girardi
+    email: romain.girardi@univ-cotedazur.fr
+
+servers:
+  - url: /api/v1
+    description: Path-relative; the deployment decides the host.
+
+paths:
+  /search:
+    get:
+      operationId: search
+      summary: Records matching a free-text query, with their facets.
+      parameters:
+        - name: q
+          in: query
+          required: true
+          schema: { type: string, minLength: 1 }
+          description: Free text. Matched against title, authors, subjects and summary.
+        - name: relevance
+          in: query
+          schema:
+            type: array
+            items: { $ref: "#/components/schemas/Relevance" }
+          description: Classes to return. Default `core` and `partial`; adding
+            `marginal` returns them without counting them.
+        - name: lang
+          in: query
+          schema: { type: string, description: "ISO 639-2/B code" }
+        - name: from
+          in: query
+          schema: { type: integer }
+        - name: to
+          in: query
+          schema: { type: integer }
+        - name: limit
+          in: query
+          schema: { type: integer, default: 50, maximum: 500 }
+        - name: offset
+          in: query
+          schema: { type: integer, default: 0 }
+      responses:
+        "200":
+          description: Matching records.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [counted, mentioned, records]
+                properties:
+                  counted:
+                    type: integer
+                    description: Records classed core or partial that match.
+                  mentioned:
+                    type: integer
+                    description: Records classed marginal that match. Never added to `counted`.
+                  records:
+                    type: array
+                    items: { $ref: "#/components/schemas/Record" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+
+  /neighborhood:
+    get:
+      operationId: neighborhood
+      summary: The region of the map a query falls in, and what is adjacent to it.
+      parameters:
+        - name: q
+          in: query
+          required: true
+          schema: { type: string, minLength: 1 }
+        - name: max_nodes
+          in: query
+          schema: { type: integer, default: 8 }
+      responses:
+        "200":
+          description: |
+            The selected nodes, the density they carry, and the adjacent regions.
+            A query matching nothing returns an empty selection and a density of
+            zero — never the largest nodes of the index.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [density, notices_indexed, nodes, adjacent]
+                properties:
+                  density:
+                    type: integer
+                    description: Distinct citable records carried by the selected nodes.
+                  notices_indexed:
+                    type: integer
+                    description: Denominator — records in the citable index.
+                  matched:
+                    type: boolean
+                    description: False when no query term appears anywhere.
+                  nodes:
+                    type: array
+                    items: { $ref: "#/components/schemas/Node" }
+                  adjacent:
+                    type: array
+                    items: { $ref: "#/components/schemas/Node" }
+                  parameters:
+                    $ref: "#/components/schemas/DensityParameters"
+        "400": { $ref: "#/components/responses/BadRequest" }
+
+  /answer:
+    post:
+      operationId: answer
+      summary: A prose answer to a research question, with its sources.
+      description: |
+        Every claim in `text` is supported by an entry in `sources`, and an answer
+        that has no sources returns an empty `text`. The endpoint states what it
+        found; it does not state what it did not find.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [question]
+              properties:
+                question: { type: string, minLength: 1 }
+                lang:
+                  type: string
+                  description: Language of the answer. Default `en`.
+      responses:
+        "200":
+          description: The answer and the records it rests on.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [text, sources, density]
+                properties:
+                  text: { type: string }
+                  sources:
+                    type: array
+                    items: { $ref: "#/components/schemas/Record" }
+                  density: { type: integer }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "503": { $ref: "#/components/responses/Unavailable" }
+
+  /stats:
+    get:
+      operationId: stats
+      summary: Aggregate series of the field, by decade, language, format, theme and work.
+      parameters:
+        - name: axis
+          in: query
+          schema:
+            type: string
+            enum: [decade, language, format, theme, work]
+      responses:
+        "200":
+          description: |
+            Series computed over the counted population, with the population
+            stated alongside so that no figure is read against the wrong total.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [population, series]
+                properties:
+                  population:
+                    type: object
+                    required: [counted, mentioned, held_aside]
+                    properties:
+                      counted: { type: integer }
+                      mentioned: { type: integer }
+                      held_aside: { type: integer }
+                  harvested: { type: string, format: date }
+                  series:
+                    type: array
+                    items:
+                      type: object
+                      required: [key, label, count]
+                      properties:
+                        key: { type: string }
+                        label: { type: string }
+                        count: { type: integer }
+
+components:
+  responses:
+    BadRequest:
+      description: The request was not understood; the message says which parameter.
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    Unavailable:
+      description: The service that composes answers is not available.
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+
+  schemas:
+    Relevance:
+      type: string
+      enum: [core, partial, marginal]
+      description: |
+        `core` — the record is about Origen. `partial` — he holds a section of
+        the argument. `marginal` — he is mentioned. Only the first two are counted.
+
+    Record:
+      type: object
+      required: [id, title, relevance]
+      properties:
+        id:
+          type: string
+          description: Stable cluster identifier.
+        title: { type: string }
+        authors:
+          type: array
+          items: { type: string }
+        year: { type: integer, nullable: true }
+        lang: { type: string, description: "ISO 639-2/B code" }
+        type:
+          type: string
+          description: article, book, chapter, review, dissertation, other.
+        container: { type: string, description: Journal, series or collective volume. }
+        publisher: { type: string }
+        doi: { type: string }
+        isbn: { type: string }
+        url: { type: string, format: uri }
+        relevance: { $ref: "#/components/schemas/Relevance" }
+        themes:
+          type: array
+          items: { type: string }
+        works:
+          type: array
+          items: { type: string, description: Work of Origen, by vocabulary key. }
+        approaches:
+          type: array
+          items: { type: string }
+        cited_by_count: { type: integer, nullable: true }
+        cohort_rank:
+          type: number
+          nullable: true
+          description: |
+            Percentile inside a cohort of the same decade, type and language.
+            Null when no count was measured — which penalises nothing.
+        sources:
+          type: array
+          description: The databases this cluster was built from.
+          items:
+            type: object
+            required: [source, source_id]
+            properties:
+              source: { type: string }
+              source_id: { type: string }
+        abstract: { $ref: "#/components/schemas/Abstract" }
+
+    Abstract:
+      type: object
+      description: |
+        Returned only when both the database and the link to its record are
+        known. A summary with one and not the other is withheld.
+      required: [text, source, source_label, url]
+      properties:
+        text: { type: string }
+        source: { type: string, description: Database key, as in ATTRIBUTION.md. }
+        source_label: { type: string, description: The name to print. }
+        url: { type: string, format: uri, description: The donor record. }
+        generated:
+          type: boolean
+          description: True when the summary was written by the project itself.
+
+    Node:
+      type: object
+      required: [id, label, kind, notices]
+      properties:
+        id: { type: string }
+        label: { type: string }
+        kind:
+          type: string
+          enum: [domain, theme, work, approach]
+        notices: { type: integer, description: Citable records carried by this node. }
+        path:
+          type: array
+          items: { type: string }
+
+    DensityParameters:
+      type: object
+      description: |
+        The five inputs a density depends on. A density is comparable only with
+        one computed under the same five, which is why they travel with it.
+      properties:
+        vocabulary_version: { type: string }
+        prompt_version: { type: string }
+        min_relevance: { $ref: "#/components/schemas/Relevance" }
+        max_nodes: { type: integer }
+        engine:
+          type: string
+          enum: [deterministic, assisted]
+          description: A density meant to be cited is produced by the deterministic engine.
+
+    Error:
+      type: object
+      required: [error]
+      properties:
+        error: { type: string }
+        parameter: { type: string }

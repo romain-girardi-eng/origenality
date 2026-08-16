@@ -1,0 +1,64 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Origenality Controlled Vocabulary — Relevance",
+  "description": "Closed four-value classifier answering a single question: how much of this publication is about Origen? It is the P2 filter of the pipeline. It is deliberately independent of quality, of language and of date, and it says nothing about the interest of the work — only about the share of it that concerns Origen. A notice carries exactly one value.",
+  "version": "1.0.0",
+  "axis": "relevance",
+  "cardinality": "exactly 1 per notice",
+  "decision_order": ["none", "marginal", "partial", "core"],
+  "decision_rule": "Read the four definitions in order from core to none and take the first that fits. When hesitating between two adjacent values, take the lower one and set needs_review to true.",
+  "relevance": {
+    "core": {
+      "label": "Origen is the main object",
+      "labels": {
+        "de": "Origenes ist der Hauptgegenstand",
+        "fr": "Origène est l'objet principal",
+        "it": "Origene è l'oggetto principale"
+      },
+      "description": "The publication is about Origen, one of his works, one of his doctrines, or his direct reception. A reader looking for Origen scholarship would put it on the shelf without hesitation.",
+      "indicators": ["Origen or a work of his in the title", "an Origenian doctrine as the subject", "an edition or translation of an Origenian text", "a monograph or article devoted to his exegesis"],
+      "counts_in_density": true,
+      "color": "#8c2f39",
+      "status": "active"
+    },
+    "partial": {
+      "label": "Origen treated substantially among others",
+      "labels": {
+        "de": "Origenes wird substantiell neben anderen behandelt",
+        "fr": "Origène traité substantiellement parmi d'autres",
+        "it": "Origene trattato in modo sostanziale tra altri"
+      },
+      "description": "Origen is one of several authors genuinely studied: a chapter of a book, one term of a comparison, one witness in a survey that gives him real space. Not the sole subject, but more than an illustration.",
+      "indicators": ["comparison of Origen with another author", "a patristic survey with a section on Origen", "a study of a theme across the Fathers where Origen is a principal witness"],
+      "counts_in_density": true,
+      "color": "#a4551f",
+      "status": "active"
+    },
+    "marginal": {
+      "label": "Origen mentioned only",
+      "labels": {
+        "de": "Origenes nur erwähnt",
+        "fr": "Origène seulement mentionné",
+        "it": "Origene solo menzionato"
+      },
+      "description": "Origen appears as a reference, an example or a name in a list, without being studied. The publication would lose almost nothing if he were removed.",
+      "indicators": ["an author index entry", "a passing citation in a work on another subject", "a manual mentioning Origen in one paragraph"],
+      "counts_in_density": false,
+      "color": "#8a7524",
+      "status": "active"
+    },
+    "none": {
+      "label": "Not about Origen",
+      "labels": {
+        "de": "Nicht über Origenes",
+        "fr": "Ne porte pas sur Origène",
+        "it": "Non riguarda Origene"
+      },
+      "description": "Noise from harvesting: homonyms, common nouns mistaken for the name, works by Origen catalogued as works about him, records whose metadata does not allow the question to be answered at all. Use this value whenever the notice gives no positive evidence that Origen is discussed.",
+      "indicators": ["Spanish origen or orígenes as a common noun", "Origenes Platonicus, a different person", "the record is a text by Origen rather than a study of him", "the metadata is too thin to decide"],
+      "counts_in_density": false,
+      "color": "#7a7a7a",
+      "status": "active"
+    }
+  }
+}
