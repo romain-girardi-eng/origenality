@@ -6,11 +6,12 @@ body{
   background:
     radial-gradient(120% 70% at 50% 0%, var(--ground-lift) 0%, var(--ground) 55%, var(--ground-deep) 100%)
     fixed;
-  padding-top:60px;
+  padding-top:calc(60px + env(safe-area-inset-top));
 }
-@media (max-width:760px){ body{padding-top:54px} }
+@media (max-width:760px){ body{padding-top:calc(52px + env(safe-area-inset-top))} }
 
-.page{max-width:63rem;margin:0 auto;padding:clamp(2rem,5vh,3.6rem) clamp(1rem,4vw,2.4rem) 5rem}
+.page{max-width:63rem;margin:0 auto;
+  padding:clamp(2rem,5vh,3.6rem) max(clamp(1rem,4vw,2.4rem), env(safe-area-inset-right)) calc(5rem + env(safe-area-inset-bottom)) max(clamp(1rem,4vw,2.4rem), env(safe-area-inset-left))}
 
 .lede{max-width:44rem}
 .lede h1{
@@ -35,9 +36,12 @@ li{margin:0 0 .45rem;line-height:1.6}
 a{color:var(--accent);text-decoration:none;border-bottom:1px solid rgba(160,54,32,.3)}
 a:hover{border-color:var(--accent)}
 .bar .wordmark{color:var(--ink);border-bottom:0}
-.bar .nav a{color:var(--ink-2);border-bottom-color:transparent}
-.bar .nav a:hover{color:var(--accent);border-bottom-color:var(--accent)}
-.bar .nav a[aria-current="page"]{color:var(--ink);border-bottom-color:var(--ink)}
+.bar .nav-wide a{color:var(--ink-2);border-bottom-color:transparent}
+@media (hover:hover){
+  .bar .nav-wide a:hover{color:var(--accent);border-bottom-color:var(--accent)}
+}
+.bar .nav-wide a[aria-current="page"]{color:var(--ink);border-bottom-color:var(--ink)}
+.bar .nav-sheet a{border-bottom:0}
 .skip{border-bottom:0}
 .rule{height:1px;background:var(--rule);border:0;margin:2.6rem 0 0}
 
@@ -103,7 +107,7 @@ figcaption{font-size:.8rem;color:var(--stone);line-height:1.5;margin:.7rem 0 0}
 .tbl th{font-weight:600;color:var(--ink);font-size:.79rem;letter-spacing:.02em}
 .tbl td{color:var(--ink-2);line-height:1.5}
 .tbl td.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
-.tbl-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+.tbl-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;overscroll-behavior-x:contain}
 .tbl-cap{font-size:.78rem;color:var(--stone);line-height:1.45;margin:.7rem 0 .2rem}
 .num-tbl td{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap;color:var(--ink-2)}
 .num-tbl th[scope=col]{text-align:right;white-space:nowrap;vertical-align:bottom}
@@ -131,4 +135,19 @@ figcaption{font-size:.8rem;color:var(--stone);line-height:1.5;margin:.7rem 0 0}
 .foot{margin:4rem 0 0;padding-top:1.3rem;border-top:1px solid var(--rule);
   font-size:.8rem;color:var(--stone);display:flex;flex-wrap:wrap;gap:.4rem 1.4rem}
 .foot a{color:var(--ink-2);border-bottom-color:rgba(90,83,70,.3)}
-.foot a:hover{color:var(--accent);border-bottom-color:var(--accent)}
+@media (hover:hover){
+  .foot a:hover{color:var(--accent);border-bottom-color:var(--accent)}
+}
+@media (max-width:760px){
+  .lede h1{letter-spacing:-.01em}
+  .card{padding:1rem 1.05rem 1.15rem;border-radius:12px}
+  .stat .v{font-size:1.9rem}
+  .tbl-wrap{
+    margin-inline:-.2rem;padding:.15rem .2rem 0;
+    border:1px solid var(--rule-soft);border-radius:10px;background:rgba(247,242,230,.45);
+  }
+  .tbl{font-size:.8rem}
+  .tbl th,.tbl td{padding:.7rem .65rem}
+  .data-table summary{min-height:44px}
+  .foot a{padding:.45rem 0;min-height:44px;display:inline-flex;align-items:center}
+}

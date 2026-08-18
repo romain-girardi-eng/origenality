@@ -32,10 +32,12 @@ import build_summary_figures as figures  # noqa: E402
 SITE = "https://origenality.com"
 REPO = "https://github.com/romain-girardi-eng/origenality"
 
-# Les quatre pages, dans l'ordre de la navigation, avec l'adresse que Cloudflare
+# Les pages, dans l'ordre de la navigation, avec l'adresse que Cloudflare
 # Pages sert réellement : il retire l'extension et redirige `.html` vers elle.
 PAGES = (
-    ("site/index.html", "/site/", "1.0",
+    ("site/welcome.html", "/site/welcome", "1.0",
+     "the door: what the map is, and the one step that opens it."),
+    ("site/index.html", "/site/", "0.9",
      "the map of the field, a free-text bar and four questions that lead to a "
      "neighbourhood of the scholarship."),
     ("site/observatoire.html", "/site/observatoire", "0.8",
@@ -130,7 +132,8 @@ def llms() -> str:
 
     out += ["## Pages", ""]
     for _, address, _, note in PAGES:
-        title = {"/site/": "Explorer", "/site/observatoire": "Observatory",
+        title = {"/site/welcome": "Home", "/site/": "Explorer",
+                 "/site/observatoire": "Observatory",
                  "/site/methode": "Method", "/site/credits": "Credits"}[address]
         out.append("- [%s](%s%s): %s" % (title, SITE, address, note))
     out.append("")

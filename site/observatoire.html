@@ -30,6 +30,7 @@
 <link rel="preload" href="assets/fonts/literata-var.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="assets/base.css">
 <link rel="stylesheet" href="assets/pages.css">
+<link rel="stylesheet" href="assets/observatory.css">
 <script type="application/ld+json">
 {
   "@context": "https://schema.org",
@@ -51,7 +52,7 @@
       "@type": "BreadcrumbList",
       "@id": "https://origenality.com/site/observatoire#breadcrumb",
       "itemListElement": [
-        { "@type": "ListItem", "position": 1, "name": "Explorer", "item": "https://origenality.com/site/" },
+        { "@type": "ListItem", "position": 1, "name": "Origenality", "item": "https://origenality.com/site/welcome" },
         { "@type": "ListItem", "position": 2, "name": "Observatory" }
       ]
     }
@@ -59,17 +60,28 @@
 }
 </script>
 </head>
-<body>
+<body class="obs">
 
 <a class="skip" href="#main">Skip to the content</a>
 
 <header class="bar">
-  <a class="wordmark" href="index.html"><svg class="mk" viewBox="0 0 100 100" width="13" height="13" aria-hidden="true"><g stroke="currentColor" stroke-width="11" fill="none"><path d="M50 14 L50 86"/><path d="M14 50 L86 50"/></g><g fill="currentColor"><circle cx="27" cy="27" r="8"/><circle cx="73" cy="27" r="8"/><circle cx="27" cy="73" r="8"/><circle cx="73" cy="73" r="8"/></g></svg><span>Origenality</span></a>
+  <a class="wordmark" href="welcome.html"><svg class="mk" viewBox="0 0 100 100" width="13" height="13" aria-hidden="true"><g stroke="currentColor" stroke-width="11" fill="none"><path d="M50 14 L50 86"/><path d="M14 50 L86 50"/></g><g fill="currentColor"><circle cx="27" cy="27" r="8"/><circle cx="73" cy="27" r="8"/><circle cx="27" cy="73" r="8"/><circle cx="73" cy="73" r="8"/></g></svg><span>Origenality</span></a>
   <nav class="nav" aria-label="Pages">
-    <a href="index.html">Explorer</a>
-    <a href="observatoire.html" aria-current="page">Observatory</a>
-    <a href="methode.html">Method</a>
-    <a href="credits.html">Credits</a>
+    <div class="nav-wide">
+      <a href="index.html">Explorer</a>
+      <a href="observatoire.html" aria-current="page">Observatory</a>
+      <a href="methode.html">Method</a>
+      <a href="credits.html">Credits</a>
+    </div>
+    <details class="nav-fold">
+      <summary>Observatory</summary>
+      <div class="nav-sheet">
+        <a href="index.html">Explorer</a>
+        <a href="observatoire.html" aria-current="page">Observatory</a>
+        <a href="methode.html">Method</a>
+        <a href="credits.html">Credits</a>
+      </div>
+    </details>
   </nav>
 </header>
 
@@ -77,6 +89,10 @@
 
   <div class="lede">
     <h1>Observatory</h1>
+    <p class="census" id="census" hidden>
+      <span class="census-n" id="census-n"></span>
+      <span class="census-k" id="census-k"></span>
+    </p>
     <p>What this harvest holds, and what it cannot tell you. Every figure below is a count
       of one catalogue on one day. It measures how a library indexes Origen; it does not
       measure the field.</p>
@@ -96,9 +112,9 @@
     <p class="sub">A count is readable only when it says what it counts. Each record is classed
       against the vocabulary, and no class is deleted: the noise stays in the index, where it can
       be measured instead of hidden.</p>
-    <div class="card">
-      <div class="band" id="band-sets" role="img" aria-label="Share of the harvest by relevance class"></div>
-      <div class="band-key" id="key-sets"></div>
+    <div class="sets-fig">
+      <div class="sets-mass" id="band-sets" role="img" aria-label="Share of the harvest by relevance class"></div>
+      <div class="sets-key" id="key-sets"></div>
     </div>
     <p class="note" id="review-note"></p>
     <div class="note">
@@ -123,7 +139,7 @@
     <h2>Scope of the harvest</h2>
     <p class="sub">One source, one day. The editions of Origen's own works are set aside: they are
       primary sources, not scholarship about him.</p>
-    <div class="grid" id="scope-grid"></div>
+    <div class="reg" id="scope-grid"></div>
   </section>
 
   <section id="time">
@@ -225,6 +241,7 @@
 
 </main>
 
+<script src="assets/chrome.js"></script>
 <script src="assets/observatory.js"></script>
 </body>
 </html>

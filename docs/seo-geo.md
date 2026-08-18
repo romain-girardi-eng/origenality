@@ -19,7 +19,7 @@ that stand on their own, and a machine-readable summary at `/llms.txt`.
 | `_headers` | security policy and cache, applied by Cloudflare Pages |
 | `_redirects` | the short addresses, `/` first of all |
 | `robots.txt` | opens the site to search and to the AI crawlers, points at the sitemap |
-| `sitemap.xml` | the four pages and the documentation, dated from git |
+| `sitemap.xml` | the five pages and the documentation, dated from git |
 | `llms.txt` | the short guide for an agent: pages, data files, key facts, contact |
 | `llms-full.txt` | the read me and the methodology in one file |
 | `scripts/build_seo_assets.py` | writes the three files above, `--check` says if they are stale |
@@ -35,7 +35,7 @@ loaded from elsewhere.
 address their assets relatively, so a `200` rewrite of `/` onto
 `/site/index.html` would leave the browser at `/` and resolve `assets/base.css`
 to `/assets/base.css`: a 404 on the stylesheet, the fonts and the script. `/`
-therefore answers `302` to `/site/`. A rewrite becomes possible the day the
+therefore answers `302` to `/site/welcome`. A rewrite becomes possible the day the
 pages carry absolute paths, and not before.
 
 **Cloudflare Pages drops the `.html`.** A request for `/site/methode.html`
@@ -65,7 +65,7 @@ upgrade-insecure-requests
 written into the stylesheet as a data URI. `connect-src 'self'` covers the four
 `fetch` calls that read the data layer. The JSON-LD blocks are data rather than
 code and raise no violation under `script-src 'self'`; that too was checked in a
-browser, on all four pages, with a listener on `securitypolicyviolation` and
+browser, on all five pages, with a listener on `securitypolicyviolation` and
 zero events recorded.
 
 **Cache is short where the name is stable.** No asset carries a hash in its
@@ -105,7 +105,7 @@ document: the dates in the sitemap come from the last commit of each file.
 ## Checking a deployment
 
 ```bash
-curl -sI https://origenality.com/                     # 302 to /site/
+curl -sI https://origenality.com/                     # 302 to /site/welcome
 curl -sI https://origenality.com/site/methode.html    # 308 to /site/methode
 curl -s  https://origenality.com/robots.txt | head -5 # ours, not Cloudflare's default
 curl -s  https://origenality.com/llms.txt  | head -5

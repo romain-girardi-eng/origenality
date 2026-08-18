@@ -28,6 +28,7 @@
 <link rel="preload" href="assets/fonts/literata-var.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="assets/base.css">
 <link rel="stylesheet" href="assets/pages.css">
+<link rel="stylesheet" href="assets/folio.css">
 <script type="application/ld+json">
 {
   "@context": "https://schema.org",
@@ -49,7 +50,7 @@
       "@type": "BreadcrumbList",
       "@id": "https://origenality.com/site/methode#breadcrumb",
       "itemListElement": [
-        { "@type": "ListItem", "position": 1, "name": "Explorer", "item": "https://origenality.com/site/" },
+        { "@type": "ListItem", "position": 1, "name": "Origenality", "item": "https://origenality.com/site/welcome" },
         { "@type": "ListItem", "position": 2, "name": "Method" }
       ]
     },
@@ -93,17 +94,28 @@
 }
 </script>
 </head>
-<body>
+<body class="folio">
 
 <a class="skip" href="#main">Skip to the content</a>
 
 <header class="bar">
-  <a class="wordmark" href="index.html"><svg class="mk" viewBox="0 0 100 100" width="13" height="13" aria-hidden="true"><g stroke="currentColor" stroke-width="11" fill="none"><path d="M50 14 L50 86"/><path d="M14 50 L86 50"/></g><g fill="currentColor"><circle cx="27" cy="27" r="8"/><circle cx="73" cy="27" r="8"/><circle cx="27" cy="73" r="8"/><circle cx="73" cy="73" r="8"/></g></svg><span>Origenality</span></a>
+  <a class="wordmark" href="welcome.html"><svg class="mk" viewBox="0 0 100 100" width="13" height="13" aria-hidden="true"><g stroke="currentColor" stroke-width="11" fill="none"><path d="M50 14 L50 86"/><path d="M14 50 L86 50"/></g><g fill="currentColor"><circle cx="27" cy="27" r="8"/><circle cx="73" cy="27" r="8"/><circle cx="27" cy="73" r="8"/><circle cx="73" cy="73" r="8"/></g></svg><span>Origenality</span></a>
   <nav class="nav" aria-label="Pages">
-    <a href="index.html">Explorer</a>
-    <a href="observatoire.html">Observatory</a>
-    <a href="methode.html" aria-current="page">Method</a>
-    <a href="credits.html">Credits</a>
+    <div class="nav-wide">
+      <a href="index.html">Explorer</a>
+      <a href="observatoire.html">Observatory</a>
+      <a href="methode.html" aria-current="page">Method</a>
+      <a href="credits.html">Credits</a>
+    </div>
+    <details class="nav-fold">
+      <summary>Method</summary>
+      <div class="nav-sheet">
+        <a href="index.html">Explorer</a>
+        <a href="observatoire.html">Observatory</a>
+        <a href="methode.html" aria-current="page">Method</a>
+        <a href="credits.html">Credits</a>
+      </div>
+    </details>
   </nav>
 </header>
 
@@ -111,15 +123,16 @@
 
   <div class="lede">
     <h1>Method</h1>
+<!-- FIGURES:population-stamp -->
+    <p class="census"><span class="census-n">1 402</span><span class="census-k">counted records, of 1 632 harvested</span></p>
+    <p class="stamp">Version of August 2026 · one source · 1 632 records harvested, 1 402 counted</p>
+<!-- /FIGURES:population-stamp -->
     <p>Origenality is a bibliographic map of the scholarship on Origen of Alexandria. It
       gathers the records of open catalogues, keeps one record per work, files each under a
       controlled vocabulary of themes, works of Origen and approaches, and draws the result
       so that a reader sees where the field is thick and where it is thin.</p>
     <p>This page says how the corpus is assembled, what is published and under what terms,
       and what the density figure does and does not measure.</p>
-<!-- FIGURES:population-stamp -->
-    <p class="stamp">Version of August 2026 · one source · 1 632 records harvested, 1 402 counted</p>
-<!-- /FIGURES:population-stamp -->
   </div>
 
   <section>
@@ -449,5 +462,6 @@
   </div>
 
 </main>
+<script src="assets/chrome.js"></script>
 </body>
 </html>

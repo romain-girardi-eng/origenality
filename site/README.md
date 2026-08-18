@@ -1,7 +1,7 @@
 # The site
 
-Four pages on one cream field: the Explorer, the Observatory, the Method and the
-Credits. The visual language is the one Romain uses on his own landing page — a
+Five pages on one cream field: the landing, the Explorer, the Observatory, the
+Method and the Credits. The landing is the door. The Explorer is the map: a
 warm cream ground, one search bar high in the middle, a light map of coloured
 clusters, plain names, one dark rounded button.
 
@@ -10,7 +10,7 @@ folder can be served under a path prefix such as `/origenality`.
 
 ```
 python3 -m http.server 8020                    # from the root of the clone
-open http://localhost:8020/site/index.html
+open http://localhost:8020/site/welcome.html
 ```
 
 Paths below are given from the root of the clone, where the pages sit under
@@ -23,6 +23,7 @@ than by counting steps, so the same command works on either side.
 
 | File | What it is |
 |---|---|
+| `welcome.html` | the landing: the portrait, one sentence, Explore |
 | `index.html` | the Explorer: the map, the free bar, the four questions |
 | `observatoire.html` | the Observatory: the harvest counted, with its three sets |
 | `methode.html` | the Method: corpus, rights, vocabulary, what the density figure is |

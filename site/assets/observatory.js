@@ -118,8 +118,10 @@
       return '<span style="width:' + pc(row.n, mapTotal).toFixed(2) + '%;background:' + SET_COL[row.k] + '"></span>';
     }).join('');
     el('key-sets').innerHTML = setRows.map(function (row) {
-      return '<span><i style="background:' + SET_COL[row.k] + '"></i><b>' + nf(row.n) + '</b> ' +
-        esc(row.label) + ' <span style="color:var(--stone)">— ' + esc(row.note) + '</span></span>';
+      return '<div class="set" style="color:' + SET_COL[row.k] + '">' +
+        '<span class="set-v">' + nf(row.n) + '</span>' +
+        '<span class="set-k">' + esc(row.label) + '</span>' +
+        '<span class="set-n">' + esc(row.note) + '</span></div>';
     }).join('');
     /* What the flag actually means, rather than the one case that reads best.
        A record is flagged when the classifier answered below its confidence
@@ -130,8 +132,8 @@
     var inCount = (reviewBy.core || 0) + (reviewBy.partial || 0);
     el('review-note').innerHTML = '<strong>' + nf(review) + ' records</strong> of the ' +
       nf(total) + ' the wave classed' +
-      (untagged ? ' — the other ' + nf(untagged) + ' of the ' + nf(mapTotal) +
-        ' on this map carry no class at all —' : '') +
+      (untagged ? '; the other ' + nf(untagged) + ' of the ' + nf(mapTotal) +
+        ' on this map carry no class at all;' : '') +
       ' are flagged for review: the classifier answered below its confidence floor, ' +
       'read metadata too thin to decide, hesitated between two adjacent classes and took the ' +
       'lower one, or returned a value that had to be repaired when it was checked against the ' +
@@ -151,16 +153,20 @@
         n: 'works by Origen, not about him' },
       { v: nf(t.records), k: 'records kept', n: 'the harvest, index and search alike' },
       { v: nf(COUNT_N), k: 'records counted',
-        n: 'Origen the subject, or holding a section — the population of every figure here' },
+        n: 'Origen the subject, or holding a section. The population of every figure here' },
       { v: nf(t.distinct_authors), k: 'distinct authors', n: 'as spelled by the catalogue' },
       { v: nf(t.distinct_containers), k: 'journals and volumes', n: 'containers holding at least one record' },
       { v: nf(t.records_with_doi), k: 'records with a DOI',
         n: nf(t.records_with_isbn) + ' carry an ISBN' }
     ];
     el('scope-grid').innerHTML = scope.map(function (s) {
-      return '<div class="card stat"><span class="v">' + s.v + '</span>' +
-        '<span class="k">' + esc(s.k) + '</span><span class="n">' + esc(s.n) + '</span></div>';
+      return '<div class="reg-row"><span class="reg-v">' + s.v + '</span>' +
+        '<span class="reg-k">' + esc(s.k) + '</span><span class="reg-n">' + esc(s.n) + '</span></div>';
     }).join('');
+
+    el('census-n').textContent = nf(COUNT_N);
+    el('census-k').textContent = 'counted records, of ' + nf(t.records) + ' kept';
+    el('census').hidden = false;
 
     el('stamp').textContent = 'Harvest of ' + (meta.harvested || stats.generated) + ' · ' +
       nf(COUNT_N) + ' counted records of ' + nf(t.records) +
@@ -182,16 +188,15 @@
     var maxD = 0, sumD = 0;
     order.forEach(function (d) { maxD = Math.max(maxD, dec[d].n); sumD += dec[d].n; });
     el('cols-decade').innerHTML = order.map(function (d) {
-      var row = dec[d], h = maxD ? (row.n / maxD * 130) : 0;
+      var row = dec[d], h = maxD ? (row.n / maxD * 100) : 0;
       var stack = LANGS.map(function (l) {
         var v = row.lang[l.code] || 0;
         if (!v) return '';
-        return '<span style="height:' + (row.n ? (v / row.n * h) : 0).toFixed(1) +
-          'px;background:' + l.col + '"></span>';
+        return '<span style="flex:' + v + ';background:' + l.col + '"></span>';
       }).join('');
       return '<div class="c"><span class="vv">' + row.n + '</span>' +
-        '<span class="st" style="height:' + h.toFixed(1) + 'px">' + stack + '</span>' +
-        '<span class="lb">' + String(d).slice(2) + '</span></div>';
+        '<div class="plot"><span class="st" style="height:' + h.toFixed(1) + '%">' + stack + '</span></div>' +
+        '<span class="lb">' + d + '</span></div>';
     }).join('');
 
     /* The same series in words and figures, for a reader who does not see the

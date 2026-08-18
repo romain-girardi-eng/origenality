@@ -1,0 +1,118 @@
+/* Origenality — Method and Credits as the same folio as the Observatory.
+   A document, not a dashboard. Romain Girardi, 2026. */
+
+.folio .lede{
+  max-width:none;
+  display:flex;flex-direction:column;
+}
+.folio .lede h1{
+  order:0;
+  font-size:clamp(2.6rem,7vw,4.2rem);letter-spacing:-.018em;
+  margin:0;line-height:1;
+}
+.folio .lede .census{order:1}
+.folio .lede > p:not(.census):not(.stamp){
+  order:2;max-width:44rem;
+  font-size:clamp(1.02rem,1.6vw,1.14rem);line-height:1.58;
+}
+.folio .lede .stamp{order:3;margin:1.5rem 0 0}
+
+.folio .census{
+  display:flex;flex-direction:column;align-items:flex-start;gap:.35rem;
+  margin:1.5rem 0 1.7rem;
+}
+.folio .census-n{
+  font-family:var(--serif);font-weight:500;line-height:.88;
+  font-size:clamp(4.4rem,16vw,8.4rem);letter-spacing:-.03em;
+  font-variant-numeric:tabular-nums;color:var(--ink);
+}
+.folio .census-k{
+  font-size:clamp(.95rem,1.6vw,1.12rem);color:var(--ink-2);letter-spacing:.01em;
+}
+
+.folio section{
+  margin-top:clamp(3.4rem,8vh,5.6rem);
+  padding-top:1.35rem;border-top:1px solid var(--rule);
+}
+.folio section > h2{
+  font-size:clamp(1.7rem,3.2vw,2.25rem);letter-spacing:-.012em;
+  margin:0 0 .4rem;
+}
+.folio section > .sub{font-size:.9rem;max-width:42rem;margin:0 0 1.5rem}
+.folio h3{
+  font-size:clamp(1.28rem,2.2vw,1.55rem);letter-spacing:-.01em;
+  margin:2.15rem 0 .55rem;
+}
+.folio .prose p,.folio .prose li{font-size:1.02rem;line-height:1.68}
+.folio li{margin:0 0 .65rem}
+
+.folio .note{
+  margin:1.8rem 0;padding:.2rem 0 .2rem 1.15rem;
+  font-size:.95rem;
+}
+
+/* tables as a register, not a boxed grid */
+.folio .tbl-wrap{margin:1.35rem 0 1.6rem}
+.folio .tbl{
+  min-width:0;font-size:.92rem;
+}
+.folio .tbl th{
+  font-family:var(--serif);font-weight:500;font-size:.84rem;
+  letter-spacing:.01em;border-bottom:1px solid var(--ink);color:var(--ink);
+  padding:.2rem 0 .7rem;
+}
+.folio .tbl td{
+  padding:1rem 1.1rem 1rem 0;border-bottom:1px solid var(--rule-soft);
+  vertical-align:top;line-height:1.5;
+}
+.folio .tbl td:first-child{color:var(--ink);font-family:var(--serif);font-size:1.02rem}
+.folio .tbl td.num{
+  font-family:var(--serif);font-variant-numeric:tabular-nums;
+  font-size:1.2rem;color:var(--ink);text-align:right;padding-right:0;
+}
+
+.folio #questions h3{
+  margin-top:2.5rem;padding-top:1.25rem;border-top:1px solid var(--rule-soft);
+}
+.folio #questions h3:first-of-type{margin-top:1.6rem}
+
+.folio ol{
+  list-style:none;padding:0;max-width:44rem;
+  border-top:1px solid var(--rule);
+}
+.folio ol li{
+  margin:0;padding:.85rem 0 .85rem 2.4rem;position:relative;
+  border-bottom:1px solid var(--rule-soft);
+}
+.folio ol{counter-reset:folio}
+.folio ol li{counter-increment:folio}
+.folio ol li::before{
+  content:counter(folio);
+  position:absolute;left:0;top:.85rem;
+  font-family:var(--serif);font-size:1.15rem;color:var(--ink);
+  font-variant-numeric:tabular-nums;
+}
+
+.folio ul{
+  list-style:none;padding:0;max-width:44rem;
+  border-top:1px solid var(--rule);
+}
+.folio ul li{
+  margin:0;padding:1.05rem 0;
+  border-bottom:1px solid var(--rule-soft);
+}
+.folio ul li strong{
+  font-family:var(--serif);font-weight:500;font-size:1.08rem;color:var(--ink);
+}
+
+.folio .foot{margin-top:5rem}
+
+@media (max-width:760px){
+  .folio .census{margin:1.15rem 0 1.4rem}
+  .folio .tbl-wrap{
+    margin-inline:0;padding:0;border:0;border-radius:0;background:transparent;
+  }
+  .folio .tbl{font-size:.88rem}
+  .folio .tbl th,.folio .tbl td{padding:.85rem .2rem .85rem 0}
+  .folio .tbl td.num{font-size:1.15rem}
+}

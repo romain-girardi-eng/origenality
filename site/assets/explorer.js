@@ -1,8 +1,10 @@
 /* Origenality — Explorer, direction C.
-   Clusters drawn as particle clouds on a cream field. One particle = one
-   publication, tinted by its language of publication. The clusters are named
-   from the controlled vocabulary: theme domains and their leaves, or the works
-   of Origen. Romain Girardi, 2026. No external requests, no third party code. */
+   Clusters drawn as dust on a cream field. One publication is one gaussian
+   of grains from the pragma-cloud particle engine. Language tints the grain.
+   Named from the controlled vocabulary: theme domains and their leaves, or
+   the works of Origen. Romain Girardi, 2026. */
+import { createDustField } from './dust-field.js';
+
 (function () {
   'use strict';
 
@@ -68,7 +70,7 @@
   var CLUSTERS = [], PUBS = [], BUILT = {}, MODE = 'theme';
   // five clear size tiers, so the eye reads rank rather than a continuum
   var TIERS = [2.3, 3.0, 3.9, 4.9, 6.2], TIER_CUT = [0.2, 0.4, 0.6, 0.8];
-  var GAP_PUB = 0.9, GAP_SUB = 3.2;
+  var GAP_PUB = 2.6, GAP_SUB = 5.2;
   // the gap between two clouds follows their own size, so a field of small
   // clusters stays gathered instead of drifting apart
   function gapOf(a, b) {
@@ -76,7 +78,7 @@
     return Math.max(20, Math.min(46, (ra + rb) * 0.5));
   }
   var langOff = {};                       // language code -> hidden
-  var sel = null, hover = null, query = '';
+  var sel = null, hover = null, selPub = null, hoverPub = null, query = '';
   var wizAns = { work: [], approach: [], decade: [], lang: [] };
   var matched = null;                     // Set of publication indices, or null for "everything"
   var matchLabel = '', hitDepth = 0, tokCount = 0;
@@ -104,16 +106,34 @@
   TAIL_LABEL[NO_WORK] = 'No single work';
 
   var cv = document.getElementById('field-c'), ctx = cv.getContext('2d');
+  var glc = document.getElementById('field-gl');
   var W = 0, H = 0, DPR = Math.min(devicePixelRatio || 1, 2);
+  var dust = null;
 
-  function resize() {
+  function sizeField() {
     W = innerWidth; H = innerHeight;
     cv.width = W * DPR; cv.height = H * DPR;
     cv.style.width = W + 'px'; cv.style.height = H + 'px';
     ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+    if (glc) {
+      glc.style.width = W + 'px';
+      glc.style.height = H + 'px';
+    }
+    if (dust) dust.resize(W, H);
+  }
+  sizeField();
+  try {
+    if (glc) dust = createDustField(glc, { mobile: MOBILE, reduceMotion: RM });
+    if (dust) dust.resize(W, H);
+  } catch (err) {
+    dust = null;
+    console.warn('Explorer dust: WebGL field could not start.', err);
+  }
+
+  function resize() {
+    sizeField();
     invalidate();
   }
-  resize();
 
   /* ------------------------------------------------------------------ load */
   Promise.all([
@@ -185,6 +205,7 @@
         hay: norm([n.title, autLabels.join(' '), subLabels.join(' '), cont != null ? N[cont].label : '',
           n.year || '', LLAB[lkey(n.lang)], semWords.join(' '), ab ? ab.t : ''].join(' '))
       });
+      attachGrains(PUBS[PUBS.length - 1]);
     });
 
     buildMode('theme');
@@ -603,7 +624,7 @@
     var room = (MOBILE && !matched) ? 0.68 : 1;
     var s = Math.min(vw / gw * room, vh / gh * room,
       matched ? (MOBILE ? 3.2 : 4) : (MOBILE ? 0.95 : 1.55));
-    tcam.s = Math.max(0.18, s);
+    tcam.s = clampS(s);
     tcam.x = sidePad + vw / 2 - (mnx + mxx) / 2 * tcam.s;
     tcam.y = topPad + vh / 2 - (mny + mxy) / 2 * tcam.s;
     if (!matched && !reserve) restScale = tcam.s;
@@ -830,6 +851,16 @@
     if (!wrap) return;
     document.documentElement.style.setProperty('--legend-h', wrap.offsetHeight + 'px');
   }
+  function setKeyOpen(on) {
+    var wrap = document.getElementById('legend-wrap');
+    var tog = document.getElementById('key-toggle');
+    if (!wrap || !tog) return;
+    wrap.classList.toggle('open', !!on);
+    tog.setAttribute('aria-expanded', on ? 'true' : 'false');
+    tog.textContent = on ? 'Hide key' : 'Key';
+    measureLegend();
+    requestAnimationFrame(measureLegend);
+  }
 
   function renderHeld() {
     var box = document.getElementById('held-chips');
@@ -887,9 +918,38 @@
 
   /* ------------------------------------------------------------------ drawing */
   // the scale the whole field settles at on this screen; the second rank of
-  // names is measured against it rather than against an absolute zoom
+  // names is measured against it rather than against an absolute zoom.
+  // Wheel and pinch used to stop at 4, which left every work a pinprick.
   var restScale = 1;
+  var MIN_S = 0.18, MAX_S = 22;
+  function clampS(s) { return Math.max(MIN_S, Math.min(MAX_S, s)); }
   function leafFade() { return Math.min(1, Math.max(0, (cam.s / restScale - 0.97) / 0.26)); }
+  // A work is only worth aiming at once its cloud is a real patch, not a
+  // speck inside a far cluster. After a cluster is framed it fills enough
+  // of the view that its works can be clicked even if the field zoom is
+  // still modest.
+  function clusterInHand(c) {
+    return !!c && radiusOf(c) * cam.s > Math.min(W, H) * 0.28;
+  }
+  function hostCluster() {
+    if (sel && sel.a > 0.35 && clusterInHand(sel)) return sel;
+    var best = null, bd = 1e9;
+    CLUSTERS.forEach(function (c) {
+      if (c.a < 0.5 || !clusterInHand(c)) return;
+      var d = Math.hypot(wx(c.px) - W / 2, wy(c.py) - H / 2);
+      if (d < bd) { bd = d; best = c; }
+    });
+    return best;
+  }
+  function worksPickable(sx, sy) {
+    if (sel) return true;
+    if (cam.s >= restScale * 2) return true;
+    var over = pick(sx, sy);
+    return over && clusterInHand(over);
+  }
+  function pubReach(p) {
+    return Math.max(14, p.r * cam.s * 1.45);
+  }
 
   function radiusOf(c) { return c.cr == null ? c.r : c.cr; }
   function wx(x) { return x * cam.s + cam.x; }
@@ -935,76 +995,156 @@
 
     ctx.clearRect(0, 0, W, H);
 
-    // links, drawn as faint dotted trails
-    var links = window.__links || [];
-    ctx.fillStyle = hexA('#A2916D', 0.55);
-    links.forEach(function (l) {
-      var a = CLUSTERS[l.a], b = CLUSTERS[l.b];
-      if (!a || !b) return;
-      var al = Math.min(a.a, b.a); if (al < 0.14) return;
-      var ax = wx(a.px), ay = wy(a.py), bx = wx(b.px), by = wy(b.py);
-      var dx = bx - ax, dy = by - ay, len = Math.hypot(dx, dy);
-      if (len < 8 || len > Math.max(W, H) * 2.2) return;
-      var mx = (ax + bx) / 2 - dy * 0.055, my = (ay + by) / 2 + dx * 0.055;
-      var steps = Math.max(6, Math.min(54, Math.round(len / 11)));
-      ctx.globalAlpha = 0.62 * al;
-      for (var i = 1; i < steps; i++) {
-        var u = i / steps, iu = 1 - u;
-        var px = iu * iu * ax + 2 * iu * u * mx + u * u * bx;
-        var py = iu * iu * ay + 2 * iu * u * my + u * u * by;
-        ctx.fillRect(px - 0.75, py - 0.75, 1.5, 1.5);
-      }
-    });
-    ctx.globalAlpha = 1;
-
+    drawPathways();
     drawHalos();
+    if (dust) syncDust();
+    else drawUnits();
 
-    // publication discs, packed without overlap, batched per language and alpha
-    var buckets = {};
-    LANGS.forEach(function (l) { buckets[l.code] = {}; });
+    refreshChrome(now);
+    TAG_BOXES = [];
+    LOBE_BOXES = [];
+    var host = hostCluster();
+    var worksNamed = !!(host && cam.s >= restScale * 2.4);
+    if (worksNamed) drawLocalNerves(host);
+    if (!worksNamed) {
+      drawClusterTags(null);
+      if (cam.s > restScale * 1.85 && !MOBILE) drawLobeLabels();
+    } else {
+      drawClusterTags(host);
+      drawPubTags(host);
+    }
+    if (keepDrawing) invalidate();
+  }
+
+  function dustNodes() {
+    var out = [];
+    CLUSTERS.forEach(function (c) {
+      if (isFolded(c) || c.a < 0.04) return;
+      c.pubs.forEach(function (p) {
+        if (!visiblePub(p)) return;
+        if (matched && !matched.has(p.i)) return;
+        var ox = p.cox == null ? p.ox : p.cox, oy = p.coy == null ? p.oy : p.coy;
+        out.push({
+          id: String(p.i),
+          x: c.px + ox,
+          y: c.py + oy,
+          r: p.r,
+          lang: lkey(p.lang),
+          weight: p.tier + 1
+        });
+      });
+    });
+    return out;
+  }
+  var dustIds = '';
+  function syncDust() {
+    if (!dust) return;
+    dust.syncCamera(cam, W, H);
+    var nodes = dustNodes();
+    var ids = nodes.map(function (n) { return n.id; }).join('\0');
+    if (ids !== dustIds) {
+      dustIds = ids;
+      dust.setNodes(nodes);
+    } else if (animating) {
+      dust.moveNodes(nodes);
+    }
+    dust.focus(selPub ? String(selPub.i) : null);
+  }
+
+  function grain(n) {
+    var x = Math.sin(n * 127.1 + 311.7) * 43758.5453;
+    return x - Math.floor(x);
+  }
+  function attachGrains(p) {
+    var n = 32 + p.tier * 8, g = [], i = 0, k = 0, sig = p.r * 0.32;
+    while (k < n) {
+      var u1 = grain(p.i * 31 + i) || 1e-4, u2 = grain(p.i * 47 + i + 3);
+      var rad = sig * Math.sqrt(-2 * Math.log(u1)), t = 6.28318530718 * u2;
+      var x = rad * Math.cos(t), y = rad * Math.sin(t);
+      g.push(x, y); k++;
+      if (k < n) { g.push(-x, -y); k++; }
+      i += 2;
+    }
+    p.grains = g;
+  }
+
+  // How much of its packing disc a work paints. Far out the blot is larger
+  // than the gap, so neighbours melt into one cloud. Close in it shrinks
+  // relative to the gap, so each work reads as one unit of dust.
+  function unitMix() {
+    var z = cam.s / Math.max(restScale, 0.15);
+    var close = Math.min(1, Math.max(0, (z - 1) / 3.2));
+    return 1.45 - close * 0.95;
+  }
+  function unitR(p) {
+    return Math.max(2.4, p.r * cam.s * unitMix());
+  }
+
+  var PUFF = {};
+  function puffSprite(col) {
+    if (PUFF[col]) return PUFF[col];
+    var s = 64, off = document.createElement('canvas');
+    off.width = off.height = s;
+    var g = off.getContext('2d');
+    var grd = g.createRadialGradient(32, 32, 0, 32, 32, 31);
+    grd.addColorStop(0, hexA(col, 0.58));
+    grd.addColorStop(0.28, hexA(col, 0.32));
+    grd.addColorStop(0.62, hexA(col, 0.1));
+    grd.addColorStop(1, hexA(col, 0));
+    g.fillStyle = grd;
+    g.beginPath();
+    g.arc(32, 32, 31, 0, 6.2832);
+    g.fill();
+    PUFF[col] = off;
+    return off;
+  }
+  function stampPuff(col, x, y, r, a) {
+    if (a < 0.04 || r < 0.6) return;
+    var d = r * 2;
+    ctx.globalAlpha = a;
+    ctx.drawImage(puffSprite(col), x - r, y - r, d, d);
+  }
+  function drawUnits() {
     var hl = hover || sel;
+    var z = cam.s / Math.max(restScale, 0.15);
+    var grainN = z < 1.35 ? 0 : (z < 3 ? 14 : 36);
+    var later = [];
     CLUSTERS.forEach(function (c) {
       if (c.a < 0.03) return;
       var R = radiusOf(c) * cam.s;
       var cxp = wx(c.px), cyp = wy(c.py);
       if (cxp < -R - 80 || cxp > W + R + 80 || cyp < -R - 80 || cyp > H + R + 80) return;
-      var lit = hl === c;
-      var base = c.a * (lit ? 1 : (hl ? 0.45 : 1)) * (c.kind === 'tail' ? 0.55 : 1);
+      var litC = hl === c;
+      var base = c.a * (litC ? 1 : (hl || hoverPub ? 0.78 : 1)) * (c.kind === 'tail' ? 0.55 : 1);
       c.pubs.forEach(function (p) {
         if (!visiblePub(p)) return;
         var a = base;
         if (matched && !matched.has(p.i)) a *= animating ? 0.1 : 0;
         if (a < 0.05) return;
-        var key = Math.round(a * 8);
-        var g = buckets[p.lang][key] || (buckets[p.lang][key] = []);
+        var litP = hoverPub === p || selPub === p;
         var ox = p.cox == null ? p.ox : p.cox, oy = p.coy == null ? p.oy : p.coy;
-        g.push(cxp + ox * cam.s, cyp + oy * cam.s, Math.max(0.6, p.r * cam.s));
+        var x = cxp + ox * cam.s, y = cyp + oy * cam.s;
+        var r = unitR(p);
+        if (litP) { later.push({ p: p, x: x, y: y, r: r, a: a }); return; }
+        paintUnit(p, x, y, r, a, grainN, false);
       });
     });
-    LANGS.forEach(function (l) {
-      var byA = buckets[l.code];
-      Object.keys(byA).forEach(function (key) {
-        var g = byA[key];
-        ctx.fillStyle = hexA(l.col, Math.min(0.94, (+key) / 8 * 0.94));
-        ctx.beginPath();
-        for (var j = 0; j < g.length; j += 3) {
-          ctx.moveTo(g[j] + g[j + 2], g[j + 1]);
-          ctx.arc(g[j], g[j + 1], g[j + 2], 0, 6.2832);
-        }
-        ctx.fill();
-      });
-    });
-
-    layoutLabels(now);
-    // the leaves inside a cluster, then the titles themselves, appear at zoom.
-    // Each rank clears its own boxes first, so the rank below it never reads a
-    // name that is no longer on the screen.
-    LOBE_BOXES = [];
-    if (leafFade() > 0.03 && !MOBILE) drawLobeLabels();
-    if (cam.s > restScale * 2 && !MOBILE) drawPubLabels();
-
-    drawClusterLabels();
-    if (keepDrawing) invalidate();
+    later.forEach(function (u) { paintUnit(u.p, u.x, u.y, u.r * 1.18, Math.min(1, u.a + 0.2), Math.max(grainN, 20), true); });
+    ctx.globalAlpha = 1;
+  }
+  function paintUnit(p, x, y, r, a, grainN, lit) {
+    var col = LCOL[p.lang] || LCOL.oth;
+    if (!grainN || r < 6) {
+      stampPuff(col, x, y, r, a * (lit ? 0.95 : 0.72));
+      return;
+    }
+    var grains = p.grains || [];
+    var cap = Math.min(grains.length / 2, grainN);
+    var gr = r * 0.7;
+    stampPuff(col, x, y, r * 0.82, a * 0.42);
+    for (var i = 0; i < cap; i++) {
+      stampPuff(col, x + grains[i * 2] * cam.s, y + grains[i * 2 + 1] * cam.s, gr, a * 0.38);
+    }
   }
 
   // the furniture of the page moves on its own clock — the panel slides, the
@@ -1143,7 +1283,7 @@
     });
   var RINGS = 14, RING_STEP = 17;
 
-  var LAB = [], DISCS = [], LOBE_BOXES = [], labSig = '';
+  var LAB = [], DISCS = [], LOBE_BOXES = [], TAG_BOXES = [], labSig = '';
   function layoutLabels(now) {
     refreshChrome(now);
     var hl = hover || sel;
@@ -1280,31 +1420,70 @@
     };
   }
 
-  function drawClusterLabels() {
-    LAB.forEach(function (l) {
-      var c = l.c, b = l.box;
-      // the hairline back to the cloud, drawn only when the name had to move out
-      var nx = Math.max(b.x, Math.min(l.ax, b.x + b.w));
-      var ny = Math.max(b.y, Math.min(l.ay, b.y + b.h));
-      var dx = nx - l.ax, dy = ny - l.ay, d = Math.hypot(dx, dy);
-      if (d > l.R + 10) {
-        ctx.strokeStyle = hexA(STONE, 0.46 * c.a); ctx.lineWidth = 1;
-        ctx.beginPath();
-        ctx.moveTo(l.ax + dx / d * (l.R + 2), l.ay + dy / d * (l.R + 2));
-        ctx.lineTo(nx, ny);
-        ctx.stroke();
-      }
-      ctx.font = (l.lit ? 600 : 500) + ' ' + l.fs + 'px "EB Garamond",Georgia,serif';
-      ctx.fillStyle = hexA(PAPER, 0.9 * c.a);
-      roundRect(b.x, b.y, b.w, b.h, 5); ctx.fill();
-      ctx.fillStyle = hexA(c.kind === 'tail' ? STONE : INK, Math.min(1, c.a * 1.05));
-      ctx.textAlign = 'center'; ctx.textBaseline = 'top';
-      var cx = b.x + b.w / 2;
-      l.lines.forEach(function (ln, li) { ctx.fillText(ln, cx, b.y + 3.5 + li * l.lh); });
-      if (l.lit) {
-        ctx.strokeStyle = hexA(ACCENT, 0.5); ctx.lineWidth = 1;
-        roundRect(b.x, b.y, b.w, b.h, 5); ctx.stroke();
-      }
+  function tagHits(box, list) {
+    var i, q;
+    for (i = 0; i < list.length; i++) {
+      q = list[i];
+      if (box.x < q.x + q.w && box.x + box.w > q.x && box.y < q.y + q.h && box.y + box.h > q.y) return true;
+    }
+    return false;
+  }
+  function measureTag(lines, fs, padX, padY) {
+    ctx.font = '500 ' + fs + 'px "EB Garamond",Georgia,serif';
+    var tw = 0, i;
+    for (i = 0; i < lines.length; i++) tw = Math.max(tw, ctx.measureText(lines[i]).width);
+    var lh = fs * 1.15;
+    return { w: tw + padX * 2, h: lines.length * lh + padY * 2, lh: lh };
+  }
+  function drawTag(cx, cy, lines, o) {
+    o = o || {};
+    var fs = o.fs || 12, padX = o.padX == null ? 9 : o.padX, padY = o.padY == null ? 4 : o.padY;
+    var a = o.a == null ? 1 : o.a, lit = !!o.lit;
+    var m = measureTag(lines, fs, padX, padY);
+    var bx = cx - m.w / 2, by = cy - m.h / 2;
+    ctx.fillStyle = hexA(PAPER, 0.93 * a);
+    ctx.strokeStyle = hexA('#C4B79A', (lit ? 0.72 : 0.48) * a);
+    ctx.lineWidth = 1;
+    roundRect(bx, by, m.w, m.h, Math.min(m.h / 2, 14));
+    ctx.fill();
+    ctx.stroke();
+    ctx.font = (lit ? 600 : 500) + ' ' + fs + 'px "EB Garamond",Georgia,serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillStyle = hexA(lit ? ACCENT : (o.ink || INK), a);
+    var y0 = cy - ((lines.length - 1) * m.lh) / 2;
+    lines.forEach(function (ln, i) { ctx.fillText(ln, cx, y0 + i * m.lh); });
+    return { x: bx, y: by, w: m.w, h: m.h };
+  }
+  function clusterCentroid(c) {
+    var sx = 0, sy = 0, n = 0;
+    c.pubs.forEach(function (p) {
+      if (!visiblePub(p)) return;
+      if (matched && !matched.has(p.i)) return;
+      var ox = p.cox == null ? p.ox : p.cox, oy = p.coy == null ? p.oy : p.coy;
+      sx += c.px + ox; sy += c.py + oy; n++;
+    });
+    if (!n) return { x: c.px, y: c.py };
+    return { x: sx / n, y: sy / n };
+  }
+  function drawClusterTags(hide) {
+    var hl = hover || sel;
+    var order = CLUSTERS.filter(function (c) {
+      return c.a >= 0.35 && c !== hide;
+    }).sort(function (a, b) { return (b === hl) - (a === hl) || b.n - a.n; });
+    order.forEach(function (c) {
+      var mid = clusterCentroid(c);
+      var x = wx(mid.x), y = wy(mid.y);
+      if (x < 24 || x > W - 24 || y < 80 || y > H - 24) return;
+      var fs = MOBILE ? 11 : 12;
+      var lines = wrapLabel(c.label, MOBILE ? 15 : 20, 2);
+      var m = measureTag(lines, fs, 8, 3.5);
+      var box = { x: x - m.w / 2, y: y - m.h / 2, w: m.w, h: m.h };
+      if (tagHits(box, chromeBoxes) || tagHits(box, TAG_BOXES)) return;
+      TAG_BOXES.push(drawTag(x, y, lines, {
+        fs: fs, padX: 8, padY: 3.5, a: Math.min(1, c.a),
+        lit: c === hl, ink: c.kind === 'tail' ? STONE : INK
+      }));
     });
   }
 
@@ -1322,12 +1501,15 @@
       var R = radiusOf(c) * cam.s, x = wx(c.px), y = wy(c.py);
       if (x + R < -40 || x - R > W + 40 || y + R < -40 || y - R > H + 40) return;
       var ring = haloR(c);
-      ctx.fillStyle = hexA('#8E8264', 0.05 * c.a);
+      var far = 1 - Math.min(1, Math.max(0, (cam.s / Math.max(restScale, 0.15) - 1.15) / 2.2));
+      if (far < 0.04) return;
+      var glow = ctx.createRadialGradient(x, y, ring * 0.15, x, y, ring);
+      glow.addColorStop(0, hexA('#8E8264', 0.07 * c.a * far));
+      glow.addColorStop(1, hexA('#8E8264', 0));
+      ctx.fillStyle = glow;
       ctx.beginPath(); ctx.arc(x, y, ring, 0, 6.2832); ctx.fill();
-      ctx.strokeStyle = hexA(STONE, 0.17 * c.a); ctx.lineWidth = 1;
-      ctx.beginPath(); ctx.arc(x, y, ring, 0, 6.2832); ctx.stroke();
-      if (c.lobes && c.lobes.length > 1 && !matched) {
-        ctx.strokeStyle = hexA(STONE, (0.1 + 0.07 * leaf) * c.a);
+      if (far > 0.35 && leaf > 0.85 && c.lobes && c.lobes.length > 1 && !matched) {
+        ctx.strokeStyle = hexA(STONE, 0.12 * c.a * far); ctx.lineWidth = 1;
         c.lobes.forEach(function (lo) {
           if (!lo.name || lo.pubs.length < 4) return;
           ctx.beginPath();
@@ -1353,7 +1535,7 @@
     var ink = Math.min(0.95, 0.66 + up * 0.3), paper = Math.min(0.9, 0.7 + up * 0.2);
     ctx.font = '500 11px "Literata",Georgia,serif';
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    var placed = LAB.map(function (l) { return l.box; }).concat(chromeBoxes);
+    var placed = TAG_BOXES.concat(chromeBoxes);
     LOBE_BOXES = [];
     CLUSTERS.forEach(function (c) {
       if (c.a < 0.6 || c.kind === 'tail' || !c.lobes || matched) return;
@@ -1380,10 +1562,10 @@
           if (bx < q.x + q.w && bx + bw > q.x && by < q.y + q.h && by + bh > q.y) return;
         }
         placed.push(box);
-        // the third rank of names reads these before it places a title
         LOBE_BOXES.push(box);
-        ctx.fillStyle = hexA(PAPER, paper);
-        roundRect(bx, by, bw, bh, 4); ctx.fill();
+        ctx.lineWidth = 2.6; ctx.lineJoin = 'round';
+        ctx.strokeStyle = hexA(PAPER, paper);
+        ctx.strokeText(t, x, y);
         ctx.fillStyle = hexA(STONE, ink);
         ctx.fillText(t, x, y);
         drawn++;
@@ -1392,43 +1574,100 @@
     window.__leaves = { fade: +up.toFixed(3), full: full, tried: tried, drawn: drawn };
   }
 
-  function drawPubLabels() {
-    // nearest cluster to the centre of the view, its titles unfold
-    var best = null, bd = 1e9;
-    CLUSTERS.forEach(function (c) {
-      if (c.a < 0.5) return;
-      var d = Math.hypot(wx(c.px) - W / 2, wy(c.py) - H / 2);
-      if (d < bd) { bd = d; best = c; }
+  function pubShort(p) {
+    var t = p.title || '';
+    if (t.length > 20) t = t.slice(0, 19) + '…';
+    return t;
+  }
+  function drawPubTags(host) {
+    if (!host) return;
+    var cxp = wx(host.px), cyp = wy(host.py);
+    var placed = TAG_BOXES.concat(chromeBoxes);
+    var queue = [];
+    host.pubs.forEach(function (p) {
+      if (!visiblePub(p)) return;
+      if (matched && !matched.has(p.i)) return;
+      var ox = p.cox == null ? p.ox : p.cox, oy = p.coy == null ? p.oy : p.coy;
+      var x = cxp + ox * cam.s, y = cyp + oy * cam.s;
+      var pr = Math.max(6, p.r * cam.s * 0.7);
+      if (x < 28 || x > W - 28 || y < 86 || y > H - 22) return;
+      if (pr < 9 && p !== hoverPub && p !== selPub) return;
+      queue.push({ p: p, x: x, y: y });
     });
-    if (!best || bd > Math.min(W, H) * 0.42) return;
-    var cx = wx(best.px), cy = wy(best.py);
-    var list = best.pubs.filter(function (p) {
-      return visiblePub(p) && (!matched || matched.has(p.i));
-    }).sort(function (a, b) { return b.w - a.w; }).slice(0, 30);
-    // titles come last: after the names of the clouds, after the names of the
-    // leaves inside them, and never on top of either
-    var placed = LAB.map(function (l) { return l.box; })
-      .concat(chromeBoxes).concat(LOBE_BOXES);
-    ctx.font = '400 11.5px "Literata",Georgia,serif';
-    ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
-    list.forEach(function (p) {
-      var x = cx + (p.cox == null ? p.ox : p.cox) * cam.s, y = cy + (p.coy == null ? p.oy : p.coy) * cam.s;
-      if (x < 20 || x > W - 20 || y < 70 || y > H - 20) return;
-      var t = p.title.length > 42 ? p.title.slice(0, 41) + '…' : p.title;
-      var tw = ctx.measureText(t).width;
-      var bx = x + 5, by = y - 8, bw = tw + 9, bh = 16;
-      var clash = false;
-      for (var i = 0; i < placed.length; i++) {
-        var q = placed[i];
-        if (bx < q.x + q.w && bx + bw > q.x && by < q.y + q.h && by + bh > q.y) { clash = true; break; }
+    queue.sort(function (a, b) {
+      var ha = (a.p === hoverPub || a.p === selPub) ? 1 : 0;
+      var hb = (b.p === hoverPub || b.p === selPub) ? 1 : 0;
+      return hb - ha || b.p.w - a.p.w;
+    });
+    var cap = MOBILE ? 5 : 8, drawn = 0;
+    queue.forEach(function (it) {
+      var must = it.p === hoverPub || it.p === selPub;
+      if (!must && drawn >= cap) return;
+      var lines = [pubShort(it.p)];
+      var m = measureTag(lines, 10, 7, 3);
+      var box = { x: it.x - m.w / 2, y: it.y - m.h / 2, w: m.w, h: m.h };
+      if (!must && (tagHits(box, placed) || tagHits(box, chromeBoxes))) return;
+      placed.push(drawTag(it.x, it.y, lines, {
+        fs: 10, padX: 7, padY: 3, a: 0.96, lit: must
+      }));
+      drawn++;
+    });
+  }
+  function drawPathways() {
+    var links = window.__links || [];
+    links.forEach(function (l) {
+      var a = CLUSTERS[l.a], b = CLUSTERS[l.b];
+      if (!a || !b) return;
+      var al = Math.min(a.a, b.a); if (al < 0.16) return;
+      var ax = wx(a.px), ay = wy(a.py), bx = wx(b.px), by = wy(b.py);
+      var dx = bx - ax, dy = by - ay, len = Math.hypot(dx, dy);
+      if (len < 16 || len > Math.max(W, H) * 2.2) return;
+      var mx = (ax + bx) / 2 - dy * 0.08, my = (ay + by) / 2 + dx * 0.08;
+      ctx.beginPath();
+      ctx.moveTo(ax, ay);
+      ctx.quadraticCurveTo(mx, my, bx, by);
+      ctx.strokeStyle = hexA('#8A7348', 0.2 * al);
+      ctx.lineWidth = 1.2;
+      ctx.stroke();
+      var steps = Math.max(8, Math.min(36, Math.round(len / 16)));
+      ctx.fillStyle = hexA('#8A7348', 0.32 * al);
+      for (var i = 1; i < steps; i++) {
+        var u = i / steps, iu = 1 - u;
+        var px = iu * iu * ax + 2 * iu * u * mx + u * u * bx;
+        var py = iu * iu * ay + 2 * iu * u * my + u * u * by;
+        ctx.beginPath();
+        ctx.arc(px, py, 1.05, 0, 6.2832);
+        ctx.fill();
       }
-      if (clash) return;
-      placed.push({ x: bx, y: by, w: bw, h: bh });
-      ctx.fillStyle = hexA(PAPER, 0.86);
-      roundRect(bx, by, bw, bh, 4); ctx.fill();
-      ctx.fillStyle = hexA(INK, 0.9);
-      ctx.fillText(t, bx + 4.5, y);
     });
+  }
+  function drawLocalNerves(host) {
+    if (!host) return;
+    var pts = [];
+    var cxp = wx(host.px), cyp = wy(host.py);
+    host.pubs.forEach(function (p) {
+      if (!visiblePub(p)) return;
+      if (matched && !matched.has(p.i)) return;
+      var ox = p.cox == null ? p.ox : p.cox, oy = p.coy == null ? p.oy : p.coy;
+      pts.push({ x: cxp + ox * cam.s, y: cyp + oy * cam.s });
+    });
+    if (pts.length < 3 || pts.length > 90) return;
+    ctx.strokeStyle = hexA('#8A7348', 0.11);
+    ctx.lineWidth = 0.8;
+    var i, j, best, bd, d;
+    for (i = 0; i < pts.length; i++) {
+      best = -1; bd = 48;
+      for (j = 0; j < pts.length; j++) {
+        if (i === j) continue;
+        d = Math.hypot(pts[j].x - pts[i].x, pts[j].y - pts[i].y);
+        if (d > 10 && d < bd) { bd = d; best = j; }
+      }
+      if (best < 0 || best < i) continue;
+      ctx.beginPath();
+      ctx.moveTo(pts[i].x, pts[i].y);
+      ctx.lineTo(pts[best].x, pts[best].y);
+      ctx.stroke();
+    }
   }
 
   function wrapLabel(label, max, maxLines) {
@@ -1464,9 +1703,28 @@
     });
     return best;
   }
+  function pickPub(sx, sy) {
+    if (!worksPickable(sx, sy)) return null;
+    var best = null, bd = 1e9;
+    CLUSTERS.forEach(function (c) {
+      if (c.a < 0.25) return;
+      var R = radiusOf(c) * cam.s, cxp = wx(c.px), cyp = wy(c.py);
+      if (Math.hypot(cxp - sx, cyp - sy) > R + 24) return;
+      c.pubs.forEach(function (p) {
+        if (!visiblePub(p)) return;
+        if (matched && !matched.has(p.i)) return;
+        var ox = p.cox == null ? p.ox : p.cox, oy = p.coy == null ? p.oy : p.coy;
+        var d = Math.hypot(cxp + ox * cam.s - sx, cyp + oy * cam.s - sy);
+        var reach = pubReach(p);
+        if (d < reach && d < bd) { bd = d; best = p; }
+      });
+    });
+    return best;
+  }
 
   /* ------------------------------------------------------------------ panel */
   var panel = document.getElementById('panel');
+  var veil = document.getElementById('veil');
   var pSubject = document.getElementById('p-subject');
   var pDensity = document.getElementById('p-density');
   var pAlt = document.getElementById('p-alt');
@@ -1547,6 +1805,36 @@
 
   function renderPanel() {
     var list, title, adjacent = [], dens = 0;
+    panel.classList.toggle('one-work', !!selPub);
+    if (selPub) {
+      list = [selPub];
+      title = selPub.title;
+      pSubject.textContent = (selPub.year != null ? selPub.year + ' · ' : '') + (LLAB[selPub.lang] || '');
+      pDensity.innerHTML = esc(selPub.title);
+      pAlt.textContent = '';
+      var home = CLUSTERS.filter(function (c) {
+        return c.kind === 'subject' && c.pubs.indexOf(selPub) >= 0;
+      })[0];
+      pZones.innerHTML = home
+        ? '<p>In <button class="z" data-k="' + home.k + '">' + esc(home.label) + '</button></p>'
+        : '';
+      if (home) {
+        pZones.querySelectorAll('.z').forEach(function (b) {
+          b.addEventListener('click', function () { openCluster(CLUSTERS[+b.dataset.k]); });
+        });
+      }
+      currentList = list;
+      shownCount = 0;
+      pBody.innerHTML = '';
+      var head = document.createElement('div');
+      head.className = 'listhead';
+      head.innerHTML = '<span>Source</span><span>1 listed</span>';
+      pBody.appendChild(head);
+      appendMore();
+      openPanel();
+      pBody.scrollTop = 0;
+      return;
+    }
     if (sel) {
       list = sel.pubs.filter(function (p) { return visiblePub(p) && (!matched || matched.has(p.i)); });
       title = sel.label;
@@ -1717,10 +2005,10 @@
     }
     document.body.classList.add('panel-open');
     panel.classList.add('open');
+    if (veil) veil.setAttribute('aria-hidden', 'false');
     setPanelInert(false);
     if (!was) {
       panel.focus({ preventScroll: true });
-      if (!MOBILE) fitView();
       settle();
     }
   }
@@ -1729,31 +2017,78 @@
     var inside = was && panel.contains(document.activeElement);
     document.body.classList.remove('panel-open');
     panel.classList.remove('open');
+    panel.style.transform = '';
+    if (veil) veil.setAttribute('aria-hidden', 'true');
     setPanelInert(true);
     sel = null;
+    selPub = null;
+    panel.classList.remove('one-work');
     if (was) {
       if (inside) {
         var back = (lastFocus && document.contains(lastFocus)) ? lastFocus : cv;
         back.focus({ preventScroll: true });
       }
       lastFocus = null;
-      if (!MOBILE) fitView();
       settle();
     }
+  }
+  function frameCluster(c) {
+    var R = Math.max(radiusOf(c), 10);
+    var topPad = MOBILE ? 150 : 130;
+    var askEl = document.querySelector('.ask');
+    if (askEl) topPad = Math.max(MOBILE ? 120 : 100, askEl.getBoundingClientRect().bottom + 16);
+    var botPad = MOBILE ? Math.round(H * 0.46) : 70;
+    var sidePad = MOBILE ? 18 : 36;
+    var right = MOBILE ? 0 : 420;
+    var vw = Math.max(160, W - sidePad - right);
+    var vh = Math.max(140, H - topPad - botPad);
+    var s = clampS(Math.min(vw, vh) / (R * 2.2));
+    var keep = Math.max(cam.s, tcam.s);
+    tcam.s = keep + 0.02 < s ? s : clampS(keep);
+    var cx = MOBILE ? W / 2 : sidePad + vw / 2;
+    var cy = topPad + vh / 2;
+    tcam.x = cx - c.px * tcam.s;
+    tcam.y = cy - c.py * tcam.s;
   }
   function openCluster(c) {
     if (!c) return;
     sel = c;
+    selPub = null;
     renderPanel();
-    if (!MOBILE) {
-      var s = Math.max(cam.s, Math.min(2.4, 190 / Math.max(radiusOf(c), 14)));
-      tcam.s = s;
-      tcam.x = (W - 436) / 2 - c.px * s;
-      tcam.y = (H + 170) / 2 - c.py * s;
-    }
+    frameCluster(c);
+    invalidate();
+  }
+  function openPub(p) {
+    if (!p) return;
+    selPub = p;
+    sel = null;
+    renderPanel();
     invalidate();
   }
   document.getElementById('panel-close').addEventListener('click', closePanel);
+  if (veil) veil.addEventListener('click', closePanel);
+
+  /* on a phone the sheet can be pulled down to close, unless the list itself
+     is mid-scroll — that gesture belongs to the records */
+  var dragY = null, dragDy = 0;
+  function sheetDragging(el) {
+    return MOBILE && el && (el === panel || (panel.contains(el) && !(pBody.contains(el) && pBody.scrollTop > 0)));
+  }
+  panel.addEventListener('touchstart', function (e) {
+    if (!sheetDragging(e.target) || e.touches.length !== 1) { dragY = null; return; }
+    dragY = e.touches[0].clientY; dragDy = 0;
+  }, { passive: true });
+  panel.addEventListener('touchmove', function (e) {
+    if (dragY == null || e.touches.length !== 1) return;
+    dragDy = e.touches[0].clientY - dragY;
+    if (dragDy > 0) panel.style.transform = 'translateY(' + dragDy + 'px)';
+  }, { passive: true });
+  panel.addEventListener('touchend', function () {
+    if (dragY == null) return;
+    panel.style.transform = '';
+    if (dragDy > 72) closePanel();
+    dragY = null; dragDy = 0;
+  });
 
   // one listener for every fold in the list, present and future
   pBody.addEventListener('click', function (ev) {
@@ -1781,37 +2116,6 @@
     return matched ? Math.max(0, c.mn - c.mdens) : Math.max(0, c.n - c.dens);
   }
 
-  var peek = document.getElementById('peek');
-  function showPeek(c, sx, sy) {
-    var mix = LANGS.filter(function (l) { return c.mix[l.code]; }).map(function (l) {
-      return { l: l, n: c.mix[l.code] };
-    }).sort(function (a, b) { return b.n - a.n; });
-    var mixTotal = 0;
-    mix.forEach(function (m) { mixTotal += m.n; });
-    var bars = mix.map(function (m) {
-      return '<span style="width:' + (mixTotal ? m.n / mixTotal * 100 : 0).toFixed(1) +
-        '%;background:' + m.l.col + '"></span>';
-    }).join('');
-    var count = clusterCount(c), extra = clusterExtra(c);
-    peek.innerHTML = '<h4>' + esc(c.label) + '</h4>' +
-      (c.alt ? '<p class="alt">' + esc(c.alt) + '</p>' : '') +
-      '<p class="cnt">' + count.text + (count.one ? ' work' : ' works') +
-      (extra ? '<span class="extra">' + nf(extra) + ' mentioned only</span>' : '') + '</p>' +
-      '<div class="mix">' + bars + '</div>' +
-      '<p class="mixlbl">' + mix.slice(0, 3).map(function (m) {
-        return esc(m.l.label) + ' ' + m.n;
-      }).join(' · ') + '</p>' +
-      (c.lobes && c.lobes.length > 1
-        ? '<p class="mixlbl">' + c.lobes.filter(function (lo) { return lo.name && lo.dens; })
-            .slice(0, 3).map(function (lo) { return esc(lo.name) + ' ' + lo.dens; })
-            .join(' · ') + '</p>'
-        : '');
-    var w = 262, x = Math.min(Math.max(12, sx + 18), W - w - 12), y = Math.min(Math.max(70, sy + 16), H - 160);
-    peek.style.left = x + 'px'; peek.style.top = y + 'px';
-    peek.classList.add('on');
-  }
-  function hidePeek() { peek.classList.remove('on'); }
-
   /* ------------------------------------------------------------------ pointer */
   var down = null, panning = false, pinch = null;
   cv.addEventListener('pointerdown', function (e) {
@@ -1825,30 +2129,37 @@
       if (Math.abs(dx) + Math.abs(dy) > 2) {
         tcam.x += dx; tcam.y += dy; cam.x += dx; cam.y += dy;
         down = [e.clientX, e.clientY];
-        hidePeek(); hover = null; invalidate();
+        hover = null; hoverPub = null; invalidate();
         return;
       }
     }
-    var c = pick(e.clientX, e.clientY);
-    if (c !== hover) invalidate();
-    hover = c;
-    cv.style.cursor = c ? 'pointer' : 'grab';
-    if (c && !MOBILE) showPeek(c, e.clientX, e.clientY); else hidePeek();
+    var p = pickPub(e.clientX, e.clientY);
+    var c = p ? null : pick(e.clientX, e.clientY);
+    if (p !== hoverPub || c !== hover) invalidate();
+    hoverPub = p; hover = c;
+    cv.style.cursor = (p || c) ? 'pointer' : 'grab';
   });
   cv.addEventListener('pointerup', function (e) {
     var dist = down ? Math.hypot(e.clientX - down[0], e.clientY - down[1]) : 0;
     if (dist < 5) {
-      var c = pick(e.clientX, e.clientY);
-      if (c) openCluster(c); else closePanel();
+      var p = pickPub(e.clientX, e.clientY);
+      if (p) openPub(p);
+      else {
+        var c = pick(e.clientX, e.clientY);
+        if (c) openCluster(c); else closePanel();
+      }
     }
     panning = false; down = null; cv.classList.remove('grabbing');
   });
-  cv.addEventListener('pointerleave', function () { hidePeek(); hover = null; invalidate(); });
+  cv.addEventListener('pointerleave', function () {
+    hover = null; hoverPub = null;
+    invalidate();
+  });
   cv.addEventListener('wheel', function (e) {
     e.preventDefault();
     var f = Math.exp(-e.deltaY * 0.0014);
     var wx0 = (e.clientX - cam.x) / cam.s, wy0 = (e.clientY - cam.y) / cam.s;
-    tcam.s = Math.max(0.18, Math.min(4, tcam.s * f));
+    tcam.s = clampS(tcam.s * f);
     tcam.x = e.clientX - wx0 * tcam.s; tcam.y = e.clientY - wy0 * tcam.s;
     invalidate();
   }, { passive: false });
@@ -1865,7 +2176,7 @@
       e.preventDefault();
       var d = tdist(e.touches);
       var wx0 = (pinch.mx - cam.x) / cam.s, wy0 = (pinch.my - cam.y) / cam.s;
-      tcam.s = Math.max(0.18, Math.min(4, pinch.s * d / pinch.d));
+      tcam.s = clampS(pinch.s * d / pinch.d);
       tcam.x = pinch.mx - wx0 * tcam.s; tcam.y = pinch.my - wy0 * tcam.s;
       invalidate();
     }
@@ -1900,8 +2211,8 @@
     var h = document.getElementById('hint');
     if (h) {
       h.textContent = MOBILE
-        ? 'Pinch to zoom · tap a cluster to open it'
-        : 'Drag to move · scroll to zoom · click a cluster to open it';
+        ? 'Pinch to zoom · tap a cluster, then a work'
+        : 'Drag to move · scroll to zoom · click a cluster, then a work';
     }
     resize(); fitView(); measureLegend();
     if (rzTimer) clearTimeout(rzTimer);
@@ -1910,7 +2221,7 @@
   addEventListener('resize', onViewportChange);
   addEventListener('orientationchange', onViewportChange);
   addEventListener('keydown', function (e) {
-    if (e.key === 'Escape') { closePanel(); hidePeek(); }
+    if (e.key === 'Escape') { closePanel(); }
   });
 
   // keyboard path across the map: arrows walk the clusters, Enter opens one
@@ -1934,16 +2245,15 @@
     document.getElementById('live-cluster').textContent =
       c.label + ', ' + kc.text + ' works' +
       (kx ? ', ' + kx + ' mentioned only' : '');
-    if (!MOBILE) showPeek(c, wx(c.px), wy(c.py));
     invalidate();
   });
-  cv.addEventListener('blur', function () { hidePeek(); hover = null; kbIndex = -1; invalidate(); });
+  cv.addEventListener('blur', function () { hover = null; kbIndex = -1; invalidate(); });
 
   /* ------------------------------------------------------------------ chrome */
   function boot() {
     if (MOBILE) {
       var h = document.getElementById('hint');
-      if (h) h.textContent = 'Pinch to zoom · tap a cluster to open it';
+      if (h) h.textContent = 'Pinch to zoom · tap a cluster, then a work';
     }
     // legend
     var lg = document.getElementById('legend');
@@ -2010,6 +2320,24 @@
       applyMatch(false); closePanel();
     });
 
+    var keyTog = document.getElementById('key-toggle');
+    if (keyTog) {
+      keyTog.addEventListener('click', function () {
+        setKeyOpen(!document.getElementById('legend-wrap').classList.contains('open'));
+      });
+    }
+    measureLegend();
+
+    if (window.visualViewport) {
+      visualViewport.addEventListener('resize', function () {
+        if (!MOBILE) return;
+        var ask = document.querySelector('.ask');
+        if (!ask) return;
+        var kb = innerHeight - visualViewport.height > 80;
+        ask.style.top = kb ? (visualViewport.offsetTop + 8) + 'px' : '';
+      });
+    }
+
     OPTS = buildOptions();
     initWizard();
     applyMatch(false);
@@ -2032,12 +2360,15 @@
   }
   function openWiz() {
     wiz.classList.add('open');
+    document.body.classList.add('wiz-open');
+    setKeyOpen(false);
     settle();
     document.getElementById('wiz-open').textContent = 'close the questions';
     paintWiz();
   }
   function closeWiz() {
     wiz.classList.remove('open');
+    document.body.classList.remove('wiz-open');
     settle();
     document.getElementById('wiz-open').textContent = 'or answer four questions';
   }

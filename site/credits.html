@@ -28,6 +28,7 @@
 <link rel="preload" href="assets/fonts/literata-var.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="assets/base.css">
 <link rel="stylesheet" href="assets/pages.css">
+<link rel="stylesheet" href="assets/folio.css">
 <script type="application/ld+json">
 {
   "@context": "https://schema.org",
@@ -48,7 +49,7 @@
       "@type": "BreadcrumbList",
       "@id": "https://origenality.com/site/credits#breadcrumb",
       "itemListElement": [
-        { "@type": "ListItem", "position": 1, "name": "Explorer", "item": "https://origenality.com/site/" },
+        { "@type": "ListItem", "position": 1, "name": "Origenality", "item": "https://origenality.com/site/welcome" },
         { "@type": "ListItem", "position": 2, "name": "Credits" }
       ]
     },
@@ -69,7 +70,7 @@
       "@type": "SoftwareSourceCode",
       "@id": "https://origenality.com/#code",
       "name": "Origenality",
-      "description": "The harvesters, the merge, the classification and the four pages of the site. Python 3.11 and the standard library, plain HTML, CSS and JavaScript, no third-party code on any page.",
+      "description": "The harvesters, the merge, the classification and the pages of the site. Python 3.11 and the standard library, plain HTML, CSS and JavaScript. The landing field vendors three.js.",
       "codeRepository": "https://github.com/romain-girardi-eng/origenality",
       "programmingLanguage": ["Python", "JavaScript"],
       "runtimePlatform": "Python 3.11",
@@ -81,17 +82,28 @@
 }
 </script>
 </head>
-<body>
+<body class="folio">
 
 <a class="skip" href="#main">Skip to the content</a>
 
 <header class="bar">
-  <a class="wordmark" href="index.html"><svg class="mk" viewBox="0 0 100 100" width="13" height="13" aria-hidden="true"><g stroke="currentColor" stroke-width="11" fill="none"><path d="M50 14 L50 86"/><path d="M14 50 L86 50"/></g><g fill="currentColor"><circle cx="27" cy="27" r="8"/><circle cx="73" cy="27" r="8"/><circle cx="27" cy="73" r="8"/><circle cx="73" cy="73" r="8"/></g></svg><span>Origenality</span></a>
+  <a class="wordmark" href="welcome.html"><svg class="mk" viewBox="0 0 100 100" width="13" height="13" aria-hidden="true"><g stroke="currentColor" stroke-width="11" fill="none"><path d="M50 14 L50 86"/><path d="M14 50 L86 50"/></g><g fill="currentColor"><circle cx="27" cy="27" r="8"/><circle cx="73" cy="27" r="8"/><circle cx="27" cy="73" r="8"/><circle cx="73" cy="73" r="8"/></g></svg><span>Origenality</span></a>
   <nav class="nav" aria-label="Pages">
-    <a href="index.html">Explorer</a>
-    <a href="observatoire.html">Observatory</a>
-    <a href="methode.html">Method</a>
-    <a href="credits.html" aria-current="page">Credits</a>
+    <div class="nav-wide">
+      <a href="index.html">Explorer</a>
+      <a href="observatoire.html">Observatory</a>
+      <a href="methode.html">Method</a>
+      <a href="credits.html" aria-current="page">Credits</a>
+    </div>
+    <details class="nav-fold">
+      <summary>Credits</summary>
+      <div class="nav-sheet">
+        <a href="index.html">Explorer</a>
+        <a href="observatoire.html">Observatory</a>
+        <a href="methode.html">Method</a>
+        <a href="credits.html" aria-current="page">Credits</a>
+      </div>
+    </details>
   </nav>
 </header>
 
@@ -224,8 +236,14 @@
         <strong>Literata</strong>, by TypeTogether — both under the SIL Open Font Licence 1.1.
         Their licences travel with the files, in <code>assets/fonts/</code>.</li>
       <li>The map, the charts and the packing are written for this site in plain HTML, CSS and
-        JavaScript. There is no third-party code on any page, and no page makes a request to
-        any host other than the one serving it.</li>
+        JavaScript. No page makes a request to any host other than the one serving it.</li>
+      <li><strong>three.js</strong> (MIT), kept under <code>assets/vendor/</code>, draws the
+        landing field and the explorer dust. The landing shader is adapted from
+        Particle Image (React Bits Pro), licensed for this project and rewritten
+        here in plain JavaScript. The explorer grains run the particle shaders
+        from the personal graph at romain.pragma-cloud.com.</li>
+      <li>The landing portrait is an evocation of Origen of Alexandria, not a likeness.
+        No ancient portrait of him survives to copy.</li>
     </ul>
   </section>
 
@@ -249,5 +267,6 @@
   </div>
 
 </main>
+<script src="assets/chrome.js"></script>
 </body>
 </html>

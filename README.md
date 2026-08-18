@@ -81,7 +81,7 @@ python3 scripts/test_data_gates.py                    # the test suite
 python3 site/tools/build_summary_figures.py --check   # every published figure recounted
 python3 site/qa/check_one_population.py               # one population on every screen
 python3 scripts/build_seo_assets.py --check           # sitemap and llms.txt still current
-python3 -m http.server 8020                           # then open /site/index.html
+python3 -m http.server 8020                           # then open /site/welcome.html
 bash scripts/selftest_public.sh                       # all of the above, in a throwaway clone
 ```
 

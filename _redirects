@@ -13,7 +13,7 @@
 # Les balises canoniques et le plan du site donnent, elles, l'adresse sans
 # extension, celle que Pages sert en 200.
 
-/                 /site/               302
+/                 /site/welcome         302
 
 /explorer     /site/               302
 /observatory  /site/observatoire   302

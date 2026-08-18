@@ -408,8 +408,16 @@ def observatory_themes_block(values: dict) -> str:
 
 
 def method_stamp_block(values: dict) -> str:
-    return ('\n    <p class="stamp">Version of August 2026 · one source · %s records harvested, '
-            '%s counted</p>\n' % (spaced(values["harvest"]), spaced(values["counted"])))
+    counted = spaced(values["counted"])
+    harvest = spaced(values["harvest"])
+    return (
+        '\n    <p class="census">'
+        '<span class="census-n">%s</span>'
+        '<span class="census-k">counted records, of %s harvested</span>'
+        '</p>\n'
+        '    <p class="stamp">Version of August 2026 · one source · %s records harvested, '
+        '%s counted</p>\n' % (counted, harvest, harvest, counted)
+    )
 
 
 def method_bias_block(values: dict) -> str:

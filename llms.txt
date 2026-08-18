@@ -4,6 +4,7 @@
 
 ## Pages
 
+- [Home](https://origenality.com/site/welcome): the door: what the map is, and the one step that opens it.
 - [Explorer](https://origenality.com/site/): the map of the field, a free-text bar and four questions that lead to a neighbourhood of the scholarship.
 - [Observatory](https://origenality.com/site/observatoire): the harvest counted by decade, language, format, theme and work of Origen, with what those counts cannot say.
 - [Method](https://origenality.com/site/methode): how the corpus is built, how summaries are credited and removed, what the controlled vocabulary holds, and what the density figure measures.

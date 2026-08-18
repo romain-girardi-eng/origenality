@@ -82,20 +82,32 @@
 <a class="skip" href="#ask-input">Skip to the search field</a>
 
 <div class="field" aria-hidden="true"></div>
+<div class="field-gl" aria-hidden="true"><canvas id="field-gl"></canvas></div>
 <canvas id="field-c" tabindex="0" role="application"
-  aria-label="Map of the corpus. Use the arrow keys to move between clusters and Enter to open one."></canvas>
+  aria-label="Map of the corpus. Click a cluster to open it, then a work. Use the arrow keys to move between clusters and Enter to open one."></canvas>
 <p class="sr" id="live-cluster" aria-live="polite"></p>
 
 <header class="bar">
-  <a class="wordmark" href="index.html"><svg class="mk" viewBox="0 0 100 100" width="13" height="13" aria-hidden="true"><g stroke="currentColor" stroke-width="11" fill="none"><path d="M50 14 L50 86"/><path d="M14 50 L86 50"/></g><g fill="currentColor"><circle cx="27" cy="27" r="8"/><circle cx="73" cy="27" r="8"/><circle cx="27" cy="73" r="8"/><circle cx="73" cy="73" r="8"/></g></svg><span>Origenality</span></a>
+  <a class="wordmark" href="welcome.html"><svg class="mk" viewBox="0 0 100 100" width="13" height="13" aria-hidden="true"><g stroke="currentColor" stroke-width="11" fill="none"><path d="M50 14 L50 86"/><path d="M14 50 L86 50"/></g><g fill="currentColor"><circle cx="27" cy="27" r="8"/><circle cx="73" cy="27" r="8"/><circle cx="27" cy="73" r="8"/><circle cx="73" cy="73" r="8"/></g></svg><span>Origenality</span></a>
 <!-- FIGURES:population-scope -->
   <p class="scope"><b>1 402</b> works counted &middot; 225 mentioned only &middot; 5 held aside &middot; IxTheo, August 2026</p>
 <!-- /FIGURES:population-scope -->
   <nav class="nav" aria-label="Pages">
-    <a href="index.html" aria-current="page">Explorer</a>
-    <a href="observatoire.html">Observatory</a>
-    <a href="methode.html">Method</a>
-    <a href="credits.html">Credits</a>
+    <div class="nav-wide">
+      <a href="index.html" aria-current="page">Explorer</a>
+      <a href="observatoire.html">Observatory</a>
+      <a href="methode.html">Method</a>
+      <a href="credits.html">Credits</a>
+    </div>
+    <details class="nav-fold">
+      <summary>Explorer</summary>
+      <div class="nav-sheet">
+        <a href="index.html" aria-current="page">Explorer</a>
+        <a href="observatoire.html">Observatory</a>
+        <a href="methode.html">Method</a>
+        <a href="credits.html">Credits</a>
+      </div>
+    </details>
   </nav>
 </header>
 
@@ -131,7 +143,12 @@
   </div>
 </section>
 
-<div class="legend-wrap">
+<button class="veil" id="veil" type="button" tabindex="-1" aria-hidden="true" aria-label="Close the neighbourhood panel"></button>
+
+<div class="legend-wrap" id="legend-wrap">
+  <button class="key-toggle" id="key-toggle" type="button" aria-expanded="false" aria-controls="key-body">Key</button>
+  <div class="key-body" id="key-body">
+  <div class="key-inner">
   <div class="grouping">
     <span class="lbl" id="group-label">Grouped by</span>
     <div class="seg" role="group" aria-labelledby="group-label">
@@ -150,18 +167,19 @@
       count stay in the index, answer a search, and enter no figure, here and in the Observatory alike.</span>
 <!-- /FIGURES:population-held -->
   </div>
+  </div>
+  </div>
 </div>
 
 <div class="controls">
-  <p class="hint" id="hint">Drag to move &middot; scroll to zoom &middot; click a cluster to open it</p>
+  <p class="hint" id="hint">Drag to move &middot; scroll to zoom &middot; click a cluster, then a work</p>
   <div class="row">
     <button class="btn-quiet" id="reset" type="button">Reset view</button>
   </div>
 </div>
 
-<div class="peek" id="peek" aria-hidden="true"></div>
-
 <aside class="panel" id="panel" aria-label="Neighbourhood" tabindex="-1" inert>
+  <div class="panel-handle" aria-hidden="true"></div>
   <div class="panel-top">
     <button id="panel-close" type="button" aria-label="Close the neighbourhood panel">&times;</button>
     <p class="subject" id="p-subject"></p>
@@ -173,6 +191,7 @@
   <div class="panel-body" id="p-body"></div>
 </aside>
 
-<script src="assets/explorer.js"></script>
+<script src="assets/chrome.js"></script>
+<script type="module" src="assets/explorer.js"></script>
 </body>
 </html>
