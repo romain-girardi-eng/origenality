@@ -107,6 +107,29 @@ and to AI crawlers, and how to check it after a deployment.
 `api-spec/openapi.yaml` is the contract the site consumes; the implementation
 that serves it is separate from this repository.
 
+## Asking it from a program
+
+The map answers one question — has this ground been worked, and how thickly —
+and the command line answers it the same way the website does, because both run
+`site/assets/search-core.js`.
+
+```bash
+node cli/origenality.mjs gap "Origen and Roman law"     # is this ground taken?
+node cli/origenality.mjs search "Contre Celse"          # aliases reach their work
+node cli/origenality.mjs density work cels              # how thick, by decade
+node cli/origenality.mjs coverage                       # what it cannot answer
+```
+
+No checkout is needed: the data is fetched from origenality.com and cached for
+twelve hours. Add `--local .` to read this tree instead, `--json` for a
+machine, `--lang`, `--since`, `--until` to narrow.
+
+Two figures come back, never one. `counted_in_density` are the records judged to
+be about Origen; `listed` includes those that merely mention him. And when
+`widened` is true the query was relaxed to fewer terms — the answer to the
+question asked is `carrying_all_terms`, which is often 0 where `listed` is in
+the hundreds. `scripts/check_search_parity.py` keeps the two front ends honest.
+
 ## Citing it
 
 See `CITATION.cff`. In a footnote:
