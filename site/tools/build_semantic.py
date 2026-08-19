@@ -80,6 +80,24 @@ def labels_of(entry):
     return out
 
 
+def aliases_of(entry):
+    """The spellings a reader actually types, kept alongside the label.
+
+    The vocabulary files already carry them — 197 for the works alone
+    ("contre celse", "gegen kelsos", "traité des principes") — and the build
+    used to drop them, so the map answered "Contra Celsum" with 45 records and
+    "Contre Celse" with 7. They are served now, matched as whole phrases in the
+    controlled-vocabulary channel of the search.
+    """
+    seen, out = set(), []
+    for alias in entry.get("aliases") or []:
+        key = " ".join(str(alias).lower().split())
+        if key and key not in seen:
+            seen.add(key)
+            out.append(alias)
+    return out
+
+
 def ppn_to_cluster(corpus_path, wanted):
     """PPN of an IxTheo notice -> identifier of the cluster it was merged into.
 
@@ -201,6 +219,7 @@ def main():
                 "domain": val["domain"],
                 "label": val["label"],
                 "labels": labels_of(val),
+                "aliases": aliases_of(val),
             }
             for key, val in themes["themes"].items()
             if val.get("status", "active") == "active"
@@ -210,12 +229,17 @@ def main():
             for key, val in works["categories"].items()
         },
         "works": {
-            key: {"label": val["label"], "category": val.get("category", "indirect")}
+            key: {
+                "label": val["label"],
+                "category": val.get("category", "indirect"),
+                "labels": labels_of(val),
+                "aliases": aliases_of(val),
+            }
             for key, val in works["works"].items()
             if val.get("status", "active") == "active"
         },
         "approaches": {
-            key: {"label": val["label"], "labels": labels_of(val)}
+            key: {"label": val["label"], "labels": labels_of(val), "aliases": aliases_of(val)}
             for key, val in approaches["approaches"].items()
             if val.get("status", "active") == "active"
         },
@@ -230,11 +254,26 @@ def main():
         "byPpn": by_ppn,
     }
 
+    # What must not leave the working repo are FIELDS, so the check reads keys,
+    # not the blob. A substring test refused the whole build over the alias
+    # "justification" of the soteriology theme — a word of theology, not a
+    # field of the tagging run.
     forbidden = ("source_model", "run_id", "justification", "abstract", "api_key")
+
+    def keys_of(node):
+        if isinstance(node, dict):
+            for key, val in node.items():
+                yield key
+                yield from keys_of(val)
+        elif isinstance(node, list):
+            for item in node:
+                yield from keys_of(item)
+
+    for key in keys_of(payload):
+        if key in forbidden:
+            sys.exit("refused: the payload carries a %s field" % key)
+
     blob = json.dumps(payload, ensure_ascii=False, separators=(",", ":"))
-    for word in forbidden:
-        if word in blob:
-            sys.exit("refused: the payload carries a %s field" % word)
 
     print("tags read from %s — %d records"
           % (os.path.relpath(args.tags, ROOT), len(records)))

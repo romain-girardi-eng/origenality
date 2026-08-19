@@ -60,6 +60,13 @@ import { createDustField } from './dust-field.js';
     return ['de', 'fr', 'it'].map(function (k) { return entry.labels[k]; })
       .filter(Boolean).join(' · ');
   }
+  // Every spelling a reader may type for the same heading. The vocabulary
+  // files carry them and the build now serves them, so "Contre Celse" and
+  // "Gegen Kelsos" reach the records that "Contra Celsum" already reached.
+  function aliasLine(entry) {
+    if (!entry || !entry.aliases || !entry.aliases.length) return '';
+    return entry.aliases.join(' · ');
+  }
 
   /* ------------------------------------------------------------------ state */
   var DATA = null, WEIGHTS = null, SEM = null, ABS = null;
@@ -82,6 +89,10 @@ import { createDustField } from './dust-field.js';
   var wizAns = { work: [], approach: [], decade: [], lang: [] };
   var matched = null;                     // Set of publication indices, or null for "everything"
   var matchLabel = '', hitDepth = 0, tokCount = 0;
+  // What the answer really is, kept apart from what the relaxation returns.
+  // fullHit: records that carry EVERY term. absentToks: terms that appear
+  // nowhere in the corpus. relaxed: the answer on screen is not the answer asked.
+  var fullHit = 0, absentToks = [], relaxed = false, vocabHit = 0, vocabLabel = '';
   var cam = { s: 1, x: 0, y: 0 }, tcam = { s: 1, x: 0, y: 0 };
   var tweenT0 = 0, tweenMs = 0, animating = false;
 
@@ -183,11 +194,19 @@ import { createDustField } from './dust-field.js';
         if (!seenDom[d]) { seenDom[d] = 1; doms.push(d); }
       });
 
-      var semWords = [];
+      // Two indexes, not one. `semWords` holds what a record is ABOUT closely
+      // enough to answer a free-text search: its themes. The controlled
+      // vocabulary — the domain a theme belongs to, the work, the approach —
+      // goes to `vocabWords`, matched as a whole phrase and counted in its own
+      // channel. Folding a domain label into the free-text index made
+      // "prière", "Gebet", "Martyrium" and "vie ascétique" return the same 156
+      // records, because they are all spellings of one domain label.
+      var semWords = [], vocabWords = [];
       themes.forEach(function (t) { semWords.push(SEM.themes[t].label, altLine(SEM.themes[t])); });
-      doms.forEach(function (d) { semWords.push(SEM.domains[d].label, altLine(SEM.domains[d])); });
-      works.forEach(function (w) { semWords.push(SEM.works[w].label); });
-      appr.forEach(function (a) { semWords.push(SEM.approaches[a].label); });
+      themes.forEach(function (t) { vocabWords.push(SEM.themes[t].label, altLine(SEM.themes[t]), aliasLine(SEM.themes[t])); });
+      doms.forEach(function (d) { vocabWords.push(SEM.domains[d].label, altLine(SEM.domains[d]), aliasLine(SEM.domains[d])); });
+      works.forEach(function (w) { vocabWords.push(SEM.works[w].label, altLine(SEM.works[w]), aliasLine(SEM.works[w])); });
+      appr.forEach(function (a) { vocabWords.push(SEM.approaches[a].label, altLine(SEM.approaches[a]), aliasLine(SEM.approaches[a])); });
 
       var ab = (ABS && ABS.byPpn && ABS.byPpn[n.ppn]) || null;
 
@@ -203,7 +222,8 @@ import { createDustField } from './dust-field.js';
         dens: tag.r === 'core' || tag.r === 'partial',
         o: {}, lobeName: null, ab: ab,
         hay: norm([n.title, autLabels.join(' '), subLabels.join(' '), cont != null ? N[cont].label : '',
-          n.year || '', LLAB[lkey(n.lang)], semWords.join(' '), ab ? ab.t : ''].join(' '))
+          n.year || '', LLAB[lkey(n.lang)], semWords.join(' '), ab ? ab.t : ''].join(' ')),
+        vocab: norm(vocabWords.join(' · '))
       });
       attachGrains(PUBS[PUBS.length - 1]);
     });
@@ -744,6 +764,14 @@ import { createDustField } from './dust-field.js';
     }).filter(Boolean);
   }
 
+  // A term matches at a word start, not anywhere inside a word. Without this,
+  // "rome" answered with the Jerome bibliography (jerome, 227 records), and
+  // "man" returned 834 records — half the corpus — because the language label
+  // "german" is indexed.
+  function termRe(tok) {
+    return new RegExp("(^|[^0-9a-z'])" + tok.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+  }
+
   function computeMatch() {
     var toks = tokens(query);
     var picked = {}, anyPick = false;
@@ -751,9 +779,29 @@ import { createDustField } from './dust-field.js';
       picked[q.kind] = chosen(q.kind);
       if (picked[q.kind].length) anyPick = true;
     });
+    fullHit = 0; absentToks = []; relaxed = false; vocabHit = 0; vocabLabel = '';
     if (!toks.length && !anyPick) { matched = null; matchLabel = ''; return; }
 
-    var set = new Set(), scores = {};
+    var res = toks.map(termRe);
+
+    // The controlled vocabulary is a separate channel: a reader who types a
+    // domain, a work or an approach as it is written in the vocabulary — in any
+    // of its languages — is naming a shelf, not searching a phrase. Matched
+    // whole, announced apart, never folded into the free-text count.
+    var phrase = norm(query).trim();
+    var vocabSet = null;
+    if (phrase.length > 3) {
+      // Whole heading, both ends bounded. Without the closing boundary "Rome"
+      // was answered by 204 records filed under "Commentary on Romans".
+      var pre = phrase.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      var vre = new RegExp("(^|[^0-9a-z'])" + pre + "([^0-9a-z']|$)");
+      vocabSet = new Set();
+      PUBS.forEach(function (p) { if (vre.test(p.vocab)) vocabSet.add(p.i); });
+      vocabHit = vocabSet.size;
+      if (vocabHit) vocabLabel = query.trim();
+    }
+
+    var set = new Set(), scores = {}, seen = {}, vocabOnly = new Set();
     PUBS.forEach(function (p) {
       for (var k = 0; k < QUESTIONS.length; k++) {
         var opts = picked[QUESTIONS[k].kind];
@@ -765,35 +813,96 @@ import { createDustField } from './dust-field.js';
       var sc = 1;
       if (toks.length) {
         sc = 0;
-        for (var t = 0; t < toks.length; t++) if (p.hay.indexOf(toks[t]) >= 0) sc++;
-        if (!sc) return;
+        for (var t = 0; t < toks.length; t++) {
+          if (res[t].test(p.hay)) { sc++; seen[t] = 1; }
+        }
+        // A record reached only through the controlled vocabulary is listed —
+        // the reader who typed "Contre Celse" wants those 40 records — but it
+        // is not counted as a textual match, or "prière" and "Martyrium" would
+        // again return the same figure through their shared domain label.
+        if (!sc) {
+          if (!(vocabSet && vocabSet.has(p.i))) return;
+          vocabOnly.add(p.i);
+        }
       }
       scores[p.i] = sc;
       set.add(p.i);
     });
-    // a described project is read as a conjunction as far as the corpus allows:
-    // keep the most demanding threshold that still leaves a usable neighbourhood
+
+    // The answer to the question asked, counted before anything is relaxed.
+    if (toks.length) {
+      set.forEach(function (i) { if (!vocabOnly.has(i) && scores[i] >= toks.length) fullHit++; });
+      for (var t = 0; t < toks.length; t++) if (!seen[t]) absentToks.push(toks[t]);
+    } else fullHit = set.size;
+
+    // A described project may still be worth widening: keep the most demanding
+    // threshold that leaves a usable neighbourhood. But a widened set is NOT
+    // the answer — `relaxed` says so, and the state line says so too. Before
+    // this was silent, and "Origen in Ethiopia" — a subject in none of the
+    // 1 632 records — came back as 1 277 works.
     hitDepth = 0;
     if (toks.length > 1 && set.size) {
       for (var need = toks.length; need >= 2; need--) {
         var strict = new Set();
-        set.forEach(function (i) { if (scores[i] >= need) strict.add(i); });
+        set.forEach(function (i) { if (scores[i] >= need || vocabOnly.has(i)) strict.add(i); });
         if (strict.size >= 10) { set = strict; hitDepth = need; break; }
       }
       if (!hitDepth) hitDepth = 1;
+      relaxed = hitDepth < toks.length;
     } else if (toks.length === 1) hitDepth = 1;
     tokCount = toks.length;
     matched = set;
     window.__scores = scores;
+    window.__vocabOnly = vocabOnly;
 
     var bits = [];
-    if (query.trim()) bits.push('“' + query.trim() + '”');
+    if (query.trim()) bits.push('\u201c' + query.trim() + '\u201d');
     QUESTIONS.forEach(function (q) {
       if (picked[q.kind].length) {
         bits.push(picked[q.kind].map(function (o) { return o.label; }).join(', '));
       }
     });
-    matchLabel = bits.join(' · ');
+    matchLabel = bits.join(' \u00b7 ');
+  }
+
+  // One sentence, and it must survive a reader who checks it. The order is:
+  // what your terms actually answer, then the denominator, then what was
+  // widened, then what a language filter is hiding.
+  function stateLine(hit, extra, hidden, total) {
+    var out;
+    if (tokCount > 1 && relaxed) {
+      if (!fullHit) {
+        out = 'No study carries all ' + tokCount + ' of your terms';
+        if (absentToks.length) {
+          out += ' \u2014 ' + absentToks.map(function (t) { return '\u201c' + t + '\u201d'; }).join(', ')
+               + (absentToks.length === 1 ? ' appears' : ' appear')
+               + ' in none of the ' + nf(PUBS.length) + ' records';
+        }
+        out += '. Widened to ' + hitDepth + ' of ' + tokCount + ': ' + nf(hit) + ' listed';
+      } else {
+        out = nf(fullHit) + (fullHit === 1 ? ' study carries' : ' studies carry')
+            + ' all ' + tokCount + ' of your terms'
+            + ' \u00b7 widened to ' + hitDepth + ' of ' + tokCount + ': ' + nf(hit);
+      }
+    } else if (!hit && vocabHit) {
+      // The reader named a shelf rather than a phrase: the shelf IS the answer.
+      out = nf(vocabHit) + (vocabHit === 1 ? ' work is filed under \u201c' : ' works are filed under \u201c')
+          + vocabLabel + '\u201d';
+      if (total) out += ', of ' + nf(total);
+      out += ' \u00b7 none names it in so many words';
+      if (extra) out += ' \u00b7 ' + nf(extra) + ' more listed';
+      if (hidden) out += ' \u00b7 ' + nf(hidden) + ' hidden by the language filter';
+      return out;
+    } else {
+      out = nf(hit) + (hit === 1 ? ' work matches' : ' works match');
+      if (total && hit) out += ' of ' + nf(total);
+    }
+    if (vocabHit && vocabLabel) {
+      out += ' \u00b7 ' + nf(vocabHit) + ' filed under the heading \u201c' + vocabLabel + '\u201d';
+    }
+    if (extra) out += ' \u00b7 ' + nf(extra) + ' more listed, mentioned only or held aside';
+    if (hidden) out += ' \u00b7 ' + nf(hidden) + ' hidden by the language filter';
+    return out;
   }
 
   function visiblePub(p) { return !langOff[p.lang]; }
@@ -823,19 +932,20 @@ import { createDustField } from './dust-field.js';
     }
     startTween(RM ? 1 : 780);
     fitView();
-    // the state line counts what every other figure counts, and says what else
-    // the answer returns
-    var hit = 0, extra = 0;
+    // The state line says what was asked before it says what was found, gives
+    // the denominator, and never passes a widened set off as the answer.
+    var hit = 0, extra = 0, hidden = 0, total = 0;
     if (matched) {
       PUBS.forEach(function (p) {
+        if (counts(p)) total++;
         if (!matched.has(p.i)) return;
+        if (!visiblePub(p)) { hidden++; return; }
+        if (window.__vocabOnly && window.__vocabOnly.has(p.i)) return;
         if (counts(p)) hit++; else extra++;
       });
     }
     document.getElementById('ask-state').textContent = matched
-      ? nf(hit) + (hit === 1 ? ' work matches' : ' works match')
-        + (tokCount > 1 && hitDepth ? ', on ' + hitDepth + ' of your ' + tokCount + ' terms' : '')
-        + (extra ? ' · ' + nf(extra) + ' more listed, mentioned only or held aside' : '')
+      ? stateLine(hit, extra, hidden, total)
       : '';
     renderHeld();
     if (openPanel) { sel = null; renderPanel(); }
@@ -1878,13 +1988,28 @@ import { createDustField } from './dust-field.js';
     // the reservoir of records held as not about Origen states its own size:
     // it is a reservoir, not a figure of the field
     var headline = (sel && sel.id === OFF) ? aside : dens;
-    pDensity.innerHTML = nf(headline) + (headline === 1 ? ' work' : ' works') + '<small>' +
-      (sel ? 'in ' + esc(title) + (matched ? ', under your current answers' : '')
-           : (matched ? 'in the neighbourhood of ' + esc(matchLabel)
-                        + (tokCount > 1 && hitDepth && hitDepth < tokCount
-                            ? ', matching ' + hitDepth + ' of your ' + tokCount + ' terms' : '')
-                      : 'in the whole corpus')) +
-      '</small>';
+    // A thin neighbourhood is the point of this site, so it is typeset as an
+    // answer: the figure, then what it is a figure OF. "0 works" over three
+    // listed records was a lie of rounding — the reservoir is named instead.
+    var corpusDens = 0;
+    PUBS.forEach(function (p) { if (counts(p)) corpusDens++; });
+    var caption;
+    if (sel) caption = 'in ' + esc(title) + (matched ? ', under your current answers' : '');
+    else if (matched) {
+      caption = 'in the neighbourhood of ' + esc(matchLabel) + ' \u2014 of ' + nf(corpusDens);
+      if (tokCount > 1 && relaxed) {
+        caption += fullHit
+          ? ', widened from ' + nf(fullHit) + ' carrying all ' + tokCount + ' terms'
+          : ', widened: none carries all ' + tokCount + ' terms';
+      }
+    } else caption = 'in the whole corpus';
+    if (!headline && n) {
+      pDensity.innerHTML = nf(n) + (n === 1 ? ' record' : ' records') + '<small>' +
+        'listed, none of them counted in the density figures \u2014 ' + caption + '</small>';
+    } else {
+      pDensity.innerHTML = nf(headline) + (headline === 1 ? ' work' : ' works') +
+        '<small>' + caption + '</small>';
+    }
 
     var zoneBits = [];
     if (sel && sel.id === OFF) {
@@ -1933,11 +2058,29 @@ import { createDustField } from './dust-field.js';
     shownCount = 0;
     pBody.innerHTML = '';
     if (!n) {
+      // Nothing found is a finding: say what was asked, say what is missing from
+      // the corpus, and only offer a remedy that applies here.
+      var why = [];
+      if (absentToks.length) {
+        why.push(absentToks.map(function (t) { return '\u201c' + esc(t) + '\u201d'; }).join(', ')
+          + (absentToks.length === 1 ? ' appears' : ' appear')
+          + ' in none of the ' + nf(PUBS.length) + ' records');
+      }
+      var offs = LANGS.filter(function (l) { return langOff[l.code]; });
+      var fixes = [];
+      if (offs.length) fixes.push('bring back the languages you switched off');
+      var anyAns = false;
+      QUESTIONS.forEach(function (q) { if (wizAns[q.kind] && wizAns[q.kind].length) anyAns = true; });
+      if (anyAns) fixes.push('drop one answer');
+      if (tokCount > 1) fixes.push('use fewer terms');
       pBody.innerHTML = '<p class="empty"><svg class="mk" viewBox="0 0 100 100" width="12" height="12" aria-hidden="true">' +
         '<g stroke="currentColor" stroke-width="12" fill="none"><path d="M50 14 L50 86"/><path d="M14 50 L86 50"/></g>' +
         '<g fill="currentColor"><circle cx="27" cy="27" r="8"/><circle cx="73" cy="27" r="8"/>' +
-        '<circle cx="27" cy="73" r="8"/><circle cx="73" cy="73" r="8"/></g></svg> The harvest holds nothing under these ' +
-        'conditions. Widen the languages, or drop one answer.</p>';
+        '<circle cx="27" cy="73" r="8"/><circle cx="73" cy="73" r="8"/></g></svg> ' +
+        'Nothing in the harvest answers this' +
+        (why.length ? ' \u2014 ' + why.join('; ') : '') + '.' +
+        (fixes.length ? ' You could ' + fixes.join(', or ') + '.' : '') +
+        '</p>';
       openPanel();
       return;
     }
@@ -2270,7 +2413,8 @@ import { createDustField } from './dust-field.js';
         langOff[l.code] = !langOff[l.code];
         b.classList.toggle('off', !!langOff[l.code]);
         b.setAttribute('aria-pressed', langOff[l.code] ? 'false' : 'true');
-        if (panel.classList.contains('open')) renderPanel();
+        // the state line counts hidden records too, so it has to be recomputed
+        if (matched) applyMatch(); else if (panel.classList.contains('open')) renderPanel();
         invalidate();
       });
       lg.appendChild(b);
