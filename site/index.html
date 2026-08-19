@@ -192,6 +192,9 @@
 </aside>
 
 <script src="assets/chrome.js?v=ca20f9fc"></script>
-<script type="module" src="assets/explorer.js?v=d99467a1"></script>
+<!-- the search semantics, shared with the CLI: a classic script, so it is
+     evaluated before the deferred module that uses it -->
+<script src="assets/search-core.js?v=e5d9cd37"></script>
+<script type="module" src="assets/explorer.js?v=441a5a84"></script>
 </body>
 </html>

@@ -27,9 +27,13 @@ import { createDustField } from './dust-field.js';
   var INK = '#23201B', STONE = '#6A6353', ACCENT = '#A03620', PAPER = '#F7F2E6';
 
   /* ------------------------------------------------------------------ utilities */
-  function norm(s) {
+  // The search semantics live in search-core.js, loaded before this file and
+  // required by the CLI: one implementation, so a reader and an agent cannot
+  // be shown two different bibliographies. See scripts/check_search_parity.py.
+  var CORE = (typeof OrigenalitySearch !== 'undefined') ? OrigenalitySearch : null;
+  var norm = CORE ? CORE.norm : function (s) {
     return (s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-  }
+  };
   function esc(s) {
     return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
       .replace(/"/g, '&quot;');
@@ -746,17 +750,8 @@ import { createDustField } from './dust-field.js';
   }
 
   /* ------------------------------------------------------------------ filtering */
-  var STOP = ('the and for with from that this was are its our not but all any how who '
-    + 'des les une dans pour sur avec par aux ses est comme entre chez '
-    + 'der die das und von den dem ein eine des mit auf ist als bei aus '
-    + 'che del della dei con per una nel nella sul '
-    + 'los las una del por con para sobre entre').split(' ');
-  var STOPSET = {}; STOP.forEach(function (w) { STOPSET[w] = 1; });
-  function tokens(q) {
-    return norm(q).split(/[^0-9a-z']+/).filter(function (w) {
-      return w.length > 2 && !STOPSET[w];
-    });
-  }
+  var tokens = CORE.tokens;
+
   function chosen(kind) {
     return wizAns[kind].map(function (id) {
       for (var i = 0; i < OPTS[kind].length; i++) if (OPTS[kind][i].id === id) return OPTS[kind][i];
@@ -768,92 +763,38 @@ import { createDustField } from './dust-field.js';
   // "rome" answered with the Jerome bibliography (jerome, 227 records), and
   // "man" returned 834 records — half the corpus — because the language label
   // "german" is indexed.
-  function termRe(tok) {
-    return new RegExp("(^|[^0-9a-z'])" + tok.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
-  }
-
   function computeMatch() {
-    var toks = tokens(query);
     var picked = {}, anyPick = false;
     QUESTIONS.forEach(function (q) {
       picked[q.kind] = chosen(q.kind);
       if (picked[q.kind].length) anyPick = true;
     });
     fullHit = 0; absentToks = []; relaxed = false; vocabHit = 0; vocabLabel = '';
-    if (!toks.length && !anyPick) { matched = null; matchLabel = ''; return; }
+    if (!tokens(query).length && !anyPick) { matched = null; matchLabel = ''; return; }
 
-    var res = toks.map(termRe);
-
-    // The controlled vocabulary is a separate channel: a reader who types a
-    // domain, a work or an approach as it is written in the vocabulary — in any
-    // of its languages — is naming a shelf, not searching a phrase. Matched
-    // whole, announced apart, never folded into the free-text count.
-    var phrase = norm(query).trim();
-    var vocabSet = null;
-    if (phrase.length > 3) {
-      // Whole heading, both ends bounded. Without the closing boundary "Rome"
-      // was answered by 204 records filed under "Commentary on Romans".
-      var pre = phrase.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-      var vre = new RegExp("(^|[^0-9a-z'])" + pre + "([^0-9a-z']|$)");
-      vocabSet = new Set();
-      PUBS.forEach(function (p) { if (vre.test(p.vocab)) vocabSet.add(p.i); });
-      vocabHit = vocabSet.size;
-      if (vocabHit) vocabLabel = query.trim();
-    }
-
-    var set = new Set(), scores = {}, seen = {}, vocabOnly = new Set();
-    PUBS.forEach(function (p) {
+    // The four questions filter conjunctively, before anything textual.
+    var keep = anyPick ? function (p) {
       for (var k = 0; k < QUESTIONS.length; k++) {
         var opts = picked[QUESTIONS[k].kind];
         if (!opts.length) continue;
         var ok = false;
         for (var o = 0; o < opts.length; o++) if (opts[o].test(p)) { ok = true; break; }
-        if (!ok) return;
+        if (!ok) return false;
       }
-      var sc = 1;
-      if (toks.length) {
-        sc = 0;
-        for (var t = 0; t < toks.length; t++) {
-          if (res[t].test(p.hay)) { sc++; seen[t] = 1; }
-        }
-        // A record reached only through the controlled vocabulary is listed —
-        // the reader who typed "Contre Celse" wants those 40 records — but it
-        // is not counted as a textual match, or "prière" and "Martyrium" would
-        // again return the same figure through their shared domain label.
-        if (!sc) {
-          if (!(vocabSet && vocabSet.has(p.i))) return;
-          vocabOnly.add(p.i);
-        }
-      }
-      scores[p.i] = sc;
-      set.add(p.i);
-    });
+      return true;
+    } : null;
 
-    // The answer to the question asked, counted before anything is relaxed.
-    if (toks.length) {
-      set.forEach(function (i) { if (!vocabOnly.has(i) && scores[i] >= toks.length) fullHit++; });
-      for (var t = 0; t < toks.length; t++) if (!seen[t]) absentToks.push(toks[t]);
-    } else fullHit = set.size;
-
-    // A described project may still be worth widening: keep the most demanding
-    // threshold that leaves a usable neighbourhood. But a widened set is NOT
-    // the answer — `relaxed` says so, and the state line says so too. Before
-    // this was silent, and "Origen in Ethiopia" — a subject in none of the
-    // 1 632 records — came back as 1 277 works.
-    hitDepth = 0;
-    if (toks.length > 1 && set.size) {
-      for (var need = toks.length; need >= 2; need--) {
-        var strict = new Set();
-        set.forEach(function (i) { if (scores[i] >= need || vocabOnly.has(i)) strict.add(i); });
-        if (strict.size >= 10) { set = strict; hitDepth = need; break; }
-      }
-      if (!hitDepth) hitDepth = 1;
-      relaxed = hitDepth < toks.length;
-    } else if (toks.length === 1) hitDepth = 1;
-    tokCount = toks.length;
-    matched = set;
-    window.__scores = scores;
-    window.__vocabOnly = vocabOnly;
+    var r = CORE.search(PUBS, query, { keep: keep });
+    matched = r.matched;
+    fullHit = r.fullHit;
+    absentToks = r.absentTerms;
+    relaxed = r.relaxed;
+    hitDepth = r.hitDepth;
+    tokCount = r.terms.length;
+    vocabHit = r.vocabHit;
+    vocabLabel = r.heading;
+    window.__scores = r.scores;
+    window.__vocabOnly = r.vocabOnly;
 
     var bits = [];
     if (query.trim()) bits.push('\u201c' + query.trim() + '\u201d');

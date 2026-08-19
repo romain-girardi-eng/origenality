@@ -107,6 +107,16 @@ PY
 done
 kill $SERVER 2>/dev/null || true
 
+step "la recherche du CLI et celle de la page répondent pareil"
+if command -v node >/dev/null 2>&1; then
+    (cd "$WORK/clone" && python3 scripts/check_search_parity.py --local) \
+        || fail "le CLI et les règles de la recherche divergent"
+    (cd "$WORK/clone" && python3 scripts/stamp_assets.py --check >/dev/null) \
+        || fail "une page référence un asset dont l'empreinte est périmée"
+else
+    printf '  node absent : parité de la recherche non contrôlée\n'
+fi
+
 if [ "$KEEP" = "0" ]; then
     cd "$ROOT"
     rm -rf "$WORK"
