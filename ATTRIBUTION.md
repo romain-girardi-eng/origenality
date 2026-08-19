@@ -32,6 +32,13 @@ does not resolve to a link, blocks the release.
 | `semanticscholar` | Semantic Scholar | **ODC-BY 1.0 — attribution required by the licence** | `https://www.semanticscholar.org/paper/{id}` |
 | `isidore` | ISIDORE (Huma-Num) | terms of the aggregator and of each provider | `https://hdl.handle.net/{id}` |
 | `thesesfr` | theses.fr | Licence Ouverte / Open Licence (Etalab) | `https://theses.fr/{id}` |
+| `k10plus` | K10plus (GBV / BSZ) | CC0 1.0 (K10plus metadata) | `https://opac.k10plus.de/DB=2.1/PPNSET?PPN={id}` |
+| `b3kat` | B3Kat (Bibliotheksverbund Bayern / KOBV) | CC0 1.0 (B3Kat metadata) | `https://opacplus.bib-bvb.de/TouchPoint_touchpoint/perma.do?q=+0%3D%22{id}%22+IN+%5B2%5D&v=bvb&l=de` |
+| `gnomon-gbd` | Gnomon Bibliographische Datenbank (Eichstätt) | GBD's own terms; the metadata itself is served by B3Kat | `https://www.gbd.digital/Record/{id}` |
+| `dnb` | Deutsche Nationalbibliothek | CC0 1.0 | `https://d-nb.info/{id}` |
+| `bnf` | Bibliothèque nationale de France | Licence Ouverte / Open Licence (Etalab) | `https://catalogue.bnf.fr/ark:/12148/{id}` |
+| `loc` | Library of Congress | CC0 1.0 / public domain (US Government work) | `https://lccn.loc.gov/{id}` |
+| `sudoc` | Sudoc — ABES | **Licence Ouverte (Etalab); the licence requires printing “Agence bibliographique de l'Enseignement supérieur”** | `https://www.sudoc.fr/{id}` |
 | `sbn` | SBN — Servizio Bibliotecario Nazionale | terms of the ICCU | `https://opac.sbn.it/bid/{id}` |
 | `bibp` | BIBP — Université Laval | terms of BIBP (Université Laval) | none — records carry their own address or none |
 | `adamantius-girota` | GIROTA / Adamantius | terms of Morcelliana / GIROTA | none — records carry their own address or none |

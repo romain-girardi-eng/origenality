@@ -113,6 +113,44 @@ indifféremment les uns et les autres.
       "url_template": "https://opac.sbn.it/bid/{id}",
       "license": "conditions propres à l'ICCU"
     },
+    "k10plus": {
+      "label": "K10plus (GBV / BSZ)",
+      "url_template": "https://opac.k10plus.de/DB=2.1/PPNSET?PPN={id}",
+      "license": "CC0 1.0 (métadonnées K10plus)"
+    },
+    "b3kat": {
+      "label": "B3Kat (Bibliotheksverbund Bayern / KOBV)",
+      "url_template": "https://opacplus.bib-bvb.de/TouchPoint_touchpoint/perma.do?q=+0%3D%22{id}%22+IN+%5B2%5D&v=bvb&l=de",
+      "license": "CC0 1.0 (métadonnées B3Kat)"
+    },
+    "gnomon-gbd": {
+      "label": "Gnomon Bibliographische Datenbank (Universität Eichstätt)",
+      "url_template": "https://www.gbd.digital/Record/{id}",
+      "note": "Notices récupérées en MARC21 par le SRU B3Kat : les identifiants GBD sont des numéros BV.",
+      "license": "conditions propres à la GBD ; métadonnées servies par B3Kat"
+    },
+    "dnb": {
+      "label": "Deutsche Nationalbibliothek",
+      "url_template": "https://d-nb.info/{id}",
+      "license": "CC0 1.0"
+    },
+    "bnf": {
+      "label": "Bibliothèque nationale de France",
+      "url_template": "https://catalogue.bnf.fr/ark:/12148/{id}",
+      "license": "Licence Ouverte / Open Licence (Etalab)"
+    },
+    "loc": {
+      "label": "Library of Congress",
+      "url_template": "https://lccn.loc.gov/{id}",
+      "note": "Œuvres d'agents fédéraux des États-Unis : domaine public ; la LC déclare CC0 1.0 pour la réutilisation mondiale.",
+      "license": "CC0 1.0 / domaine public (US Government work)"
+    },
+    "sudoc": {
+      "label": "Sudoc — Agence bibliographique de l'Enseignement supérieur (ABES)",
+      "url_template": "https://www.sudoc.fr/{id}",
+      "note": "Le Sudoc mêle des notices produites par son réseau et des notices dérivées d'autres bases (BnF, WorldCat, ISSN, DNB). Les premières sont sous Licence Ouverte ; les secondes restent soumises à la licence de la base productrice, et c'est elle qu'il faut citer quand la notice le dit.",
+      "license": "Licence Ouverte / Open Licence (Etalab), mention « Agence bibliographique de l'Enseignement supérieur » exigée"
+    },
     "generated": {
       "label": "Résumé produit par Origenality",
       "url_template": null,
