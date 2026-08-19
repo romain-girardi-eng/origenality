@@ -99,6 +99,7 @@ function buildCorpus(graph, sem, abstracts) {
       type: n.type, url: n.url, doi: n.doi || '',
       authors, subjects, container,
       themes, works, approaches: appr, domains: doms,
+      // the fields the advanced grammar filters on (author:, type:, in:, …)
       relevance: tag.r || 'none',
       dens: tag.r === 'core' || tag.r === 'partial',
       abstract: ab ? ab.t : '',
@@ -163,6 +164,12 @@ function sentence(v) {
   if (!v.counted_in_density && v.filed_under_heading) {
     return `${n(v.filed_under_heading)} works are filed under "${v.heading}", of ${n(v.corpus_density_total)} — none names it in so many words.`;
   }
+  // Never announce 0 over a list of records: those are records the density
+  // figures do not count, and saying so is the honest form.
+  if (!v.counted_in_density && v.listed) {
+    return `${n(v.listed)} records listed, none of them counted in the density figures `
+      + `(they mention Origen rather than study him), of ${n(v.corpus_density_total)}.`;
+  }
   let s = `${n(v.counted_in_density)} works match of ${n(v.corpus_density_total)}`;
   if (v.filed_under_heading) s += ` · ${n(v.filed_under_heading)} filed under "${v.heading}"`;
   return s + '.';
@@ -179,6 +186,14 @@ const USAGE = `origenality — the map of Origen scholarship, for programs
   density <kind> <key>  how thick one heading is
   stats                 the harvest, counted
   coverage              what the corpus cannot answer, in figures
+
+Query grammar (search and gap)
+  author:crouzel        the author            year:1971  year:1971-1990  year:>2000
+  lang:fre  type:book   language, document type
+  work:cels             a work of Origen      theme:exegesis   domain:  approach:
+  in:adamantius         the journal or volume it sits in
+  "free will"           an exact phrase       -rufinus   a term that must not appear
+  Filters are conjunctive and never widened: year:1971 does not mean thereabouts.
 
 Options
   --json                machine-readable (default for every command but search)

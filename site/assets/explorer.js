@@ -2385,6 +2385,15 @@ import { createDustField } from './dust-field.js';
       applyMatch(true);
     }
     document.getElementById('ask-go').addEventListener('click', runSearch);
+    var advBtn = document.getElementById('adv-open'), adv = document.getElementById('adv');
+    if (advBtn && adv) {
+      advBtn.addEventListener('click', function () {
+        var open = adv.hasAttribute('hidden');
+        if (open) adv.removeAttribute('hidden'); else adv.setAttribute('hidden', '');
+        advBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
+        advBtn.textContent = open ? 'hide the fields' : 'or search by field';
+      });
+    }
     input.addEventListener('keydown', function (e) { if (e.key === 'Enter') runSearch(); });
     input.addEventListener('input', function () {
       fieldEl.classList.toggle('filled', !!input.value.trim());

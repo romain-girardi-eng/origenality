@@ -124,6 +124,18 @@ No checkout is needed: the data is fetched from origenality.com and cached for
 twelve hours. Add `--local .` to read this tree instead, `--json` for a
 machine, `--lang`, `--since`, `--until` to narrow.
 
+A free-text query returns a neighbourhood; naming a field returns a
+publication. The same grammar answers in the browser and here:
+
+```
+author:crouzel   year:1971-1990   lang:fre   type:book
+work:cels        theme:exegesis   in:adamantius
+"free will"      -rufinus
+```
+
+These are conditions, not scores: they are conjunctive and never widened, so
+`year:1971` does not mean thereabouts.
+
 Two figures come back, never one. `counted_in_density` are the records judged to
 be about Origen; `listed` includes those that merely mention him. And when
 `widened` is true the query was relaxed to fewer terms — the answer to the

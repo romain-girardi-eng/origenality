@@ -37,6 +37,12 @@ CASES = [
     ("apokatastasis", "a plain subject keeps answering as it did"),
     ("Bardaisan", "a thin neighbourhood stays thin"),
     ("the art of the homily", "two common words are a conjunction, not a shelf"),
+    # the field grammar: conditions, never widened
+    ("author:crouzel", "a field query reaches the author and nothing else"),
+    ("year:1971-1980 allegory", "a range narrows, it does not score"),
+    ('"free will"', "a quoted phrase is those words in that order"),
+    ("apokatastasis -Balthasar", "an exclusion removes and does not widen"),
+    ("work:cels", "a vocabulary key reaches its records"),
 ]
 
 FIELDS = ("carrying_all_terms", "listed", "counted_in_density",
@@ -90,6 +96,16 @@ def main() -> int:
             bad.append(f"{query!r}: {got['counted_in_density']} hits, the word boundary is gone ({rule})")
         if query == "Contre Celse" and not got.get("filed_under_heading"):
             bad.append(f"{query!r}: the aliases are not served ({rule})")
+        if query == "author:crouzel" and not (20 <= got["counted_in_density"] <= 80):
+            bad.append(f"{query!r}: {got['counted_in_density']} hits — the author filter is off ({rule})")
+        if query == "year:1971-1980 allegory" and got["widened"]:
+            bad.append(f"{query!r}: a field query was widened, which it must never be ({rule})")
+        if query == "apokatastasis -Balthasar":
+            plain = dict(seen).get("apokatastasis")
+            if plain and got["counted_in_density"] >= plain["counted_in_density"]:
+                bad.append(f"{query!r}: the exclusion removed nothing ({rule})")
+        if query == "work:cels" and not (20 <= got["counted_in_density"] <= 60):
+            bad.append(f"{query!r}: {got['counted_in_density']} hits — the vocabulary key is off ({rule})")
         if query == "Bardaisan" and got["counted_in_density"] > 10:
             bad.append(f"{query!r}: {got['counted_in_density']} hits, a thin subject has thickened ({rule})")
 

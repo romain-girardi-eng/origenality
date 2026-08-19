@@ -343,3 +343,25 @@ body.panel-open .veil{opacity:1;pointer-events:auto}
 @media (pointer:coarse){
   .chip,.legend .lg,.held-chip,.seg button,.btn-quiet,.go,.linkish{min-height:44px}
 }
+
+/* ------------------------------------------------------------- search by field
+   The grammar, written out. Folded by default: the free-text bar is the way in
+   for most readers, and this is for the one who already knows what they want. */
+.adv{
+  margin:.55rem 0 0;padding:.85rem 1rem;
+  border:1px solid var(--rule-soft);background:rgba(247,242,230,.5);
+  font-size:.86rem;line-height:1.5;color:var(--ink-2);
+}
+.adv[hidden]{display:none}
+.adv dl{display:grid;grid-template-columns:auto 1fr;gap:.3rem 1.1rem;margin:0}
+.adv dt{margin:0}
+.adv dd{margin:0;color:var(--stone)}
+.adv code{
+  font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.92em;
+  background:rgba(35,32,27,.06);padding:.05em .35em;border-radius:2px;color:var(--ink);
+}
+.adv p{margin:.7rem 0 0;max-width:44rem}
+@media (max-width:620px){
+  .adv dl{grid-template-columns:1fr;gap:.15rem}
+  .adv dd{margin:0 0 .45rem}
+}

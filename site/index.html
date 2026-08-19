@@ -29,7 +29,7 @@
 <link rel="preload" href="assets/fonts/EBGaramond-VF.subset.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="assets/fonts/literata-var.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="assets/base.css?v=36c84679">
-<link rel="stylesheet" href="assets/explorer.css?v=b4fe174d">
+<link rel="stylesheet" href="assets/explorer.css?v=dc9c363e">
 <script type="application/ld+json">
 {
   "@context": "https://schema.org",
@@ -114,14 +114,34 @@
 <section class="ask" aria-label="Find a neighbourhood">
   <div class="ask-field" id="ask-field">
     <input id="ask-input" type="search" autocomplete="off" spellcheck="false"
-           placeholder="Describe your project" aria-label="Describe your project">
+           placeholder="Describe your project, or name a field: author:crouzel"
+           aria-label="Describe your project, or name a field">
     <button class="clear" id="ask-clear" type="button" aria-label="Clear the field">&times;</button>
     <button class="go" id="ask-go" type="button">Explore</button>
   </div>
 
   <div class="ask-alt" id="ask-alt">
     <button class="linkish" id="wiz-open" type="button">or answer four questions</button>
+    <button class="linkish" id="adv-open" type="button" aria-expanded="false"
+            aria-controls="adv">or search by field</button>
     <span id="ask-state" aria-live="polite"></span>
+  </div>
+
+  <!-- Naming a field is the other way in: a reader after one publication does
+       not want a neighbourhood. These conditions are never widened. -->
+  <div class="adv" id="adv" hidden>
+    <dl>
+      <dt><code>author:crouzel</code></dt><dd>the author</dd>
+      <dt><code>year:1971</code> <code>year:1971-1990</code> <code>year:&gt;2000</code></dt><dd>a year, a range, a bound</dd>
+      <dt><code>lang:fre</code> <code>type:book</code></dt><dd>language, kind of document</dd>
+      <dt><code>work:cels</code> <code>theme:exegesis</code></dt><dd>a work of Origen, a theme</dd>
+      <dt><code>in:adamantius</code></dt><dd>the journal or volume it sits in</dd>
+      <dt><code>&quot;free will&quot;</code></dt><dd>those words, in that order</dd>
+      <dt><code>-rufinus</code></dt><dd>and not this one</dd>
+    </dl>
+    <p>Conditions hold: <code>year:1971</code> does not mean thereabouts, and a
+      field query is never widened the way a described project is. The same
+      grammar answers on the command line — see the read me.</p>
   </div>
 
   <div class="wiz" id="wiz" role="group" aria-label="Four questions">
@@ -194,7 +214,7 @@
 <script src="assets/chrome.js?v=ca20f9fc"></script>
 <!-- the search semantics, shared with the CLI: a classic script, so it is
      evaluated before the deferred module that uses it -->
-<script src="assets/search-core.js?v=e5d9cd37"></script>
-<script type="module" src="assets/explorer.js?v=441a5a84"></script>
+<script src="assets/search-core.js?v=23dfdf38"></script>
+<script type="module" src="assets/explorer.js?v=e87fde33"></script>
 </body>
 </html>

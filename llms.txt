@@ -32,6 +32,7 @@
 - `cli/origenality.mjs` — the map as a command line. `search` and `gap` answer "has this been written about, and how thickly"; `record`, `vocabulary`, `density`, `coverage` and `stats` give the rest. It reads the published data over HTTPS, so it needs no checkout: `node cli/origenality.mjs gap "Origen and Roman law"`.
 - It runs `site/assets/search-core.js`, the same file the website executes, so a program and a reader are never shown two different figures. `scripts/check_search_parity.py` fails a release where they diverge.
 - Read the answer with care: `counted_in_density` are the records judged to be about Origen and `listed` includes those that only mention him; when `widened` is true the engine relaxed the query and the real answer is `carrying_all_terms`, not `listed`; `terms_absent_from_corpus` names a word found in none of the 1 632 records, which is the strongest evidence of a gap this map can give. Run `coverage` before calling a subject unexplored: 23% of records carry an abstract, so absence of a hit is weaker evidence than presence of one.
+- A query may name its field rather than describe a project: `author:crouzel`, `year:1971-1990`, `lang:fre`, `type:book`, `work:cels`, `theme:exegesis`, `in:adamantius`, `"free will"` for an exact phrase, `-rufinus` to exclude. These are conditions, conjunctive and never widened — a field query returning nothing is a real answer. Same grammar in the browser and on the command line.
 - `.claude/skills/origenality/SKILL.md` states those reading rules for an agent.
 
 ## Key facts

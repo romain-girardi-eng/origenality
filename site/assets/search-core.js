@@ -50,6 +50,84 @@
 
   function quote(s) { return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
 
+  /* ---------------------------------------------------------------- grammar
+   * A reader looking for one publication does not want a neighbourhood, they
+   * want that publication. So a query may name the field it is about:
+   *
+   *   author:crouzel            the author, matched at a word start
+   *   year:1971  year:1971-1990 a year or a range
+   *   lang:fre                  the language code
+   *   type:book                 the document type
+   *   work:cels                 a work of Origen, by vocabulary key
+   *   theme:exegesis.allegory   a theme, by key (a prefix is enough)
+   *   in:journal-name           the containing volume or journal
+   *   "free will"               an exact phrase, in that order
+   *   -rufinus                  a term that must NOT appear
+   *
+   * Anything outside a field is free text, scored as before. Filters are
+   * conjunctive and never relaxed: a reader who wrote year:1971 did not mean
+   * "or thereabouts", and the widening that helps a described project would be
+   * a lie here.
+   */
+  var FIELDS = {
+    author: 'authors', a: 'authors',
+    year: 'year', y: 'year',
+    lang: 'lang', l: 'lang',
+    type: 'type', t: 'type',
+    work: 'works', w: 'works',
+    theme: 'themes',
+    domain: 'domains',
+    approach: 'approaches',
+    in: 'container',
+  };
+
+  function parseQuery(q) {
+    var out = { free: '', phrases: [], exclude: [], filters: [] };
+    var rest = [];
+    var re = /(-?)(?:([a-z]+):)?(?:"([^"]*)"|(\S+))/gi;
+    var m;
+    while ((m = re.exec(q || '')) !== null) {
+      var neg = m[1] === '-';
+      var field = m[2] && FIELDS[m[2].toLowerCase()] ? FIELDS[m[2].toLowerCase()] : null;
+      var value = m[3] != null ? m[3] : m[4];
+      if (!value) continue;
+      if (field) { out.filters.push({ field: field, value: norm(value), neg: neg }); continue; }
+      if (m[3] != null) { (neg ? out.exclude : out.phrases).push(norm(value)); continue; }
+      if (neg) { out.exclude.push(norm(value)); continue; }
+      rest.push(value);
+    }
+    out.free = rest.join(' ');
+    return out;
+  }
+
+  function fieldValue(rec, field) {
+    var v = rec[field];
+    if (v == null) return '';
+    if (Array.isArray(v)) return norm(v.join(' \u00b7 '));
+    return norm(String(v));
+  }
+
+  function passesFilter(rec, f) {
+    var ok;
+    if (f.field === 'year') {
+      var y = Number(rec.year);
+      var range = /^(\d{3,4})\s*[-\u2013]\s*(\d{3,4})$/.exec(f.value);
+      if (range) ok = y >= Number(range[1]) && y <= Number(range[2]);
+      else if (/^[<>]=?\d{3,4}$/.test(f.value)) {
+        var op = f.value.replace(/\d+/g, ''), n = Number(f.value.replace(/\D/g, ''));
+        ok = op === '<' ? y < n : op === '<=' ? y <= n : op === '>' ? y > n : y >= n;
+      } else ok = String(rec.year || '') === f.value;
+    } else if (f.field === 'works' || f.field === 'themes' || f.field === 'domains'
+               || f.field === 'approaches') {
+      // a key, or the beginning of one: theme:exegesis catches every theme of
+      // that domain without the reader having to know the full key
+      ok = (rec[f.field] || []).some(function (k) { return norm(k).indexOf(f.value) === 0; });
+    } else {
+      ok = termRe(f.value).test(fieldValue(rec, f.field));
+    }
+    return f.neg ? !ok : ok;
+  }
+
   /** A term, anchored at a word start. */
   function termRe(tok) { return new RegExp("(^|[^0-9a-z'])" + quote(tok)); }
 
@@ -80,29 +158,48 @@
     var keep = opts.keep || null;
     var floor = opts.widenFloor == null ? WIDEN_FLOOR : opts.widenFloor;
 
-    var toks = tokens(query);
+    var q = parseQuery(query);
+    var toks = tokens(q.free);
     var res = toks.map(termRe);
     var out = {
       terms: toks, absentTerms: [], fullHit: 0, hitDepth: 0,
       relaxed: false, widened: false, matched: new Set(), scores: {},
-      vocabOnly: new Set(), vocabHit: 0, heading: ''
+      vocabOnly: new Set(), vocabHit: 0, heading: '',
+      filters: q.filters, phrases: q.phrases, exclude: q.exclude
     };
+    var structured = q.filters.length || q.phrases.length || q.exclude.length;
 
-    var phrase = norm(query).trim();
+    // A reader who writes operators is naming a field, not a shelf: the
+    // controlled-vocabulary channel would only add noise to a precise query.
+    var phrase = norm(q.free).trim();
     var vocabSet = null;
-    if (phrase.length > 3) {
+    if (phrase.length > 3 && !structured) {
       var hre = headingRe(phrase);
       vocabSet = new Set();
       records.forEach(function (p) { if (p.vocab && hre.test(p.vocab)) vocabSet.add(p.i); });
       out.vocabHit = vocabSet.size;
-      if (out.vocabHit) out.heading = query.trim();
+      if (out.vocabHit) out.heading = q.free.trim();
     }
 
-    if (!toks.length && !keep) return out;
+    if (!toks.length && !keep && !structured) return out;
+
+    // Field filters, exact phrases and exclusions are conditions, not scores:
+    // they hold whatever the widening does below.
+    function admissible(p) {
+      for (var i = 0; i < q.filters.length; i++) if (!passesFilter(p, q.filters[i])) return false;
+      for (var j = 0; j < q.phrases.length; j++) {
+        if ((p.hay || '').indexOf(q.phrases[j]) < 0) return false;
+      }
+      for (var k = 0; k < q.exclude.length; k++) {
+        if (termRe(q.exclude[k]).test(p.hay || '')) return false;
+      }
+      return true;
+    }
 
     var seen = {};
     records.forEach(function (p) {
       if (keep && !keep(p)) return;
+      if (!admissible(p)) return;
       var sc = 1;
       if (toks.length) {
         sc = 0;
@@ -145,7 +242,8 @@
   }
 
   return {
-    STOP: STOP, WIDEN_FLOOR: WIDEN_FLOOR,
-    norm: norm, tokens: tokens, termRe: termRe, headingRe: headingRe, search: search
+    STOP: STOP, WIDEN_FLOOR: WIDEN_FLOOR, FIELDS: FIELDS,
+    norm: norm, tokens: tokens, termRe: termRe, headingRe: headingRe,
+    parseQuery: parseQuery, search: search
   };
 });
