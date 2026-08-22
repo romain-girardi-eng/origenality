@@ -1,0 +1,47 @@
+{
+ "generated": "2026-08-22",
+ "what": "Editions, translations and manuscript witnesses of Origen's own works, gathered by the same authority-record harvest as the map. They are primary sources: they are NOT counted in any density figure on this site.",
+ "records": 1441,
+ "with_year": 1338,
+ "year_min": 751,
+ "year_max": 2026,
+ "before_1600": 206,
+ "before_1450_manuscripts": 42,
+ "by_source": {
+  "k10plus": 656,
+  "b3kat": 500,
+  "sudoc": 130,
+  "bnf": 46,
+  "gnomon-gbd": 45,
+  "dnb": 40,
+  "loc": 24
+ },
+ "by_language": {
+  "lat": 254,
+  "grc": 245,
+  "la": 171,
+  "und": 123,
+  "ger": 109,
+  "fre": 99,
+  "null": 88,
+  "eng": 61,
+  "de": 58,
+  "gre": 46
+ },
+ "by_century": {
+  "8": 1,
+  "9": 9,
+  "11": 3,
+  "12": 8,
+  "13": 7,
+  "14": 4,
+  "15": 18,
+  "16": 156,
+  "17": 112,
+  "18": 143,
+  "19": 240,
+  "20": 456,
+  "21": 181
+ },
+ "caveat": "Dates before 1450 are manuscript datings recorded by the holding library and are approximate. One implausible date was set aside and kept in year_raw. 102 records carry no date and none was invented."
+}

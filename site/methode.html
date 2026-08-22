@@ -124,8 +124,8 @@
   <div class="lede">
     <h1>Method</h1>
 <!-- FIGURES:population-stamp -->
-    <p class="census"><span class="census-n">1 402</span><span class="census-k">counted records, of 1 632 harvested</span></p>
-    <p class="stamp">Version of August 2026 · one source · 1 632 records harvested, 1 402 counted</p>
+    <p class="census"><span class="census-n">2 294</span><span class="census-k">counted records, of 2 582 harvested</span></p>
+    <p class="stamp">Version of August 2026 · one source · 2 582 records harvested, 2 294 counted</p>
 <!-- /FIGURES:population-stamp -->
     <p>Origenality is a bibliographic map of the scholarship on Origen of Alexandria. It
       gathers the records of open catalogues, keeps one record per work, files each under a
@@ -163,32 +163,82 @@
 
   <section>
     <h2>1. The corpus</h2>
-    <p class="sub">One catalogue today, named as such everywhere on the site.</p>
-    <p>The corpus behind this version is a single harvest: the Index Theologicus (IxTheo,
-      Tübingen), taken through the authority record for Origen and hydrated from K10plus.
-      On 15 August 2026 that harvest returned <strong>2 116 records</strong>. Of these,
-      <strong>484</strong> are editions and translations of Origen's own works — primary
-      sources, set aside — and <strong>1 632</strong> are publications about him. That
-      second figure is the corpus. Adding the 47 records that are both an edition and a
-      collection of studies to it would count them twice.</p>
-    <p>Every record keeps the catalogue number it was harvested with, and every entry in the
-      Explorer links back to the record it came from. Nothing on this site replaces a
-      catalogue; it points at one.</p>
+    <p class="sub">Seven catalogues, each reached through an authority record, each named.</p>
+    <p>The corpus is built by asking catalogues about a person, not about a word. The
+      authority record for Origen — GND 118590235, and the equivalents the national
+      libraries hold — is a number a cataloguer attached to a book after reading it. Asking
+      by that number rather than by the string <em>Origen</em> is what keeps the Spanish
+      <em>orígenes</em>, the Italian <em>origini</em> and the French <em>origines</em> out:
+      the name of the Father collides with the commonest word in the Romance languages for
+      beginnings, and no amount of pattern matching separates them reliably.</p>
+    <p>Seven catalogues answer today, for <strong>2 582 publications</strong> about Origen:</p>
+    <ul>
+      <li>Index Theologicus (IxTheo, Tübingen), hydrated from K10plus — <strong>1 409</strong></li>
+      <li>Gnomon Bibliographische Datenbank (Eichstätt), served in MARC by B3Kat — <strong>354</strong></li>
+      <li>K10plus, the German union catalogue, beyond the theology slice — <strong>350</strong></li>
+      <li>Sudoc (ABES) — <strong>212</strong> · B3Kat — <strong>130</strong></li>
+      <li>Deutsche Nationalbibliothek — <strong>51</strong> · Library of Congress — <strong>50</strong>
+        · Bibliothèque nationale de France — <strong>26</strong></li>
+    </ul>
+    <p>Editions and translations of Origen's own works are set aside as before: they are
+      primary sources, and counting them among the studies would say the field is larger
+      than it is. Every record keeps the catalogue number it was harvested with, and every
+      entry in the Explorer links back to the record it came from. Nothing on this site
+      replaces a catalogue; it points at one.</p>
+
+    <h3>How each record was classified, and how well</h3>
+    <p>A record enters a figure only once it has been placed against the controlled
+      vocabulary of § 3 — whether Origen is its main object, which themes it touches, which
+      of his works. For the records added in August 2026 that placement was made
+      <strong>twice, independently</strong>, by two passes that could not see each other,
+      and the disagreements were then arbitrated one by one.</p>
+    <p>The two passes agreed on relevance for <strong>1 149 records of 1 274 — 90.2 %</strong>.
+      Of the 125 disagreements, 118 were one notch apart. Agreement is highest where it
+      matters most for the counts (<em>core</em>, 0.93) and lowest at the boundary between
+      <em>partial</em> and <em>marginal</em> (0.72), which is where a study that devotes a
+      chapter to Origen meets one that devotes a paragraph.</p>
+    <p>That figure covers relevance only — the axis that decides whether a record is
+      counted. Agreement on themes, works and approaches has not been measured, and nothing
+      here should be read as covering them.</p>
+    <p><strong>386 records (30 %) are flagged for review.</strong> The cause is structural
+      and worth stating plainly: 96 % of the records added carry no abstract, so the
+      judgement rests on a title, its authors, its language and its subject headings. That
+      is enough for <em>core</em> — 12 % flagged — and not enough for <em>marginal</em>,
+      where 65 % are flagged. Those flags call for a table of contents or the volume itself,
+      not for another pass of the same method.</p>
+
+    <h3>The primary layer, set aside and served</h3>
+    <p>The same harvest returns the texts themselves: <strong>1 441 editions, translations
+      and manuscript witnesses</strong> of Origen's own works, from a Carolingian codex of
+      the homilies on Kings to a translation of last year. <strong>None of them is counted
+      in any figure on this site</strong>, and that is the point: a density of studies that
+      counted the editions would say the field is larger than it is.</p>
+    <p>They are published all the same, as their own layer — <code>data/primary-layer.jsonl</code>
+      and a summary the command line serves as <code>origenality primary</code>. Nine
+      records predate the eleventh century, 206 the seventeenth. That is not a bibliography
+      of scholarship; it is the transmission of Origen, and it deserved better than being
+      discarded as a by-product.</p>
+    <p>Datings before 1450 are the holding library's, and approximate. One implausible date
+      was set aside rather than guessed at, and 102 records carry no date at all: none was
+      invented for them.</p>
+
     <h3>What is not here yet</h3>
-    <p>Nine further harvests exist in the working data — OpenAlex, Crossref, Semantic
+    <p>Six further harvests exist in the working data — OpenAlex, Crossref, Semantic
       Scholar, Isidore, theses.fr, Dialnet, the Italian SBN, the Adamantius repertorio, the
       BIBP of Laval. <strong>No record of theirs is on this map, and no figure on this site
-      counts one.</strong> Their relevance filtering is not done, and a figure drawn from an
-      unsorted pile would be worse than no figure. The site says <em>one source</em> because
-      its corpus is one source.</p>
+      counts one.</strong> They were gathered by keyword, their relevance filtering is not
+      done, and a figure drawn from an unsorted pile would be worse than no figure.</p>
     <p>They serve one purpose here, and it does not touch the counts. Where one of them
-      summarises a publication that IxTheo also catalogues, that summary is attached to the
-      IxTheo record and credited to the database that wrote it (§ 2). It adds prose to a
-      record already in the corpus; it adds no record, and it moves no figure.</p>
+      summarises a publication a catalogue also holds, that summary is attached to the
+      record and credited to the database that wrote it (§ 2). It adds prose to a record
+      already in the corpus; it adds no record, and it moves no figure.</p>
     <div class="note">
-      <p>A count from a single catalogue measures that catalogue. IxTheo indexes German and
-        European theology closely; its subject headings are richer on recent records. Both
-        facts push the counts, and both are visible in the <a href="observatoire.html">Observatory</a>.</p>
+      <p>A count from catalogues measures those catalogues. IxTheo indexes German and
+        European theology closely, the Gnomon database indexes classical scholarship, and
+        subject headings are richer on recent records everywhere. All of that pushes the
+        counts, and it is visible in the <a href="observatoire.html">Observatory</a>. The
+        one span no catalogue covers well is the older literature: that is Crouzel's, and
+        § 0 says why it is not here.</p>
     </div>
   </section>
 
@@ -199,7 +249,7 @@
       and K10plus publishes them under CC0. They are what this site republishes: title, authors,
       year, language, container, publisher, DOI, ISBN, subject headings, format. A field is
       published where the record carries it, and nothing stands in its place where it does not:
-      476 of the 1 632 records name a publisher, 358 an ISBN, 130 a DOI.</p>
+      936 of the 2582 records name a publisher, 616 an ISBN, 169 a DOI.</p>
     <p>Abstracts are shown as well. A reader who sees only a title cannot tell whether a study
       answers the question they came with, and a bibliographic map that withholds the one
       paragraph that would settle it serves nobody. So every summary in the Explorer is
@@ -219,10 +269,10 @@
       gate: it decides nothing about what is shown.</p>
 <!-- FIGURES:summary-provenance -->
     <p><strong>Coverage.</strong> IxTheo is a catalogue, and a catalogue describes rather than
-      summarises: 152 of the 1 632 records carry a summary of their own.
+      summarises: 197 of the 2582 records carry a summary of their own.
       Where another database summarises the same publication, that summary is joined to the
       record by catalogue number, by DOI, or by title and year, and 229 records
-      are covered that way. In all, <strong>381 records of 1 632
+      are covered that way. In all, <strong>410 records of 2582
       (23.3 %)</strong> show a summary. The other 1 251 are not being withheld:
       1 212 of them appear in the working corpus and no database there holds a summary
       of them either.</p>
@@ -327,8 +377,8 @@
         way. The instructions now floor the class at <em>mentioned only</em> for any record
         catalogued as being about him, and keep <em>not about Origen</em> for homonyms and for
         texts by Origen catalogued as texts about him. The harvest was classed again under them:
-        the reservoir holds 5 records where it held 223, and <em>mentioned only</em> holds
-        225 where it held 9 — retrieved by a search, counted in no figure. What remains
+        the reservoir holds 1 records where it held 223, and <em>mentioned only</em> holds
+        287 where it held 9 — retrieved by a search, counted in no figure. What remains
         of the bias runs the other way now: a record the catalogue attached to Origen is credited
         with a mention even where the metadata alone would not carry it.</p>
 <!-- /FIGURES:population-bias -->
@@ -349,9 +399,9 @@
       in which the work was done. The figure opens a question; it does not close one.</p>
 <!-- FIGURES:population-counted -->
     <p><strong>Which records count.</strong> Every figure on this site is a count of the same
-      1 402 records: those classed <em>core</em> or <em>partial</em>, where Origen is the
-      subject or holds an identifiable section of the argument. Of the 1 632 harvested,
-      225 are classed <em>mentioned only</em> and 5 are held outside the count;
+      2 294 records: those classed <em>core</em> or <em>partial</em>, where Origen is the
+      subject or holds an identifiable section of the argument. Of the 2 582 harvested,
+      287 are classed <em>mentioned only</em> and 1 are held outside the count;
       neither class enters a figure, on any page — not the bars of the
       <a href="observatoire.html">Observatory</a>, not the language counts, not the number on a
       question chip, not the density of a cluster.</p>
@@ -361,7 +411,7 @@
       to the figure. Where a surface can return more than it counts, it says so in words and
       gives the second number: <em>N further works are mentioned only and are listed below the
       count</em>.</p>
-    <p><strong>What the count leaves out, and does not hide.</strong> Every one of the 1 632
+    <p><strong>What the count leaves out, and does not hide.</strong> Every one of the 2 582
       records carries a class. Twenty-eight did not: their cluster had been split or joined by the
       deduplication after the wave had run, or a mechanical pre-sort had set them aside, and the
       count held them outside every figure for want of a tag rather than guess one. They were sent
@@ -400,7 +450,7 @@
       widest cloud on it. They remain searchable, and they remain in every export.</p>
 <!-- FIGURES:population-rule -->
     <p><strong>One rule for the counts</strong>, on this page, in the questions of the Explorer
-      and in the Observatory alike: a figure counts the 1 402 records classed <em>core</em> or
+      and in the Observatory alike: a figure counts the 2 294 records classed <em>core</em> or
       <em>partial</em> (§ 4), and nothing else. The reservoirs hold the rest, named and counted
       as reservoirs. Saying how much of a harvest cannot be placed is part of what a map of a
       field owes its reader.</p>
@@ -432,7 +482,7 @@
 <!-- FIGURES:population-questions -->
     <p>A density is a count of records inside a named node of the vocabulary, and nothing
       more. When the map says forty-seven works sit in a perimeter, forty-seven records of
-      this harvest are filed under that node, out of the 1 402 the site counts. The node
+      this harvest are filed under that node, out of the 2 294 the site counts. The node
       has a name, a path and a definition, so the figure can be checked against the same data.
       What a density does not measure is the originality of a project: thin ground may be
       unexplored, or exhausted, or written in a language this catalogue indexes poorly, and the

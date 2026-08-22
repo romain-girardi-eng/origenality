@@ -62,14 +62,14 @@ than by counting steps, so the same command works on either side.
   findable under the others: the free bar reads every theme, work and angle it
   carries, and any of them can bring it back.
 - **Reservoirs, never a bin, and folded.** `Not about Origen` holds the records
-  <!-- FIGURES:population-reservoirs -->the classifier keeps outside the count (5); `No single work` holds the studies that bear on none (1 007 counted, in work mode).<!-- /FIGURES:population-reservoirs --> They are folded under the field as named,
+  <!-- FIGURES:population-reservoirs -->the classifier keeps outside the count (1); `No single work` holds the studies that bear on none (1 557 counted, in work mode).<!-- /FIGURES:population-reservoirs --> They are folded under the field as named,
   counted chips: one click draws a reservoir on the map and opens its records, a
   second folds it away. Left open, `No single work` would be the widest cloud in
   work mode and the twenty-eight named works would read as an afterthought.
   Nothing is deleted, and nothing is hidden either.
 - **One population per screen.** The legend, the question chips, the panel
   headline, the Observatory bars and the decade columns all count one and the
-  <!-- FIGURES:population-screen -->same set of 1 402 records, those where Origen is the subject or holds an identifiable section of the argument. The 225 that mention him only and the 5 held outside the count stay in the index and answer a search; neither enters a figure. Where a surface returns more than it counts, it says so and gives the second number rather than folding it into the first. The three sides print the same values (English 518, German 376, Italian 197, French 155, `Doctrinal and systematic 517`, and so on down the list), which is the point: one number per thing, on every page.<!-- /FIGURES:population-screen -->
+  <!-- FIGURES:population-screen -->same set of 2 294 records, those where Origen is the subject or holds an identifiable section of the argument. The 287 that mention him only and the 1 held outside the count stay in the index and answer a search; neither enters a figure. Where a surface returns more than it counts, it says so and gives the second number rather than folding it into the first. The three sides print the same values (English 0, German 0, Italian 0, French 0, `Doctrinal and systematic 835`, and so on down the list), which is the point: one number per thing, on every page.<!-- /FIGURES:population-screen -->
 - **Colour is the language of publication**, six values, each at 3:1 or better
   against the cream. Colour is a mark and never a word: no text on the site is
   set in a language colour, and the legend pairs a coloured dot with a label in

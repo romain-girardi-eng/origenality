@@ -98,12 +98,20 @@ def aliases_of(entry):
     return out
 
 
-def ppn_to_cluster(corpus_path, wanted):
-    """PPN of an IxTheo notice -> identifier of the cluster it was merged into.
+def ppn_to_cluster(corpus_path, wanted, source_of=None):
+    """Catalogue identifier of a published notice -> identifier of its tag.
 
-    A cluster can carry several IxTheo notices, and several PPNs then answer with
-    the same identifier: that is the deduplication doing its work, and both PPNs
-    inherit the tag of the cluster they belong to.
+    For a notice harvested from IxTheo, that means the cluster it was merged
+    into: a cluster can carry several IxTheo notices, several PPNs then answer
+    with the same identifier, and both inherit the tag of their cluster. That
+    is the deduplication doing its work.
+
+    A notice harvested straight from a catalogue by authority — K10plus, B3Kat,
+    the Gnomon database, DNB, BnF, the Library of Congress, Sudoc — went through
+    no merge, so it has no cluster. Its tag is keyed by "source:identifier",
+    which is also what build_site_data writes as its `origenality_id`. Falling
+    back to that key is what lets one map carry notices from several catalogues;
+    without it every record outside IxTheo came out untagged.
     """
     table = {}
     with open(corpus_path, encoding="utf-8") as fh:
@@ -114,6 +122,12 @@ def ppn_to_cluster(corpus_path, wanted):
                     ppn = str(entry.get("source_id"))
                     if ppn in wanted and ppn not in table:
                         table[ppn] = record.get("origenality_id")
+    for ppn in wanted:
+        if ppn in table:
+            continue
+        source = (source_of or {}).get(ppn)
+        if source and source != IXTHEO:
+            table[ppn] = f"{source}:{ppn}"
     return table
 
 
@@ -137,7 +151,14 @@ def main():
         graph = json.load(fh)
     known = {n["ppn"] for n in graph["nodes"] if n.get("k") == "pub" and n.get("ppn")}
 
-    cluster_of = ppn_to_cluster(args.corpus, known)
+    # which catalogue each published notice came from, so a notice that never
+    # went through the merge can still find its tag
+    source_of = {
+        n["ppn"]: (n.get("src") or [None])[0]
+        for n in graph["nodes"]
+        if n.get("k") == "pub" and n.get("ppn")
+    }
+    cluster_of = ppn_to_cluster(args.corpus, known, source_of)
     records = read_tags(args.tags, keep_unidentified=False)
     by_cluster = {str(rec.get("notice_id")): rec for rec in records}
 

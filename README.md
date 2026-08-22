@@ -39,7 +39,7 @@ classes and nothing else.
 <!-- /FIGURES:classification -->
 
 **Site (v0).** The explorer published so far draws the IxTheo/K10plus harvest
-alone: <!-- FIGURES:population-root -->**1 632 records, of which 1 402 are counted**, 225 mentioned only, 5 held outside the count.<!-- /FIGURES:population-root -->
+alone: <!-- FIGURES:population-root -->**2 582 records, of which 2 294 are counted**, 287 mentioned only, 1 held outside the count.<!-- /FIGURES:population-root -->
 It is static — no request leaves the page — and it carries an observatory
 of the field by decade, language, format, theme and work of Origen.
 

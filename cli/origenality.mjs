@@ -25,6 +25,7 @@ const FILES = {
   graph: ['data/graph.json', 'data/graph.json'],
   semantic: ['site/assets/semantic.json', 'site/assets/semantic.json'],
   abstracts: ['data/abstracts.json', 'data/abstracts.json'],
+  primary: ['data/primary-layer-summary.json', 'data/primary-layer-summary.json'],
   stats: ['data/stats.json', 'data/stats.json'],
 };
 const CACHE = join(process.env.XDG_CACHE_HOME || join(homedir(), '.cache'), 'origenality');
@@ -186,6 +187,8 @@ const USAGE = `origenality — the map of Origen scholarship, for programs
   density <kind> <key>  how thick one heading is
   stats                 the harvest, counted
   coverage              what the corpus cannot answer, in figures
+  primary [--limit N]   the primary layer: editions, translations and manuscript
+                        witnesses of Origen's own works, never counted in a density
 
 Query grammar (search and gap)
   author:crouzel        the author            year:1971  year:1971-1990  year:>2000
@@ -236,6 +239,15 @@ async function main() {
   const o = parse(process.argv.slice(2));
   const cmd = o._[0];
   if (!cmd || o.help) { console.log(USAGE); return; }
+
+  if (cmd === 'primary') {
+    // A separate layer, deliberately: these are the texts, not the studies.
+    // Counting them among the scholarship would say the field is larger than
+    // it is — so they are served, and never counted.
+    const sum = await load('primary', o);
+    console.log(JSON.stringify(sum, null, 2));
+    return;
+  }
 
   if (cmd === 'stats') {
     const s = await load('stats', o);

@@ -92,21 +92,26 @@ def main() -> int:
         # and wrong.
         if query == "Origen in Ethiopia" and "ethiopia" not in got["terms_absent_from_corpus"]:
             bad.append(f"{query!r}: the absent term is not reported ({rule})")
-        if query == "Rome" and got["counted_in_density"] > 40:
+        if query == "Rome" and got["counted_in_density"] > 0.03 * got["corpus_density_total"]:
             bad.append(f"{query!r}: {got['counted_in_density']} hits, the word boundary is gone ({rule})")
         if query == "Contre Celse" and not got.get("filed_under_heading"):
             bad.append(f"{query!r}: the aliases are not served ({rule})")
-        if query == "author:crouzel" and not (20 <= got["counted_in_density"] <= 80):
-            bad.append(f"{query!r}: {got['counted_in_density']} hits — the author filter is off ({rule})")
+        # Bounds are a SHARE of the corpus, not a count: the corpus grows, and an
+        # absolute bound would fail on growth rather than on a defect.
+        share = got["counted_in_density"] / max(got["corpus_density_total"], 1)
+        if query == "author:crouzel" and not (0.005 <= share <= 0.08):
+            bad.append(f"{query!r}: {got['counted_in_density']} hits "
+                       f"({share:.1%} of the corpus) — the author filter is off ({rule})")
         if query == "year:1971-1980 allegory" and got["widened"]:
             bad.append(f"{query!r}: a field query was widened, which it must never be ({rule})")
         if query == "apokatastasis -Balthasar":
             plain = dict(seen).get("apokatastasis")
             if plain and got["counted_in_density"] >= plain["counted_in_density"]:
                 bad.append(f"{query!r}: the exclusion removed nothing ({rule})")
-        if query == "work:cels" and not (20 <= got["counted_in_density"] <= 60):
-            bad.append(f"{query!r}: {got['counted_in_density']} hits — the vocabulary key is off ({rule})")
-        if query == "Bardaisan" and got["counted_in_density"] > 10:
+        if query == "work:cels" and not (0.005 <= share <= 0.10):
+            bad.append(f"{query!r}: {got['counted_in_density']} hits "
+                       f"({share:.1%} of the corpus) — the vocabulary key is off ({rule})")
+        if query == "Bardaisan" and got["counted_in_density"] > 0.01 * got["corpus_density_total"]:
             bad.append(f"{query!r}: {got['counted_in_density']} hits, a thin subject has thickened ({rule})")
 
     pr, ma = dict(seen).get("prière"), dict(seen).get("Martyrium")
