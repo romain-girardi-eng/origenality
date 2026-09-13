@@ -15,6 +15,13 @@ body{padding:0}
 .land{
   position:relative;min-height:100dvh;min-height:100svh;overflow:hidden;
   background:var(--night);color:var(--cream);
+  /* the aim point of the portrait, read by landing.js for the canvas and used
+     below for the still plate: one framing for both */
+  --focus-x:.5;--focus-y:.46;
+}
+/* a portrait frame, phone or tablet, is aimed at the head (OR-40, OR-73) */
+@media (max-width:760px), (max-aspect-ratio:1/1){
+  .land{--focus-x:.24;--focus-y:.34}
 }
 
 /* the field the canvas mounts into, and — until the canvas is live, or when
@@ -24,6 +31,26 @@ body{padding:0}
   position:absolute;inset:0;z-index:1;pointer-events:none;
   background:url("marks/origen.jpg") 50% 46%/cover no-repeat;
   opacity:1;transition:opacity .8s var(--ease);
+}
+@media (max-width:760px), (max-aspect-ratio:1/1){
+  .land-plate{background-position:24% 50%}
+}
+/* The shader's framing (particle-image.js, coverUv) written in CSS: the 16:9
+   picture is scaled to cover the frame, the aim point is brought to the centre
+   of the frame, and the offset is clamped so no edge of the picture comes
+   inside it. Same arithmetic, so the plate shown before the canvas is live,
+   and the only picture under reduced motion, is the canvas's picture. The
+   frame is the .land box: the full width of a page that cannot scroll, and
+   100svh tall. Container units were tried first and measured wrong in Chrome
+   (the height resolved to 0), so the frame is written in viewport units. */
+@supports (height:1svh){
+  .land-plate{
+    --img-w:max(100vw, 100svh * 16 / 9);
+    --img-h:max(100svh, 100vw * 9 / 16);
+    background-position:
+      clamp(100vw - var(--img-w), 50vw - var(--focus-x) * var(--img-w), 0px)
+      clamp(100svh - var(--img-h), 50svh - var(--focus-y) * var(--img-h), 0px);
+  }
 }
 .land.is-live .land-plate{opacity:0}
 
@@ -95,7 +122,9 @@ body{padding:0}
   @keyframes land-rise{to{opacity:1;transform:none}}
 }
 
-@media (min-width:761px){
+/* the copy takes a right-hand column only on a landscape frame: on a portrait
+   tablet that column would sit on the face */
+@media (min-width:761px) and (min-aspect-ratio:1/1){
   .land-copy{
     left:auto;right:0;bottom:auto;top:50%;transform:translateY(-50%);
     width:min(30rem,42vw);
@@ -110,12 +139,21 @@ body{padding:0}
   .land-copy{right:max(0px,calc(50vw - 44rem))}
 }
 
-@media (max-width:760px){
+@media (max-width:760px), (max-aspect-ratio:1/1){
   .land-veil{background:linear-gradient(180deg,
     rgba(5,5,5,.44) 0%, rgba(5,5,5,0) 18%,
     rgba(5,5,5,0) 42%, rgba(5,5,5,.78) 80%, rgba(5,5,5,.95) 100%)}
+}
+@media (max-width:760px){
   .land-copy h1{font-size:clamp(2.3rem,11.5vw,3rem)}
   .land-copy p{font-size:1.02rem;max-width:26rem}
+}
+@media (min-width:761px) and (max-aspect-ratio:1/1){
+  .land-veil{background:linear-gradient(180deg,
+    rgba(5,5,5,.44) 0%, rgba(5,5,5,0) 18%,
+    rgba(5,5,5,0) 56%, rgba(5,5,5,.8) 86%, rgba(5,5,5,.95) 100%)}
+  .land-copy h1{font-size:clamp(3rem,7vw,4.4rem)}
+  .land-copy p{max-width:30rem}
 }
 
 /* the departure */

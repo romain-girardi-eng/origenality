@@ -20,6 +20,7 @@ before anybody has to notice it by eye.
 from __future__ import annotations
 
 import argparse
+import glob
 import json
 import os
 import sys
@@ -36,10 +37,11 @@ from tree_paths import data_dir, repository_root  # noqa: E402
 ROOT = repository_root(HERE)
 GRAPH = os.path.join(data_dir(ROOT), "graph.json")
 SEMANTIC = os.path.join(BUILD, "assets", "semantic.json")
+WEIGHTS = os.path.join(BUILD, "assets", "weights.json")
 
 COUNTED_CLASSES = ("core", "partial")
-LANGS = [("eng", "English"), ("ger", "German"), ("ita", "Italian"),
-         ("fre", "French"), ("spa", "Spanish"), ("oth", "Other or none")]
+LANGS = [("en", "English"), ("de", "German"), ("it", "Italian"),
+         ("fr", "French"), ("es", "Spanish"), ("oth", "Other or none")]
 LANG_CODES = {code for code, _ in LANGS if code != "oth"}
 
 
@@ -141,10 +143,13 @@ def compare(exp, measured, problems):
     # it was drawn on the tagged records alone and printed 5 held aside under a
     # header that said 33
     sets = [value for value, _label in measured.get("observatory_sets") or []]
-    if sets:
-        for value in (exp["counted"], exp["mentioned"], exp["aside"]):
-            if nf(value) not in sets:
-                problems.append(f"the band of three sets does not carry {nf(value)}: {sets!r}")
+    if not sets:
+        # une capture dont le sélecteur ne trouve plus la bande passait sans rien comparer
+        problems.append("the capture holds no band of three sets: its selector no longer "
+                        "matches the Observatory; fix capture_population.sh and recapture")
+    for value in (exp["counted"], exp["mentioned"], exp["aside"]):
+        if sets and nf(value) not in sets:
+            problems.append(f"the band of three sets does not carry {nf(value)}: {sets!r}")
 
     # the sentence under the legend, which repeats the three counts in words
     held = measured.get("explorer_held")
@@ -254,13 +259,29 @@ def describe_capture(path: str, measured: dict) -> None:
 
 
 def main() -> int:
+    measured_files = sorted(glob.glob(os.path.join(HERE, "measured_*.json")))
+    latest_measured = measured_files[-1] if measured_files else os.path.join(HERE, "measured.json")
     parser = argparse.ArgumentParser()
-    parser.add_argument("--measured", default=os.path.join(HERE, "measured_2026-08-17.json"))
+    parser.add_argument("--measured", default=latest_measured)
     parser.add_argument("--print-expected", action="store_true")
     args = parser.parse_args()
 
     semantic, counted, mentioned, aside = load()
     exp = expected(semantic, counted, mentioned, aside)
+
+    with open(GRAPH, encoding="utf-8") as handle:
+        graph = json.load(handle)
+    with open(WEIGHTS, encoding="utf-8") as handle:
+        weights = json.load(handle)
+    publication_ids = {node["ppn"] for node in graph["nodes"]
+                       if node.get("k") == "pub" and node.get("ppn")}
+    weight_ids = set(weights.get("w") or {})
+    if weights.get("total") != len(publication_ids) or weight_ids != publication_ids:
+        print("weights do not describe the current publication set: "
+              f"graph={len(publication_ids)} declared={weights.get('total')} "
+              f"missing={len(publication_ids - weight_ids)} orphan={len(weight_ids - publication_ids)}",
+              file=sys.stderr)
+        return 3
 
     print(f"counted (core + partial): {exp['counted']}")
     print(f"mentioned only:           {exp['mentioned']}")

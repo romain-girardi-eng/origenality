@@ -23,6 +23,11 @@ canvas#field-c.grabbing{cursor:grabbing}
 body.panel-open .ask{ transform:translateX(calc(-50% - 218px)); }
 @media (max-width:760px){ body.panel-open .ask{ transform:none } }
 .ask{ transition:transform .5s var(--ease); }
+/* the column under the search field never runs past the bottom of the screen:
+   an open fold gives up height first, and its list of answers scrolls inside it */
+.ask{ max-height:calc(100dvh - 96px - env(safe-area-inset-top) - 1rem); }
+.ask-field,.ask-alt{ flex-shrink:0; }
+.adv,.wiz{ min-height:0; overflow-y:auto; }
 .ask-field{
   width:100%;display:flex;align-items:center;gap:.75rem;
   background:var(--ground-lift);border:1px solid var(--rule);border-radius:999px;
@@ -67,7 +72,9 @@ body.panel-open .ask{ transform:translateX(calc(-50% - 218px)); }
   padding:1.35rem 1.5rem 1.15rem;box-shadow:0 18px 44px -26px rgba(35,32,27,.5);
   display:none;
 }
-.wiz.open{display:block;animation:drop .34s var(--ease) both}
+.wiz.open{display:flex;flex-direction:column;animation:drop .34s var(--ease) both}
+.wiz.open > *{flex-shrink:0}
+.wiz.open > #wiz-chips{flex-shrink:1;min-height:2.6rem}
 @keyframes drop{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:none}}
 .wiz-head{display:flex;align-items:baseline;justify-content:space-between;gap:1rem;margin-bottom:.35rem}
 .wiz-q{font-family:var(--serif);font-size:1.32rem;font-weight:500;line-height:1.2;margin:0}
@@ -168,6 +175,9 @@ body.panel-open .ask{ transform:translateX(calc(-50% - 218px)); }
 }
 .controls .hint{font-size:.74rem;color:var(--ink-2);background:rgba(247,242,230,.86);border-radius:999px;padding:.16rem .6rem;margin:0}
 .controls .row{display:flex;gap:.4rem}
+/* the four questions take the page: the key and the controls step out of it */
+body.wiz-open .legend-wrap,
+body.wiz-open .controls{opacity:0;pointer-events:none;visibility:hidden}
 
 /* ------------------------------------------------------------------ result panel */
 .veil{
@@ -194,6 +204,8 @@ body.panel-open .veil{opacity:1;pointer-events:auto}
 @media (prefers-reduced-motion:reduce){.panel{transition-delay:0s!important}}
 .panel:focus{outline:none}
 .panel:focus-visible{outline:2px solid var(--accent);outline-offset:-4px;border-radius:0}
+.panel.by-pointer:focus-visible{outline:none}
+.panel.by-pointer .density:focus-visible{outline:none}
 /* the map takes the keyboard: a frame set inside the field, not the pill-shaped
    ring the small controls wear — on a full-screen canvas that ring reads as a
    stray arc across the page */
@@ -216,11 +228,120 @@ body.panel-open .veil{opacity:1;pointer-events:auto}
 .panel .alt{margin:.55rem 0 0;font-size:.8rem;color:var(--stone);line-height:1.5}
 .panel .zones{margin:1rem 0 0;font-size:.85rem;color:var(--ink-2);line-height:1.6}
 .panel .zones p{margin:0 0 .35rem}
+/* on a phone the zones scroll with the list, at its head */
+.panel-body > .zones{margin:1rem 0 0}
 .panel .zones b{font-weight:600;color:var(--ink)}
 .panel .zones .z{
   cursor:pointer;border:0;background:none;font-family:var(--text);font-size:.85rem;color:var(--accent);
   padding:0;border-bottom:1px solid rgba(160,54,32,.32)}
 .panel .zones .z:hover{border-color:var(--accent)}
+.panel .zones .zc{display:inline-block}
+/* a heading's count sits inside its button; a comma after it stays on its line (U-13) */
+.panel .zones .zc{white-space:nowrap}
+.panel .zones .zc .z{white-space:normal;text-align:left}
+.panel .zones .z .zn{color:var(--ink-2);white-space:nowrap}
+/* a headline in words ("No counted work carries all 3 terms") is set smaller
+   than a figure, and a second caption line reads as secondary */
+.panel .density .words{display:block;font-size:clamp(1.3rem,2.6vw,1.62rem);line-height:1.18;
+  font-variant-numeric:normal}
+.panel .density small + small{margin-top:.2rem;color:var(--stone)}
+/* what a density figure rests on (Method, section 4): caption size, ink at
+   reduced strength, 6:1 on the panel and 5.5:1 on the field */
+.panel .zones .ledger{font-family:var(--text);font-size:.76rem;line-height:1.5;
+  color:rgba(35,32,27,.74);margin:0 0 .25rem;overflow-wrap:anywhere}
+.panel .zones .ledger + .ledger{margin-bottom:.6rem}
+.panel .zones .reach .zc{font-variant-numeric:tabular-nums}
+/* the view as an address and as a reference, at the head of the list */
+.cite{margin:1rem 0 0;padding:0 0 .95rem;border-bottom:1px solid var(--rule-soft)}
+.cite-note{margin:0 0 .45rem;font-size:.78rem;line-height:1.45;color:var(--accent)}
+.cite-line,.cite-url{margin:0;font-size:.74rem;line-height:1.5;color:rgba(35,32,27,.74);
+  overflow-wrap:anywhere}
+.cite-url{margin-top:.35rem;color:var(--ink)}
+.cite-tools{display:flex;flex-wrap:wrap;align-items:center;gap:.45rem .5rem;margin-top:.65rem}
+.cite-tools .btn-quiet{font-size:.8rem;padding:.36rem .95rem}
+.cite-said{font-size:.76rem;color:var(--ink-2)}
+/* the view as references: folded under its control, the formats in one row */
+.cite-export[aria-expanded="true"]{background:var(--ground);border-color:rgba(35,32,27,.3)}
+.export{margin:.7rem 0 0;padding:.7rem 0 0;border-top:1px solid var(--rule-soft)}
+.export[hidden]{display:none}
+.export-what{margin:0;font-size:.76rem;line-height:1.5;color:rgba(35,32,27,.74);overflow-wrap:anywhere}
+.export-abs{display:flex;align-items:flex-start;gap:.5rem;margin:.55rem 0 0;font-size:.78rem;line-height:1.45;
+  color:var(--ink-2);cursor:pointer}
+.export-abs input{margin:.18rem 0 0;flex:0 0 auto;accent-color:var(--accent)}
+.export-formats{display:flex;flex-wrap:wrap;align-items:center;gap:.45rem .5rem;margin-top:.65rem}
+.export-formats .btn-quiet{font-size:.8rem;padding:.36rem .95rem}
+.export-formats .ext{color:var(--stone);font-size:.9em;margin-left:.15em}
+.export-formats .linkish{font-size:.8rem;margin-left:.35rem}
+/* an author's name in a record opens that author: set as a link in the line,
+   its hit area widened by padding that a negative margin takes back, so the
+   line keeps its height */
+.rec .meta .au{
+  -webkit-appearance:none;appearance:none;background:none;border:0;border-radius:2px;margin:0;padding:0;
+  font:inherit;color:inherit;text-align:left;cursor:pointer;
+  text-decoration:underline;text-decoration-color:rgba(160,54,32,.34);text-decoration-thickness:1px;text-underline-offset:.2em}
+@media (hover:hover){ .rec .meta .au:hover{color:var(--accent);text-decoration-color:var(--accent)} }
+.rec .meta .au:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+/* the counted records of a view by decade: a typeset register, one column per
+   decade, the count in ink over a tint that follows it; a compared query in
+   hatched ink, so the two rows stay apart without colour */
+.strip{margin:1rem 0 0;padding:0 0 .95rem;border-bottom:1px solid var(--rule-soft)}
+.strip[hidden]{display:none}
+.strip-cap{margin:0 0 .35rem;font-family:var(--serif);font-size:1rem;font-weight:500;color:var(--ink)}
+.strip-legend{list-style:none;margin:0 0 .5rem;padding:0;font-size:.76rem;line-height:1.45;color:var(--ink-2)}
+.strip-legend li{display:flex;align-items:baseline;gap:.45rem;overflow-wrap:anywhere}
+.strip i{display:inline-block;width:.78em;height:.78em;flex:0 0 auto;border:1px solid var(--ink);vertical-align:-.05em}
+.strip .s0 i{background:rgba(160,54,32,.62);border-color:var(--accent)}
+.strip .s1 i{background:repeating-linear-gradient(135deg,var(--ink) 0 1.4px,transparent 1.4px 4px)}
+.strip-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;overscroll-behavior-x:contain}
+.strip-wrap:focus{outline:none}
+.strip-wrap:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.decades{border-collapse:collapse;width:100%;min-width:21.5rem;table-layout:fixed;
+  font-size:.72rem;font-variant-numeric:tabular-nums;color:var(--ink)}
+.decades th,.decades td{padding:0 .08rem;text-align:center;font-weight:400}
+.decades thead th{padding:0 .02rem .28rem;font-size:.6875rem;line-height:1.15;color:var(--stone);white-space:nowrap;
+  vertical-align:bottom;border-bottom:1px solid var(--ink)}
+.decades thead th:first-child{width:1rem}
+/* the word Undated takes the room it needs; the decades share the rest (U-9, U-11) */
+.decades thead th.undated{width:3.2rem}
+.decades thead th.pre{width:2.1rem}
+.decades thead .ds{display:none;text-decoration:none;border:0}
+@media (max-width:520px){ .decades thead .dl{display:none} .decades thead .ds{display:inline} }
+.decades thead small{display:block;font-size:1em;font-style:italic}
+.decades tbody th{vertical-align:bottom;padding:0 0 .3rem;text-align:left}
+.decades td{position:relative;height:2.5rem;vertical-align:bottom;padding-bottom:.18rem;border-bottom:1px solid var(--rule-soft)}
+.decades td::before{content:"";position:absolute;left:14%;right:14%;bottom:0;height:calc(var(--h, 0) * 100%)}
+.decades tr.s0 td::before{background:rgba(160,54,32,.2)}
+.decades tr.s1 td::before{background:repeating-linear-gradient(135deg,rgba(35,32,27,.3) 0 1.4px,transparent 1.4px 4.2px)}
+.decades td span{position:relative}
+/* over the hatching a count sits on a slip of paper, so the figure stays legible */
+.decades tr.s1 td span{background:var(--ground-lift);padding:0 .14em;border-radius:2px}
+.decades td.zero{color:var(--stone)}
+.strip-note{margin:.45rem 0 0;font-size:.72rem;line-height:1.5;color:rgba(35,32,27,.74)}
+.strip-cmp{display:flex;flex-wrap:wrap;align-items:center;gap:.4rem .55rem;margin:.7rem 0 0;font-size:.8rem;color:var(--ink-2)}
+.strip-cmp label{flex:0 0 auto}
+.strip-field{display:flex;align-items:center;gap:.4rem;flex:1 1 13rem;min-width:0}
+.strip-field input{flex:1 1 auto;min-width:0;font-family:var(--text);font-size:.84rem;color:var(--ink);
+  background:rgba(255,255,255,.5);border:1px solid var(--rule);border-radius:999px;padding:.36rem .85rem;
+  transition:border-color .2s}
+/* the ring is the accent at full strength, 3:1 and more on the panel (U-2) */
+.strip-field input:focus{outline:none}
+.strip-field input:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-color:var(--accent)}
+.strip-field .btn-quiet{font-size:.8rem;padding:.36rem .95rem}
+.strip-problem{margin:.4rem 0 0;font-size:.76rem;line-height:1.45;color:var(--accent)}
+.strip-tools{display:flex;flex-wrap:wrap;align-items:center;gap:.45rem .5rem;margin-top:.65rem}
+.strip-tools .btn-quiet{font-size:.8rem;padding:.36rem .95rem}
+.strip-tools .linkish,.strip-drop{font-size:.8rem}
+.strip-said{font-size:.76rem;color:var(--ink-2)}
+@media (max-width:760px), (pointer:coarse){
+  .rec .meta .au{padding:13px 0;margin:-13px 0}
+  .strip-field input,.strip-field .btn-quiet,.strip-tools .btn-quiet{min-height:44px}
+  .strip-tools .linkish,.strip-drop{min-height:44px;display:inline-flex;align-items:center;
+    border-bottom:0;text-decoration:underline;text-decoration-thickness:1px;text-underline-offset:.24em;
+    text-decoration-color:rgba(90,83,70,.35)}
+}
+@media (max-width:760px){ .strip-field input{font-size:1rem} }
+/* COinS carry no text; print furniture waits for paper */
+.Z3988,.print-head,.print-foot,.print-empty{display:none}
 .panel .sep{height:1px;background:var(--rule);margin:1.3rem 0 0}
 .panel .listhead{display:flex;align-items:baseline;justify-content:space-between;gap:1rem;
   padding:1.1rem 0 .6rem;font-size:.78rem;color:var(--stone)}
@@ -257,6 +378,7 @@ body.panel-open .veil{opacity:1;pointer-events:auto}
 .rec .links a{color:var(--accent);text-decoration:none;border-bottom:1px solid rgba(160,54,32,.3)}
 .rec .links a:hover{border-color:var(--accent)}
 .rec .links .isbn{color:var(--stone);font-variant-numeric:tabular-nums}
+.rec .links .rec-id{font-size:.92em;font-variant-numeric:tabular-nums}
 .more{margin:1rem 0 0}
 .empty{font-size:.9rem;color:var(--ink-2);line-height:1.6;margin:1.2rem 0 0}
 .empty .mk{color:var(--accent);display:inline-block;vertical-align:-2px;margin-right:.15em}
@@ -264,7 +386,8 @@ body.panel-open .veil{opacity:1;pointer-events:auto}
 /* ------------------------------------------------------------------ mobile */
 @media (max-width:760px){
   .ask{top:calc(66px + env(safe-area-inset-top));width:calc(100vw - 1.6rem);gap:.62rem;
-    left:.8rem;right:.8rem;transform:none;width:auto}
+    left:.8rem;right:.8rem;transform:none;width:auto;
+    max-height:calc(100dvh - 66px - env(safe-area-inset-top) - .8rem)}
   body.panel-open .ask{transform:none}
   .ask-field{padding-left:1rem;min-height:48px}
   .ask-field input{font-size:1rem;padding:.85rem 0}
@@ -320,11 +443,10 @@ body.panel-open .veil{opacity:1;pointer-events:auto}
   }
   .controls .hint{display:block;font-size:.72rem}
   .btn-quiet{padding:.5rem 1rem}
+  .cite-tools .btn-quiet{padding:.5rem 1rem;min-height:44px}
   body.panel-open .legend-wrap,
-  body.panel-open .controls,
-  body.wiz-open .legend-wrap,
-  body.wiz-open .controls{
-    opacity:0;pointer-events:none;
+  body.panel-open .controls{
+    opacity:0;pointer-events:none;visibility:hidden;
   }
   .panel-handle{
     display:block;width:36px;height:4px;border-radius:4px;flex:0 0 auto;
@@ -343,13 +465,27 @@ body.panel-open .veil{opacity:1;pointer-events:auto}
 @media (pointer:coarse){
   .chip,.legend .lg,.held-chip,.seg button,.btn-quiet,.go,.linkish{min-height:44px}
 }
+/* the panel's own controls keep the 44 px floor on a phone and under a finger;
+   the underline moves from the border to the text, so it stays under the words */
+@media (max-width:760px), (pointer:coarse){
+  #panel-close{width:44px;height:44px;top:.5rem;right:.6rem}
+  .panel .subject{margin-right:3.2rem}
+  .panel .zones .z,.rec .links a,.rec .abstract-more,.rec .abstract-credit a{
+    display:inline-flex;align-items:center;min-height:44px;vertical-align:middle;
+    border-bottom:0;text-decoration:underline;text-decoration-thickness:1px;text-underline-offset:.24em}
+  .panel .zones .z,.rec .links a,.rec .abstract-more{text-decoration-color:rgba(160,54,32,.32)}
+  .rec .abstract-credit a{text-decoration-color:var(--rule)}
+  .rec .links{row-gap:0;align-items:center}
+  .rec .links a{min-width:44px;justify-content:center}
+  .rec .abstract-more{margin-top:0}
+}
 
 /* ------------------------------------------------------------- search by field
    The grammar, written out. Folded by default: the free-text bar is the way in
    for most readers, and this is for the one who already knows what they want. */
 .adv{
   margin:.55rem 0 0;padding:.85rem 1rem;
-  border:1px solid var(--rule-soft);background:rgba(247,242,230,.5);
+  border:1px solid var(--rule-soft);background:var(--ground-lift);
   font-size:.86rem;line-height:1.5;color:var(--ink-2);
 }
 .adv[hidden]{display:none}
@@ -364,4 +500,92 @@ body.panel-open .veil{opacity:1;pointer-events:auto}
 @media (max-width:620px){
   .adv dl{grid-template-columns:1fr;gap:.15rem}
   .adv dd{margin:0 0 .45rem}
+}
+
+/* the export controls keep the 44 px floor on a phone and under a finger */
+@media (max-width:760px), (pointer:coarse){
+  .export-formats .btn-quiet{min-height:44px;padding:.5rem 1rem}
+  .export-formats .linkish{min-height:44px;display:inline-flex;align-items:center;
+    border-bottom:0;text-decoration:underline;text-decoration-thickness:1px;text-underline-offset:.24em;
+    text-decoration-color:rgba(90,83,70,.35)}
+  .export-abs{min-height:44px;align-items:center}
+  .export-abs input{width:20px;height:20px;margin:0}
+}
+
+/* ------------------------------------------------------------------ print
+   A view on paper is a dossier: the panel alone at full width, ink on white,
+   no map and no control. explorer.js fills the list before printing, so every
+   record listed is here, numbered and never split across a page; abstracts are
+   unfolded and keep their credit; a link is followed by its address. */
+@media print{
+  @page{margin:16mm 15mm 18mm}
+  html,body{height:auto;overflow:visible;background:#fff}
+  body{color:#1a1814;font-family:var(--text);font-size:10pt;line-height:1.45}
+  .skip,.field,.field-gl,#field-c,.bar,.ask,.veil,.legend-wrap,.controls,#live-cluster,
+  .panel-handle,#panel-close,.cite-tools,.export,.cite-url,.more,.abstract-more,.Z3988,
+  .strip-cmp,.strip-tools,.strip-problem,
+  .rec .weight .tier,.rec .lang i{display:none!important}
+  body:not(.panel-open) .panel{display:none!important}
+  body:not(.panel-open) .print-empty{display:block;margin:0;font-size:12pt}
+  .panel{position:static;display:block;width:auto;height:auto;max-height:none;transform:none!important;
+    visibility:visible;border:0;border-radius:0;box-shadow:none;background:none;padding:0;transition:none}
+  .panel-top,.panel-body{padding:0;overflow:visible}
+  .panel .sep{display:none}
+  .print-head{display:block;margin:0 0 5mm;padding:0 0 3mm;border-bottom:.6pt solid #1a1814}
+  .print-eyebrow{margin:0 0 1mm;font-size:8.5pt;letter-spacing:.08em;text-transform:uppercase}
+  .print-title{font-family:var(--serif);font-weight:500;font-size:20pt;line-height:1.15;margin:0 0 2mm}
+  .print-meta{display:grid;grid-template-columns:auto 1fr;gap:.4mm 4mm;margin:0;font-size:8.5pt}
+  .print-meta dt{font-weight:600}
+  .print-meta dd{margin:0;overflow-wrap:anywhere}
+  .strip{margin:3mm 0 0;padding:0 0 3mm;border-bottom:.6pt solid #1a1814;break-inside:avoid}
+  .strip-cap{font-size:10pt;color:#1a1814}
+  .strip-legend,.strip-note,.decades,.decades thead th,.decades td.zero{color:#1a1814}
+  .strip-wrap{overflow:visible}
+  .decades{min-width:0;font-size:8.5pt}
+  .decades td{height:auto;padding:.6mm 0;border-bottom:.4pt solid #8a8478}
+  .decades td::before{display:none}
+  .decades tr.s1 td span{background:none;padding:0}
+  .decades thead .dl{display:inline!important}
+  .decades thead .ds{display:none!important}
+  /* two rows told apart on paper without colour: the swatch is a lettered ink
+     box, the row names its series, and no terracotta is printed (U-6) */
+  .decades{table-layout:auto}
+  .decades thead th:first-child{width:auto}
+  .strip i,.strip .s0 i,.strip .s1 i{width:auto;height:auto;background:none!important;border:.6pt solid #1a1814;
+    padding:0 .35em;font-style:normal;font-size:7.5pt;line-height:1.3;vertical-align:baseline;color:#1a1814}
+  .strip .s0 i::before{content:"A"}
+  .strip .s1 i::before{content:"B"}
+  .decades tbody th{padding:.6mm 1.5mm .6mm 0;white-space:normal;font-size:7.5pt;max-width:32mm}
+  .decades tbody th .sr{position:static;width:auto;height:auto;overflow:visible;clip:auto;white-space:normal;
+    margin-left:.3em;overflow-wrap:anywhere}
+  .rec .meta .au{padding:0;margin:0;text-decoration:none;color:inherit}
+  .panel .subject,.panel .alt,.panel .zones,.panel .zones .ledger,.panel .zones b,
+  .cite-line,.cite-note,.panel .listhead{color:#1a1814}
+  .panel .subject{margin-right:0}
+  .panel .density{font-size:18pt;margin:0;outline:none!important}
+  .panel.one-work .density{font-size:15pt}
+  .panel .density .words{font-size:15pt}
+  .panel .density small,.panel .density small + small{font-size:10pt;color:#1a1814}
+  .panel .zones{font-size:9pt}
+  .panel .zones .z{display:inline;min-height:0;color:inherit;border:0;padding:0;font:inherit;text-decoration:none}
+  .cite{margin:3mm 0 0;padding:0 0 3mm;border-bottom:.6pt solid #1a1814}
+  .cite-line{font-size:9pt}
+  .panel .listhead{padding:3mm 0 1mm;font-size:9pt}
+  .panel-body{counter-reset:rec}
+  .rec{counter-increment:rec;break-inside:avoid;page-break-inside:avoid;padding:2.2mm 0;border-top:.4pt solid #8a8478}
+  .rec:first-of-type{border-top:.4pt solid #8a8478}
+  .rec h5{font-family:var(--serif);font-size:11.5pt;font-weight:500}
+  .rec h5::before{content:counter(rec) ". ";font-variant-numeric:tabular-nums}
+  .rec .meta,.rec .meta .dot,.rec .tags,.rec .weight,.rec .flag,.rec .abstract-text,.rec .abstract-credit,
+  .rec .links .isbn{color:#1a1814}
+  .rec .flag{font-style:italic}
+  .rec .abstract{border-left:.6pt solid #8a8478}
+  .rec .abstract-text.folded{display:block;-webkit-line-clamp:unset;line-clamp:none;overflow:visible}
+  .rec .links{display:block;font-size:8.5pt}
+  .rec .links a,.rec .links .isbn{display:block;min-height:0;margin:.3mm 0 0}
+  .rec .links a,.rec .abstract-credit a{color:#1a1814;border:0;text-decoration:none}
+  .rec a[href^="http"]::after{content:" <" attr(href) ">";overflow-wrap:anywhere}
+  .print-foot{display:block;margin:5mm 0 0;padding:3mm 0 0;border-top:.6pt solid #1a1814;font-size:8.5pt;
+    break-inside:avoid}
+  .print-foot p{margin:0;overflow-wrap:anywhere}
 }

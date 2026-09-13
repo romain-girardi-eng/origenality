@@ -17,7 +17,8 @@
   --ground-deep:#E6DECB;
   --ink:#23201B;
   --ink-2:#5A5346;
-  --stone:#6A6353;
+  /* 4.5:1 or better on --ground-deep, the foot of the reading pages' gradient (OR-76) */
+  --stone:#686151;
   --rule:rgba(35,32,27,.15);
   --rule-soft:rgba(35,32,27,.08);
   --accent:#A03620;
@@ -113,4 +114,18 @@ button,a{-webkit-tap-highlight-color:rgba(160,54,32,.12);touch-action:manipulati
 @media (prefers-reduced-motion:reduce){
   *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;
     transition-duration:.01ms!important;scroll-behavior:auto!important}
+}
+
+/* ------------------------------------------------------------------ touch
+   The 44 px floor follows the pointer, not the width: a portrait tablet or a
+   phone held sideways is wider than the fold breakpoint and still a finger
+   (OR-41). The underline moves from the border to a text decoration so it
+   stays under the word when the link grows to its full height. */
+@media (pointer:coarse){
+  .nav-wide a{
+    min-height:44px;display:inline-flex;align-items:center;padding-block:0;
+    border-bottom:0;text-decoration:underline 1px transparent;text-underline-offset:.45em;
+  }
+  .nav-wide a[aria-current="page"]{text-decoration-color:currentColor}
+  .wordmark{min-height:44px;align-items:center}
 }

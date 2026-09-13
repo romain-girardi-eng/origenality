@@ -12,7 +12,8 @@ Properties that matter for reproducibility:
 * deterministic notice identifiers, so two runs address the same objects;
 * resume by default: a notice already tagged in the same wave is skipped;
 * every record carries wave, run_id, source_model, prompt and vocabulary
-  versions, and a digest of the exact payload submitted;
+  versions, a digest of the prompt actually sent and one of the exact payload
+  submitted;
 * refusals and transport errors are kept in a separate rejects file rather
   than silently dropped;
 * `--dry-run` writes the prompts that would be sent and calls nothing.
@@ -183,6 +184,18 @@ def render_vocabulary(vocab: Vocabulary) -> str:
 
 def system_prompt(vocab: Vocabulary) -> str:
     return SYSTEM_PROMPT_HEAD + "\n" + render_vocabulary(vocab)
+
+
+def prompt_digest(system: str) -> str:
+    """sha1 de la consigne réellement envoyée, vocabulaire rendu compris.
+
+    PROMPT_VERSION se bump à la main, donc s'oublie : retoucher la consigne sans
+    la bumper mélangeait deux règles dans une même vague, et la reprise sautait
+    les notices faites sous l'ancienne comme si de rien n'était. L'empreinte, elle,
+    ne s'oublie pas — deux lignes de même version et d'empreintes différentes
+    n'ont pas tourné sous la même consigne, et le fichier le dit.
+    """
+    return hashlib.sha1(system.encode("utf-8")).hexdigest()[:16]
 
 
 # ---------------------------------------------------------------------------
@@ -570,7 +583,8 @@ class Writer:
 
 
 def already_tagged(path: Path, wave: str, prompt_version: str = "",
-                   vocabulary_version: str = "") -> set[tuple[str, str]]:
+                   vocabulary_version: str = "",
+                   digest_of_prompt: str = "") -> set[tuple[str, str]]:
     """Notices déjà traitées dans cette vague, SOUS LA MÊME RÈGLE ET SUR LA MÊME
     FICHE.
 
@@ -582,8 +596,14 @@ def already_tagged(path: Path, wave: str, prompt_version: str = "",
     sous le même identifiant laissait le vieux tag en place indéfiniment : la
     notice avait changé, le tag non, et rien ne le disait.
 
-    La valeur rendue est un ensemble de couples (identifiant, empreinte) : c'est
-    la clé complète, comparée telle quelle à ce que la notice donne aujourd'hui.
+    `digest_of_prompt` referme la faille que la seule version laissait ouverte :
+    une consigne retouchée sans bump de version passait pour la même. Le
+    contrôle est ADDITIF — un enregistrement écrit avant que le champ n'existe
+    n'en porte pas, et son absence ne l'invalide pas ; seule une empreinte
+    PRÉSENTE et différente disqualifie la ligne.
+
+    La valeur rendue est un ensemble de couples (identifiant, empreinte de fiche) :
+    c'est la clé complète, comparée telle quelle à ce que la notice donne aujourd'hui.
     """
     done: set[tuple[str, str]] = set()
     if not path.exists():
@@ -603,12 +623,16 @@ def already_tagged(path: Path, wave: str, prompt_version: str = "",
                 continue
             if vocabulary_version and record.get("vocabulary_version") != vocabulary_version:
                 continue
+            written = record.get("prompt_digest")
+            if digest_of_prompt and written and written != digest_of_prompt:
+                continue
             done.add((str(record["notice_id"]), str(record.get("input_digest") or "")))
     return done
 
 
 def already_rejected(path: Path | None, wave: str, prompt_version: str = "",
-                     vocabulary_version: str = "") -> set[tuple[str, str]]:
+                     vocabulary_version: str = "",
+                     digest_of_prompt: str = "") -> set[tuple[str, str]]:
     """Notices déjà refusées dans cette vague, sous la même règle et la même fiche.
 
     Un rejet est un résultat : la notice a été soumise et sa réponse n'a pas
@@ -641,6 +665,9 @@ def already_rejected(path: Path | None, wave: str, prompt_version: str = "",
                 continue
             if vocabulary_version and record.get(
                     "vocabulary_version", vocabulary_version) != vocabulary_version:
+                continue
+            written = record.get("prompt_digest")
+            if digest_of_prompt and written and written != digest_of_prompt:
                 continue
             seen.add((str(record["notice_id"]), str(record.get("input_digest") or "")))
     return seen
@@ -774,6 +801,7 @@ def main(argv: list[str]) -> int:
     vocab = load_vocabulary(arguments.vocabulary)
     schema = tag_record_schema(vocab)
     system = system_prompt(vocab)
+    digest_of_prompt = prompt_digest(system)
 
     if arguments.print_schema:
         print(json.dumps(schema, ensure_ascii=False, indent=2))
@@ -832,9 +860,9 @@ def main(argv: list[str]) -> int:
         refused: set[tuple[str, str]] = set()
     else:
         done = already_tagged(arguments.output, arguments.wave,
-                              PROMPT_VERSION, vocab.version_string)
+                              PROMPT_VERSION, vocab.version_string, digest_of_prompt)
         refused = already_rejected(rejects_path, arguments.wave,
-                                   PROMPT_VERSION, vocab.version_string)
+                                   PROMPT_VERSION, vocab.version_string, digest_of_prompt)
     keys = {notice_identifier(n): resume_key(n) for n in notices}
     pending = [n for n in notices
                if keys[notice_identifier(n)] not in done
@@ -868,6 +896,7 @@ def main(argv: list[str]) -> int:
                             "notice_id": notice_identifier(record),
                             "input_digest": payload_digest(payload),
                             "prompt_version": PROMPT_VERSION,
+                            "prompt_digest": digest_of_prompt,
                             "vocabulary_version": vocab.version_string,
                             "system": system,
                             "user": user_prompt(payload),
@@ -911,6 +940,7 @@ def main(argv: list[str]) -> int:
             rejection.update({"wave": arguments.wave, "run_id": run_id,
                               "rejected_at": now,
                               "prompt_version": PROMPT_VERSION,
+                              "prompt_digest": digest_of_prompt,
                               "vocabulary_version": vocab.version_string})
             rejects.write(rejection)
             counters.rejected += 1
@@ -925,6 +955,7 @@ def main(argv: list[str]) -> int:
                 "tagged_at": datetime.now(timezone.utc).isoformat(),
                 "vocabulary_version": vocab.version_string,
                 "prompt_version": PROMPT_VERSION,
+                "prompt_digest": digest_of_prompt,
             }
         )
         writer.write(values)
@@ -954,6 +985,7 @@ def main(argv: list[str]) -> int:
                             "wave": arguments.wave,
                             "run_id": run_id,
                             "prompt_version": PROMPT_VERSION,
+                            "prompt_digest": digest_of_prompt,
                             "vocabulary_version": vocab.version_string,
                         }
                     )
@@ -981,6 +1013,12 @@ def main(argv: list[str]) -> int:
     if compaction.get("superseded"):
         print("compacted %(lines_in)d lines -> %(lines_out)d records "
               "(%(superseded)d superseded, kept in the history file)" % compaction)
+    # Une ligne du fichier de sortie qu'on n'a pas su relire est une ligne
+    # perdue : un run interrompu au milieu d'une écriture en laisse une. La
+    # compaction est le dernier moment où elle peut être dite.
+    if compaction.get("malformed"):
+        print("unreadable lines in %s: %s" % (
+            arguments.output, ", ".join(str(n) for n in compaction["malformed"])))
 
     elapsed = time.time() - started
     report = {
@@ -1009,6 +1047,7 @@ def main(argv: list[str]) -> int:
         "concurrency": arguments.concurrency,
         "review_threshold": arguments.review_threshold,
         "prompt_version": PROMPT_VERSION,
+        "prompt_digest": digest_of_prompt,
         "vocabulary_version": vocab.version_string,
         "source_model": llm_adapter.model_id(),
         "compaction": compaction,

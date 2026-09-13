@@ -1,22 +1,39 @@
-# Cloudflare Pages — en-têtes.
+# Cloudflare Pages : en-têtes.
 #
 # Deux choses ici : une politique de sécurité qui dit en machine ce que le
-# README promet en prose — aucune requête ne quitte la page —, et un cache
+# README promet en prose (aucune requête ne quitte la page), et un cache
 # proportionné à ce qui change.
 #
-# Sur le cache : les fichiers de ce site ne portent pas d'empreinte dans leur
-# nom. `explorer.js` reste `explorer.js` d'une version à l'autre, donc un
-# `immutable` d'un an y garderait une ancienne version chez le lecteur jusqu'en
-# 2027. L'année ferme est réservée aux fontes, dont le contenu ne bouge pas sans
-# que le nom bouge ; le reste prend un cache court doublé de
-# `stale-while-revalidate`, qui sert la copie en cache pendant que le
-# navigateur va chercher la neuve. Le jour où le build empreinte les noms, tout
-# ce qui est sous /site/assets/ peut passer en immutable.
+# Le cache suit une règle :
 #
-# Les règles vont du général au particulier. Si Pages applique la dernière règle
-# qui correspond, les fontes gagnent leur année ; s'il applique la première, elles
-# gardent le cache court — un fichier périmé n'est servi dans aucun des deux cas.
-# `curl -I` sur le site déployé tranche, la marche est dans docs/seo-geo.md.
+# * Ce qui porte une empreinte est immuable. Chaque référence à une feuille ou
+#   à un script, dans les pages comme dans les imports de modules ES, porte
+#   `?v=<empreinte du contenu servi>` (scripts/stamp_assets.py, contrôlé par
+#   `--check` dans le selftest et avant tout déploiement). L'URL change quand
+#   les octets changent : un an d'`immutable` sur /site/assets/*.js et *.css
+#   ne peut donc pas garder une version périmée. Les fontes aussi : leur contenu
+#   ne bouge pas sans que leur nom bouge.
+# * Le HTML se revalide à chaque visite (`max-age=0, must-revalidate`) : c'est
+#   lui qui porte les empreintes, une page en cache pointerait vers d'anciens
+#   fichiers. 404.html suit la même règle.
+# * Ce qui change sans empreinte de contenu prend un cache court doublé de
+#   `stale-while-revalidate` : la couche de données (/data/*, les JSON de
+#   /site/assets/, appelés avec `?v=DATA_VERSION`), la marque et l'image de
+#   partage.
+#
+# Les motifs sont disjoints. Quand deux règles posent le même en-tête, Pages
+# joint leurs valeurs par une virgule (documentation Pages, _headers) : un
+# `/site/assets/*` général doublé d'un `/site/assets/fonts/*` donnait un
+# Cache-Control contradictoire. Chaque fichier ne tombe donc que sous une seule
+# règle Cache-Control ; un splat suivi d'une extension (`/site/assets/*.js`)
+# prend aussi les sous-dossiers (vendor/).
+#
+# La valeur reçue par le navigateur dépend aussi de la zone : un « Browser
+# Cache TTL » de zone réécrit tout max-age plus court que lui (4 h par défaut,
+# audit du 13/09, OR-66). Tant que la zone ne « respecte pas les en-têtes
+# existants », les 600 s et le max-age=0 ci-dessous deviennent 14 400 s en
+# ligne. `curl -sI` sur le site déployé tranche, la marche est dans
+# docs/seo-geo.md.
 
 /*
   X-Content-Type-Options: nosniff
@@ -26,14 +43,35 @@
   Strict-Transport-Security: max-age=31536000; includeSubDomains
   Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'; object-src 'none'; upgrade-insecure-requests
 
-# La couche de données : réécrite par une passe de publication, sous un nom
-# stable. Cache court, revalidation en arrière-plan, et l'origine ouverte que
-# Pages pose déjà — ces fichiers sont faits pour être repris ailleurs.
-/data/*
-  Cache-Control: public, max-age=600, stale-while-revalidate=86400
-  Access-Control-Allow-Origin: *
+# Les pages, sous l'adresse sans extension que Pages sert en 200.
+/site/
+  Cache-Control: public, max-age=0, must-revalidate
 
-/site/assets/*
+/site/welcome
+  Cache-Control: public, max-age=0, must-revalidate
+
+/site/observatoire
+  Cache-Control: public, max-age=0, must-revalidate
+
+/site/methode
+  Cache-Control: public, max-age=0, must-revalidate
+
+/site/credits
+  Cache-Control: public, max-age=0, must-revalidate
+
+/404.html
+  Cache-Control: public, max-age=0, must-revalidate
+
+# Scripts et feuilles : chaque référence porte l'empreinte du contenu.
+/site/assets/*.js
+  Cache-Control: public, max-age=31536000, immutable
+
+/site/assets/*.css
+  Cache-Control: public, max-age=31536000, immutable
+
+# Les JSON que les scripts lisent : appelés sous DATA_VERSION, pas sous une
+# empreinte de contenu.
+/site/assets/*.json
   Cache-Control: public, max-age=600, stale-while-revalidate=86400
 
 # La marque et l'image de partage bougent avec les chiffres, pas avec le code.
@@ -43,3 +81,10 @@
 # Les fontes : leur contenu est figé, un changement passerait par un autre nom.
 /site/assets/fonts/*
   Cache-Control: public, max-age=31536000, immutable
+
+# La couche de données : réécrite par une passe de publication, sous un nom
+# stable. Cache court, revalidation en arrière-plan, et l'origine ouverte : ces
+# fichiers sont faits pour être repris ailleurs.
+/data/*
+  Cache-Control: public, max-age=600, stale-while-revalidate=86400
+  Access-Control-Allow-Origin: *

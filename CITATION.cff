@@ -11,8 +11,8 @@ abstract: >-
   scholarship on Origen of Alexandria, published as a queryable map of the
   field. Ten open bibliographic sources, deduplicated into one record per work,
   of which 21 104 are classified against a controlled vocabulary of themes,
-  works of Origen and approaches: 6 742 of them — 4 909 core and 1 833
-  partial — form the citable dossier. The code is under the MIT licence; the data
+  works of Origen and approaches: 6 742 of them (4 909 core and 1 833
+  partial) form the citable dossier. The code is under the MIT licence; the data
   are not, and DATA_POLICY.md states the regime that covers them, source by
   source.
 # <!-- /FIGURES:classification -->

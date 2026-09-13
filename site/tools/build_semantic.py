@@ -53,8 +53,12 @@ from tree_paths import data_dir, repository_root  # noqa: E402
 ROOT = repository_root(HERE)
 DATA = data_dir(ROOT)
 VOCAB = os.path.join(ROOT, "semantic", "vocabulary")
-TAGS = os.path.join(ROOT, "semantic", "waves", "wave2_federated", "tags.jsonl")
-CORPUS = os.path.join(ROOT, "data", "merged", "corpus.jsonl")
+SITE_TAGS = os.path.join(DATA, "site-merged", "tags.jsonl")
+SITE_CORPUS = os.path.join(DATA, "site-merged", "corpus.jsonl")
+TAGS = (SITE_TAGS if os.path.isfile(SITE_TAGS) else
+        os.path.join(ROOT, "semantic", "waves", "wave2_federated", "tags.jsonl"))
+CORPUS = (SITE_CORPUS if os.path.isfile(SITE_CORPUS) else
+          os.path.join(ROOT, "data", "merged", "corpus.jsonl"))
 GRAPH = os.path.join(DATA, "graph.json")
 OUT = os.path.join(BUILD, "assets", "semantic.json")
 
@@ -135,6 +139,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--tags", default=TAGS)
     parser.add_argument("--corpus", default=CORPUS)
+    parser.add_argument("--graph", default=GRAPH)
     parser.add_argument("--out", default=OUT)
     parser.add_argument("--no-figures", action="store_true",
                         help="write the asset and leave the prose of the pages alone")
@@ -147,7 +152,7 @@ def main():
     approaches = load("approaches.json")
     relevance = load("relevance.json")
 
-    with open(GRAPH, encoding="utf-8") as fh:
+    with open(args.graph, encoding="utf-8") as fh:
         graph = json.load(fh)
     known = {n["ppn"] for n in graph["nodes"] if n.get("k") == "pub" and n.get("ppn")}
 
@@ -158,9 +163,12 @@ def main():
         for n in graph["nodes"]
         if n.get("k") == "pub" and n.get("ppn")
     }
-    cluster_of = ppn_to_cluster(args.corpus, known, source_of)
     records = read_tags(args.tags, keep_unidentified=False)
     by_cluster = {str(rec.get("notice_id")): rec for rec in records}
+    if known <= set(by_cluster):
+        cluster_of = {identifier: identifier for identifier in known}
+    else:
+        cluster_of = ppn_to_cluster(args.corpus, known, source_of)
 
     by_ppn = {}
     wave = None

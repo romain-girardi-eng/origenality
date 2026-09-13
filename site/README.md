@@ -15,7 +15,7 @@ open http://localhost:8020/site/welcome.html
 
 Paths below are given from the root of the clone, where the pages sit under
 `site/` and their data layer under `data/`. The working repository keeps one
-step more — `site/build-c/` for the pages, `site/data/` for the layer — and the
+step more (`site/build-c/` for the pages, `site/data/` for the layer), and the
 publication pass removes it; the tools find the root by looking for it rather
 than by counting steps, so the same command works on either side.
 
@@ -33,9 +33,9 @@ than by counting steps, so the same command works on either side.
 
 - **A cluster is a name from the controlled vocabulary**, not a raw catalogue
   heading. Two ways of grouping, one switch in the corner:
-  - **by theme** — the sixteen domains of `semantic/vocabulary/themes.json`,
+  - **by theme**: the sixteen domains of `semantic/vocabulary/themes.json`,
     each cloud built of its own leaves;
-  - **by work of Origen** — the works of `semantic/vocabulary/works.json` that
+  - **by work of Origen**: the works of `semantic/vocabulary/works.json` that
     the harvest actually names, each cloud built of the theme domains that
     study them.
 - **Three ranks, always.** Domain → leaf → publication in theme mode, work →
@@ -53,7 +53,7 @@ than by counting steps, so the same command works on either side.
   dropped on a wide screen: 16 of 16 domains at 1440, 28 of 28 works, no
   overlap anywhere. A narrow screen leaves a cloud to the tap rather than pile
   two names on one spot; the field is drawn smaller there for the same reason,
-  and 14 of the 16 domains are named at 375 — the last two answer to a tap, as
+  and 14 of the 16 domains are named at 375; the last two answer to a tap, as
   the known weak points below say.
 - **Labels are English, aliases are not.** The hover card and the panel carry the
   German, French and Italian labels of the vocabulary, so a reader who knows the
@@ -62,14 +62,14 @@ than by counting steps, so the same command works on either side.
   findable under the others: the free bar reads every theme, work and angle it
   carries, and any of them can bring it back.
 - **Reservoirs, never a bin, and folded.** `Not about Origen` holds the records
-  <!-- FIGURES:population-reservoirs -->the classifier keeps outside the count (1); `No single work` holds the studies that bear on none (1 557 counted, in work mode).<!-- /FIGURES:population-reservoirs --> They are folded under the field as named,
+  <!-- FIGURES:population-reservoirs -->the classifier keeps outside the count (1); `No single work` holds the studies that bear on none (1 504 counted, in work mode).<!-- /FIGURES:population-reservoirs --> They are folded under the field as named,
   counted chips: one click draws a reservoir on the map and opens its records, a
   second folds it away. Left open, `No single work` would be the widest cloud in
   work mode and the twenty-eight named works would read as an afterthought.
   Nothing is deleted, and nothing is hidden either.
 - **One population per screen.** The legend, the question chips, the panel
   headline, the Observatory bars and the decade columns all count one and the
-  <!-- FIGURES:population-screen -->same set of 2 294 records, those where Origen is the subject or holds an identifiable section of the argument. The 287 that mention him only and the 1 held outside the count stay in the index and answer a search; neither enters a figure. Where a surface returns more than it counts, it says so and gives the second number rather than folding it into the first. The three sides print the same values (English 0, German 0, Italian 0, French 0, `Doctrinal and systematic 835`, and so on down the list), which is the point: one number per thing, on every page.<!-- /FIGURES:population-screen -->
+  <!-- FIGURES:population-screen -->same set of 2 209 records, those where Origen is the subject or holds an identifiable section of the argument. The 280 that mention him only and the 1 held outside the count stay in the index and answer a search; neither enters a figure. Where a surface returns more than it counts, it says so and gives the second number rather than folding it into the first. The three sides print the same values (English 715, German 575, Italian 301, French 321, `Doctrinal and systematic 801`, and so on down the list), which is the point: one number per thing, on every page. `data/stats.json` holds these counts under its `counted` key; its top-level series count all 2 490 kept records, mentioned and held-aside ones included, and its `population` key says which is which.<!-- /FIGURES:population-screen -->
 - **Colour is the language of publication**, six values, each at 3:1 or better
   against the cream. Colour is a mark and never a word: no text on the site is
   set in a language colour, and the legend pairs a coloured dot with a label in
@@ -99,7 +99,7 @@ no hand coded judgement anywhere:
 
 A work with **no citation figure keeps the structural percentile alone** and is
 never pushed below the base size; its notice reads `no citation data`. Coverage
-<!-- FIGURES:population-weights -->today: 220 of 1 632 works (13.5 %), joined on the catalogue number and then on the DOI — never on the title, which used to carry the citations of a review over to the book it reviewed.<!-- /FIGURES:population-weights --> The weight is quantised into five tiers rather than
+<!-- FIGURES:population-weights -->today: 204 of 2 490 works (8.2 %), joined on the catalogue number and then on the DOI, never on the title, which used to carry the citations of a review over to the book it reviewed.<!-- /FIGURES:population-weights --> The weight is quantised into five tiers rather than
 drawn as a continuum, so the eye reads rank instead of noise. It is drawn, and
 only drawn: it never filters, and it never enters the density.
 
@@ -118,10 +118,10 @@ year, language, and the vocabulary labels in four languages.
 **Four questions**, optional, each one narrowing the map as it is answered. Every
 option is read from the vocabulary, the same file the clusters are named from:
 
-1. *Which works of Origen?* — the works axis, with the count each yields.
-2. *Which angle of approach?* — the ten approaches.
-3. *Which period of scholarship?* — decades, computed from the harvest.
-4. *Which languages do you read?* — the six colours of the legend.
+1. *Which works of Origen?* The works axis, with the count each yields.
+2. *Which angle of approach?* The ten approaches.
+3. *Which period of scholarship?* Decades, computed from the harvest.
+4. *Which languages do you read?* The six colours of the legend.
 
 Answers combine as `AND` between questions, `OR` inside one. The graph answers
 with a single movement, 780 ms, no bounce, `prefers-reduced-motion` honoured. The
@@ -133,11 +133,29 @@ and shows its publisher, DOI and ISBN when the record carries them.
 ## Generated files
 
 ```
-python3 site/tools/build_semantic.py     # assets/semantic.json, then the prose figures
-python3 site/tools/build_weights.py      # assets/weights.json
-python3 site/tools/enrich_abstracts.py   # data/derived/abstracts_enrichment.jsonl
-python3 pipeline/build_site_data.py      # data/*.json, abstracts.json included
+python3 site/tools/build_public_snapshot.py   # data/site-records.jsonl; reads the refetched records where they are kept
+python3 site/tools/build_primary_layer.py     # language codes of the primary layer
+python3 pipeline/merge_dedup.py --input-jsonl data/site-records.jsonl --out-dir data/site-merged
+python3 site/tools/merge_site_tags.py         # data/site-merged/tags.jsonl
+python3 pipeline/build_site_data.py           # data/*.json, abstracts.json included
+python3 site/tools/build_cite_data.py         # data/cite.json, what the reference export reads
+python3 site/tools/backfill_record_urls.py
+python3 site/tools/build_semantic.py          # assets/semantic.json, then the prose figures
+python3 site/tools/build_weights.py           # assets/weights.json
+python3 site/tools/build_manifest.py          # data/BUILD.json
+python3 scripts/stamp_assets.py               # ?v= fingerprints on stylesheets and scripts
+python3 scripts/build_seo_assets.py           # sitemap.xml, llms.txt; after the fingerprints
 ```
+
+The order is the order of dependence, and `data/README.md` says what each file
+holds. `build_public_snapshot.py` never reads the edges of the graph: an edge
+exists only for a heading used by at least three records or a container used by
+at least five, and a snapshot rebuilt from edges lost every heading and container
+below that line. It refuses to write a snapshot that covers a field less well than
+the one it replaces. Headings and containers come from the catalogue record: the
+IxTheo harvest, or, for the seven other source labels, the record fetched again
+from its catalogue when its title and year match the row. Each row names its basis
+in `subjects_container_basis`, and `data/README.md` counts them.
 
 `build_semantic.py` folds `semantic/vocabulary/*.json` and the tag records of the
 federated wave, `semantic/waves/wave2_federated/tags.jsonl`, into one file for the
@@ -147,8 +165,8 @@ catalogue records, so the two are joined through `data/merged/corpus.jsonl`, whe
 each cluster lists the notices it was built from. The script refuses to write a
 payload carrying a run identifier, an engine field, a free-text justification or
 an abstract. It used to refuse to write at all when its counts differed from the
-three the pages printed in prose — the only honest answer while those three were
-typed by hand, and a wall the data could not get past. It now writes the asset and
+three the pages printed in prose (the only honest answer while those three were
+typed by hand), and a wall the data could not get past. It now writes the asset and
 calls `build_summary_figures.py`, which rewrites every published figure inside its
 marked block: the population and its three sets, the provenance of the summaries,
 the coverage of the citations. `--check` reads the pages against the data and
@@ -160,7 +178,7 @@ keeps with each one the database that wrote it and the link to its record. The
 Explorer shows the summary in the notice, credits it on the line below, and
 indexes its words in the search field. 
 <!-- FIGURES:summary-provenance -->
-381 of the 1 632 records carry one — 166 written by IxTheo itself, 215 by another database.
+367 of the 2 490 records carry one: 187 written by a catalogue the record was harvested from, 180 by another database.
 <!-- /FIGURES:summary-provenance -->
 
 ## The shape of the screen
@@ -168,7 +186,7 @@ indexes its words in the search field.
 The field takes the proportions of the screen it is drawn on. Turning a phone or
 dragging a window edge recomputes the arrangement once the movement stops
 (220 ms of quiet), and the clouds travel to their new places in one movement of
-620 ms — or in none at all when the reader asks for reduced motion.
+620 ms, or in none at all when the reader asks for reduced motion.
 
 ## Known weak points
 
@@ -179,7 +197,7 @@ dragging a window edge recomputes the arrangement once the movement stops
   sat on top of the legend at that width. The block is now measured, the controls
   clear it, and nothing overlaps.
 - Citation coverage is thin, and lower than it was once the title join was
-  dropped — the share is generated above. Every uncovered work is marked, but the
+  dropped; the share is generated above. Every uncovered work is marked, but the
   size signal is thinner than it looks.
 - <!-- FIGURES:population-untagged -->Every record on display carries a class. Twenty-eight did not, until a gap pass
   tagged them: their cluster had been split or joined by the deduplication after the
@@ -193,7 +211,7 @@ index.html               the Explorer
 observatoire.html        the Observatory
 methode.html             the Method
 credits.html             the Credits
-assets/base.css          fonts, tokens, masthead, focus — loaded by every page
+assets/base.css          fonts, tokens, masthead, focus; loaded by every page
 assets/explorer.css      the map
 assets/pages.css         the reading pages
 assets/explorer.js       packing, layout, matching, panel, keyboard path

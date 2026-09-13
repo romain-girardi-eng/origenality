@@ -6,7 +6,7 @@ les notices restent telles que les sources les ont livrées.
 
 Trois strates, à ne pas confondre.
 
-**Les métadonnées bibliographiques** — auteur, titre, année, contenant, pages,
+**Les métadonnées bibliographiques** : auteur, titre, année, contenant, pages,
 identifiants. Un fait bibliographique n'est pas une œuvre protégée ; la
 compilation, elle, peut l'être. Chaque source est créditée nommément dans la
 page Crédits, avec le lien vers ses conditions.
@@ -22,12 +22,29 @@ renseigné pour la traçabilité : il sert à savoir quoi retirer, vite, et il n
 conditionne plus l'affichage. `scripts/check_release.py` refuse un dump dont
 un résumé n'est pas attribuable.
 
+**Les PDF, les positions savantes et leurs preuves.** Le PDF acquis, son texte
+extrait page par page et le verbatim complet restent dans un espace de
+recherche non publié. Chaque position publique porte l'auteur, le document, la
+page imprimée, la page PDF, les positions de caractères et les empreintes du
+fichier et de la page. Ces éléments permettent de vérifier l'ancrage sans
+reproduire le passage. Le texte ne sort que si une licence ou une autorisation
+le permet expressément. Un PDF librement téléchargeable, mais sans licence de
+réutilisation, ne suffit pas.
+
+Le droit français autorise la courte citation justifiée par un but critique,
+pédagogique ou scientifique, avec indication de l'auteur et de la source
+([CPI, art. L122-5](https://www.legifrance.gouv.fr/loda/article_lc/LEGIARTI000006278917)).
+Il ne fixe aucun seuil automatique en caractères. La projection publique
+n'assimile donc jamais une limite technique à une autorisation juridique. Les
+contenus sous licence ouverte suivent la licence indiquée ; les autres restent
+sans citation publique jusqu'à une revue explicite.
+
 **Comment demander un retrait.** Un message à l'adresse de contact du projet,
 indiquant la base ou l'éditeur concerné, suffit. Les résumés visés sont
 retirés du site et du prochain dump ; `scripts/check_release.py --withdraw`
 produit la copie expurgée à partir du même corpus, sans reprise manuelle.
 
-**Les tags sémantiques et les agrégats** — les étiquettes du vocabulaire
+**Les tags sémantiques et les agrégats** : les étiquettes du vocabulaire
 contrôlé, les décomptes, les densités, l'index-arbre. Ils sont produits par le
 projet et publiés sous la licence du dépôt.
 
@@ -41,8 +58,8 @@ métadonnées sont reprises, et le gabarit d'URL qui ramène à la notice d'orig
 
 Une attribution n'est valable que si elle est **résoluble** : un nom de base ne
 suffit pas, il faut un lien. Le contrôle exige donc, pour chaque résumé, soit un
-`abstract_url` — l'adresse de la notice qui a écrit le résumé, recopiée par la
-fusion depuis cette notice et non depuis une autre base de la même grappe —,
+`abstract_url` : l'adresse de la notice qui a écrit le résumé, recopiée par la
+fusion depuis cette notice et non depuis une autre base de la même grappe :,
 soit un identifiant que le gabarit ci-dessous transforme en adresse. Un résumé
 dont la base d'origine ne figure pas ici, ou dont l'attribution ne se résout pas
 en lien, n'est pas publiable : ce sont les deux seuls motifs de refus.
@@ -81,10 +98,10 @@ indifféremment les uns et les autres.
       "label": "Semantic Scholar",
       "url_template": "https://www.semanticscholar.org/paper/{id}",
       "note": "ODC-BY : attribution obligatoire par la licence de la source.",
-      "license": "ODC-BY 1.0 — attribution obligatoire"
+      "license": "ODC-BY 1.0 : attribution obligatoire"
     },
     "bibp": {
-      "label": "BIBP — Université Laval",
+      "label": "BIBP : Université Laval",
       "url_template": null,
       "license": "conditions propres à BIBP (Université Laval)"
     },
@@ -109,7 +126,7 @@ indifféremment les uns et les autres.
       "license": "conditions propres à Dialnet (Universidad de La Rioja)"
     },
     "sbn": {
-      "label": "SBN — Servizio Bibliotecario Nazionale",
+      "label": "SBN : Servizio Bibliotecario Nazionale",
       "url_template": "https://opac.sbn.it/bid/{id}",
       "license": "conditions propres à l'ICCU"
     },
@@ -120,12 +137,12 @@ indifféremment les uns et les autres.
     },
     "b3kat": {
       "label": "B3Kat (Bibliotheksverbund Bayern / KOBV)",
-      "url_template": "https://opacplus.bib-bvb.de/TouchPoint_touchpoint/perma.do?q=+0%3D%22{id}%22+IN+%5B2%5D&v=bvb&l=de",
+      "url_template": "https://www.gateway-bayern.de/{id}",
       "license": "CC0 1.0 (métadonnées B3Kat)"
     },
     "gnomon-gbd": {
       "label": "Gnomon Bibliographische Datenbank (Universität Eichstätt)",
-      "url_template": "https://www.gbd.digital/Record/{id}",
+      "url_template": "https://www.gbd.digital/gbd/Record/{id}",
       "note": "Notices récupérées en MARC21 par le SRU B3Kat : les identifiants GBD sont des numéros BV.",
       "license": "conditions propres à la GBD ; métadonnées servies par B3Kat"
     },
@@ -146,7 +163,7 @@ indifféremment les uns et les autres.
       "license": "CC0 1.0 / domaine public (US Government work)"
     },
     "sudoc": {
-      "label": "Sudoc — Agence bibliographique de l'Enseignement supérieur (ABES)",
+      "label": "Sudoc : Agence bibliographique de l'Enseignement supérieur (ABES)",
       "url_template": "https://www.sudoc.fr/{id}",
       "note": "Le Sudoc mêle des notices produites par son réseau et des notices dérivées d'autres bases (BnF, WorldCat, ISSN, DNB). Les premières sont sous Licence Ouverte ; les secondes restent soumises à la licence de la base productrice, et c'est elle qu'il faut citer quand la notice le dit.",
       "license": "Licence Ouverte / Open Licence (Etalab), mention « Agence bibliographique de l'Enseignement supérieur » exigée"
@@ -174,7 +191,7 @@ Rien ne se reprend à la main.
 
 | Date | Demandeur | Portée | Suite donnée |
 |---|---|---|---|
-| — | — | — | — |
+| : | : | : | : |
 
 Deux fonds appellent une vigilance particulière et sont surveillés sans être
 retirés : Persée, dont la mention de copyright autorise la reproduction à des

@@ -1,0 +1,172 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://origenality.com/schema/scholar-claim-1.0.0.json",
+  "title": "Origenality scholar position",
+  "description": "A first-class, attributed scholarly claim with source-resolving evidence.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "id",
+    "type",
+    "document_id",
+    "bibliographic_record_ids",
+    "scholar",
+    "statement",
+    "statement_language",
+    "claim_kind",
+    "belief_status",
+    "scope",
+    "author_vocabulary",
+    "about",
+    "relations",
+    "evidence",
+    "curation"
+  ],
+  "properties": {
+    "id": {"type": "string", "pattern": "^claim:[a-z0-9][a-z0-9._-]{5,}$"},
+    "type": {"const": "ScholarPosition"},
+    "document_id": {"type": "string", "pattern": "^doc:[0-9a-f]{20}$"},
+    "bibliographic_record_ids": {
+      "type": "array",
+      "items": {"type": "string", "minLength": 1},
+      "uniqueItems": true
+    },
+    "scholar": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name"],
+      "properties": {
+        "name": {"type": "string", "minLength": 1},
+        "orcid": {"type": ["string", "null"], "pattern": "^https://orcid.org/"}
+      }
+    },
+    "statement": {"type": "string", "minLength": 20},
+    "statement_language": {"type": "string", "pattern": "^[a-z]{2,3}$"},
+    "claim_kind": {
+      "enum": [
+        "interpretation",
+        "historical-influence",
+        "conceptual-analysis",
+        "critique",
+        "methodological-position",
+        "textual-claim"
+      ]
+    },
+    "belief_status": {
+      "enum": ["asserted", "qualified", "proposed", "rejected", "reported"]
+    },
+    "scope": {"type": "string", "minLength": 3},
+    "author_vocabulary": {
+      "type": "array",
+      "minItems": 1,
+      "items": {"type": "string", "minLength": 2},
+      "uniqueItems": true
+    },
+    "about": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["kind", "id"],
+        "properties": {
+          "kind": {"enum": ["theme", "work", "person", "passage", "claim"]},
+          "id": {"type": "string", "minLength": 1}
+        }
+      }
+    },
+    "relations": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["predicate", "target"],
+        "properties": {
+          "predicate": {
+            "enum": [
+              "cito:agreesWith",
+              "cito:disagreesWith",
+              "cito:critiques",
+              "cito:extends",
+              "cito:qualifies",
+              "cito:usesMethodIn",
+              "cito:citesAsEvidence"
+            ]
+          },
+          "target": {"type": "string", "minLength": 1},
+          "note": {"type": ["string", "null"]}
+        }
+      }
+    },
+    "evidence": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "quote", "language", "selectors", "public_excerpt"],
+        "properties": {
+          "id": {"type": "string", "pattern": "^evidence:[a-z0-9][a-z0-9._-]{5,}$"},
+          "quote": {"type": "string", "minLength": 20},
+          "language": {"type": "string", "pattern": "^[a-z]{2,3}$"},
+          "public_excerpt": {"type": ["string", "null"]},
+          "selectors": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "pdf_page",
+                "printed_page",
+                "printed_page_confidence",
+                "page_text_sha256",
+                "text_quote_selector",
+                "text_position_selector"
+              ],
+              "properties": {
+                "pdf_page": {"type": "integer", "minimum": 1},
+                "printed_page": {"type": "string", "minLength": 1},
+                "printed_page_confidence": {"type": "number", "minimum": 0.9, "maximum": 1},
+                "page_text_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+                "text_quote_selector": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": ["type", "exact", "prefix", "suffix"],
+                  "properties": {
+                    "type": {"const": "TextQuoteSelector"},
+                    "exact": {"type": "string", "minLength": 1},
+                    "prefix": {"type": "string"},
+                    "suffix": {"type": "string"}
+                  }
+                },
+                "text_position_selector": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": ["type", "start", "end"],
+                  "properties": {
+                    "type": {"const": "TextPositionSelector"},
+                    "start": {"type": "integer", "minimum": 0},
+                    "end": {"type": "integer", "minimum": 1}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "curation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "anchored_on", "human_reviewed", "needs_review"],
+      "properties": {
+        "status": {"enum": ["source-anchored", "human-verified", "contested"]},
+        "anchored_on": {"type": "string", "format": "date"},
+        "human_reviewed": {"type": "boolean"},
+        "needs_review": {"type": "boolean"},
+        "review_note": {"type": ["string", "null"]}
+      }
+    }
+  }
+}

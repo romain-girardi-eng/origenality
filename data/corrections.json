@@ -1,0 +1,23 @@
+{
+  "ixtheo-k10plus:169891279X": {
+    "basis": "https://ixtheo.de/Record/169891279X",
+    "fields": {
+      "abstract": null
+    },
+    "reason": "The supplied abstract describes a constitutional-law commentary and does not match the patristic monograph."
+  },
+  "k10plus:1690330104": {
+    "basis": "https://doi.org/10.11588/propylaeumdok.00004671",
+    "fields": {
+      "year": 2020
+    },
+    "reason": "The catalogue year 1420 conflicts with the dated repository record and the duplicate DNB notice."
+  },
+  "sudoc:145827976": {
+    "basis": "https://www.sudoc.fr/145827976",
+    "fields": {
+      "year": 1489
+    },
+    "reason": "The snapshot year 1514 has no support in the catalogue record, which dates the edition to 1489: field 100 codes the date 1489, field 210 gives the imprint [Roma : Eucario Silber, 15 octobre 1489], and field 321 cites ISTC ig00095000, GW 10549 and Goff G-95."
+  }
+}

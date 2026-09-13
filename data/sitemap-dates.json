@@ -1,0 +1,42 @@
+{
+ "/ATTRIBUTION.md": {
+  "sha256": "26cfdecd8d85a36c0262c8f2118b1cdceea0a4be2e86d60908fe528f40069506",
+  "lastmod": "2026-08-16"
+ },
+ "/DATA_POLICY.md": {
+  "sha256": "3c60e2d83e1a541851e0705ffc9492a05ddd4122bf0cc955c9e256f74c401c0e",
+  "lastmod": "2026-09-13"
+ },
+ "/README.md": {
+  "sha256": "a5870889ed6847eef3e568c5f8f3955bf1f4245bee87abf686f471e566cda5bc",
+  "lastmod": "2026-09-13"
+ },
+ "/docs/methodology.md": {
+  "sha256": "b43350f10f32d64347d070e132df7736fba573ae5be5a947fe831735533df1ae",
+  "lastmod": "2026-08-16"
+ },
+ "/docs/sources.md": {
+  "sha256": "06f22c0f53b92af7a7d2f7e7a93a90a2acfe78a859bc5b9a32b790b4a3626f48",
+  "lastmod": "2026-08-16"
+ },
+ "/site/": {
+  "sha256": "ae55285fab5decf771cc857e27d3ffb5da99d9a72e0b1c5bc4edcde1da2a6b62",
+  "lastmod": "2026-09-13"
+ },
+ "/site/credits": {
+  "sha256": "11f90576948a8529f95360f0ab4ff14dbea510ea8ccc1952f9f259f35072677e",
+  "lastmod": "2026-09-13"
+ },
+ "/site/methode": {
+  "sha256": "bdb5f3b87df4b586594cd31bae698a546c628975015e4b4d2316ae41735388aa",
+  "lastmod": "2026-09-13"
+ },
+ "/site/observatoire": {
+  "sha256": "a6209ebf21e41aaeb7a27b46aaf9b9124f579d5b4d4b992d4e7794ca07cb1223",
+  "lastmod": "2026-09-13"
+ },
+ "/site/welcome": {
+  "sha256": "aed6de57ef4eb5d6df1661326451207054c46830085027657543bf22259c53de",
+  "lastmod": "2026-09-13"
+ }
+}

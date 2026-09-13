@@ -1,0 +1,95 @@
+{
+  "abstract_anomalies_quarantined": 10,
+  "duplicates_collapsed": 92,
+  "field_coverage": {
+    "abstract": 399,
+    "authors": 2539,
+    "basis_catalogue_record": 2582,
+    "container": 2184,
+    "container_type": 2184,
+    "distinct_containers": 985,
+    "distinct_headings": 2181,
+    "doi": 169,
+    "isbn": 616,
+    "language": 2505,
+    "publisher": 936,
+    "records": 2582,
+    "relation": 2191,
+    "subjects": 2259,
+    "year": 2480
+  },
+  "files": {
+    "data/abstract-anomalies.json": {
+      "bytes": 2566,
+      "sha256": "b5bfba66307491d86501422a7d55c79b52d79053b99527c65bb4ab99fda4c549"
+    },
+    "data/abstracts.json": {
+      "bytes": 350183,
+      "sha256": "23d229d577c3ec35b4069288681a001cd94fc216a3fba422940c1369b22b5102"
+    },
+    "data/citation-counts.json": {
+      "bytes": 5002,
+      "sha256": "f3bd1473cfd4e86ba21b2ec87a9a34111a9673b39ad113ec61e182bd5aea7430"
+    },
+    "data/cite.json": {
+      "bytes": 322681,
+      "sha256": "495215d9cbd7f02c13aed4422169f686cfa223ab1cb3b01372c0688d2b8cf78b"
+    },
+    "data/corrections.json": {
+      "bytes": 904,
+      "sha256": "6ac6f157c916b4d951161e1009a6d6aafd8c2cb8b5e557de6506b11c646af0c3"
+    },
+    "data/evidence.json": {
+      "bytes": 13033,
+      "sha256": "47acce9f10615467aa652916db5f3401f3206be0569252d03145c66254a9512a"
+    },
+    "data/graph.json": {
+      "bytes": 1413806,
+      "sha256": "e35494d5f568fbbebc970f7d77271a43d6fd46db83e01ed6cf66e1cc32742429"
+    },
+    "data/site-merged/corpus.jsonl": {
+      "bytes": 4504927,
+      "sha256": "131d17c44ad1c879c16882b1753d0c33b2c1afc940349ca2a1703484cdfa6386"
+    },
+    "data/site-merged/merge_report.json": {
+      "bytes": 1254,
+      "sha256": "dd379cbaf6bb7eaf7bd1ec0a600cab5c96c02a19e652a3dd769c8961a707eef9"
+    },
+    "data/site-merged/tag_merge_report.json": {
+      "bytes": 5732,
+      "sha256": "77b28e89486ccde3b21687de472879094c4a6ee1b225fa1ced5f6851de1c6418"
+    },
+    "data/site-merged/tags.jsonl": {
+      "bytes": 1133233,
+      "sha256": "f1a14802f75d723fb6785932e1822af329275ac973d8305fc327a89a724452fd"
+    },
+    "data/site-records.jsonl": {
+      "bytes": 2584053,
+      "sha256": "5641a3cb581bcbf53b0595ab031cdf6e484f5854fa5436e32b6dc19c87750308"
+    },
+    "data/site-tags.jsonl": {
+      "bytes": 974557,
+      "sha256": "fe9e211de5a2d425ce707fee293b5dbc0cc97c8555e03312666423dc32b0539e"
+    },
+    "data/stats.json": {
+      "bytes": 19100,
+      "sha256": "845d7f5d9646dd2abf5a491cf16c4dc76d18fdc1492f40cc97ea2732e43cac87"
+    },
+    "site/assets/semantic.json": {
+      "bytes": 369863,
+      "sha256": "06cf32562c9276b4d3e89903ff28a1b81032448004ceade8602ef251f7d96724"
+    },
+    "site/assets/weights.json": {
+      "bytes": 128600,
+      "sha256": "e1673c797542dcaa6b8722c2430905f53fa6b638815ea8fd5725f02c1d7efb20"
+    }
+  },
+  "generated": "2026-09-13",
+  "limitation": null,
+  "population_unit": "deduplicated-work-cluster",
+  "source_records": 2582,
+  "status": "replayable-public-build",
+  "tag_disagreements_flagged": 21,
+  "tagged_clusters": 2490,
+  "work_clusters": 2490
+}

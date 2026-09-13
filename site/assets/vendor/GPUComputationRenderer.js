@@ -13,7 +13,7 @@ import {
 	RGBAFormat,
 	ShaderMaterial,
 	WebGLRenderTarget
-} from './three.module.min.js';
+} from './three.module.min.js?v=08fd7545';
 
 const _camera = new OrthographicCamera(-1, 1, 1, -1, 0, 1);
 

@@ -16,7 +16,7 @@
                    the thought up from there.
 
    Romain Girardi, 2026. */
-import * as THREE from './vendor/three.module.min.js';
+import * as THREE from './vendor/three.module.min.js?v=08fd7545';
 
 const GLSL_HASH = `
 #define HASH_SCALE vec3(0.1031, 0.11369, 0.13787)

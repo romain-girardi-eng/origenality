@@ -1,0 +1,364 @@
+{
+  "claims": [
+    {
+      "about": [
+        {
+          "id": "anthropology.free-will",
+          "kind": "theme"
+        },
+        {
+          "id": "cosmos.providence-and-evil",
+          "kind": "theme"
+        },
+        {
+          "id": "comm-rom",
+          "kind": "work"
+        },
+        {
+          "id": "Origen of Alexandria",
+          "kind": "person"
+        }
+      ],
+      "author_vocabulary": [
+        "presciência de Deus",
+        "responsabilidade recai na conduta humana",
+        "conhece antecipadamente o agente da ação",
+        "não necessariamente porque foram preditas"
+      ],
+      "belief_status": "asserted",
+      "bibliographic_record_ids": [
+        "ixtheo-k10plus:1563461684"
+      ],
+      "claim_kind": "interpretation",
+      "document_id": "doc:4dace22ad1ac2f97c8ac",
+      "evidence": [
+        {
+          "id": "evidence:0f33101f8a8c772375a6",
+          "language": "pt",
+          "quote": null,
+          "quote_release": "withheld-unreviewed",
+          "selectors": [
+            {
+              "page_text_sha256": "5993ae1c6bb3d00903c778e659ccc2c8d44cf3524832abf60f98b0d175e55fa6",
+              "pdf_page": 6,
+              "printed_page": "146",
+              "printed_page_confidence": 1.0,
+              "text_position_selector": {
+                "end": 3055,
+                "start": 2761,
+                "type": "TextPositionSelector"
+              }
+            }
+          ]
+        }
+      ],
+      "human_reviewed": false,
+      "id": "claim:nascimento-2017-foreknowledge",
+      "needs_review": true,
+      "relations": [],
+      "scholar": {
+        "name": "Sidnei Francisco do Nascimento",
+        "orcid": null
+      },
+      "scope": "divine foreknowledge and human conduct in the Commentary on Romans",
+      "statement": "Nascimento lê a presciência divina como conhecimento antecipado do agente e das suas ações, não como causa do acontecimento.",
+      "statement_language": "pt",
+      "type": "ScholarPosition"
+    },
+    {
+      "about": [
+        {
+          "id": "anthropology.free-will",
+          "kind": "theme"
+        },
+        {
+          "id": "reception.latin-transmission",
+          "kind": "theme"
+        },
+        {
+          "id": "comm-rom",
+          "kind": "work"
+        },
+        {
+          "id": "Origen of Alexandria",
+          "kind": "person"
+        },
+        {
+          "id": "Augustine of Hippo",
+          "kind": "person"
+        }
+      ],
+      "author_vocabulary": [
+        "cannot be decisively answered",
+        "multiplicity of possible sources",
+        "crucial difference",
+        "conception of human freedom"
+      ],
+      "belief_status": "qualified",
+      "bibliographic_record_ids": [
+        "ixtheo-k10plus:1761200313"
+      ],
+      "claim_kind": "historical-influence",
+      "document_id": "doc:4dfcfd27cbeb2aa4e851",
+      "evidence": [
+        {
+          "id": "evidence:426371882d7bb0f01cb1",
+          "language": "en",
+          "quote": "Even though the question of reception cannot be decisively answered owing to the multiplicity of possible sources",
+          "quote_release": "licensed-verbatim",
+          "selectors": [
+            {
+              "page_text_sha256": "c82f9798a9937ccc00d88c7115a0197ad9667c917758fcb7cd30b735be75c93d",
+              "pdf_page": 214,
+              "printed_page": "213",
+              "printed_page_confidence": 0.99,
+              "text_position_selector": {
+                "end": 1477,
+                "start": 1364,
+                "type": "TextPositionSelector"
+              },
+              "text_quote_selector": {
+                "exact": "Even though the question of reception cannot be decisively answered owing to the multiplicity of possible sources",
+                "prefix": "",
+                "suffix": "",
+                "type": "TextQuoteSelector"
+              }
+            }
+          ]
+        },
+        {
+          "id": "evidence:f3bbf340f046afafdcf2",
+          "language": "en",
+          "quote": "still serve to highlight a crucial difference in the conception of human freedom in Origen’s Commentary and Augustine’s anti-Pelagian interpretation of Romans.",
+          "quote_release": "licensed-verbatim",
+          "selectors": [
+            {
+              "page_text_sha256": "c82f9798a9937ccc00d88c7115a0197ad9667c917758fcb7cd30b735be75c93d",
+              "pdf_page": 214,
+              "printed_page": "213",
+              "printed_page_confidence": 0.99,
+              "text_position_selector": {
+                "end": 1691,
+                "start": 1532,
+                "type": "TextPositionSelector"
+              },
+              "text_quote_selector": {
+                "exact": "still serve to highlight a crucial difference in the conception of human freedom in Origen’s Commentary and Augustine’s anti-Pelagian interpretation of Romans.",
+                "prefix": "",
+                "suffix": "",
+                "type": "TextQuoteSelector"
+              }
+            }
+          ]
+        }
+      ],
+      "human_reviewed": false,
+      "id": "claim:moller-2021-origen-augustine-reception",
+      "needs_review": true,
+      "relations": [],
+      "scholar": {
+        "name": "Morten Kock Møller",
+        "orcid": null
+      },
+      "scope": "possible reception of Origen's Commentary on Romans in Augustine",
+      "statement": "Møller leaves the reception question open because several sources are possible, while treating the divergent readings as evidence of a difference between Origenian and Augustinian conceptions of human freedom.",
+      "statement_language": "en",
+      "type": "ScholarPosition"
+    },
+    {
+      "about": [
+        {
+          "id": "anthropology.free-will",
+          "kind": "theme"
+        },
+        {
+          "id": "reception.latin-transmission",
+          "kind": "theme"
+        },
+        {
+          "id": "reception.origenist-controversies",
+          "kind": "theme"
+        },
+        {
+          "id": "comm-rom",
+          "kind": "work"
+        },
+        {
+          "id": "Origen of Alexandria",
+          "kind": "person"
+        },
+        {
+          "id": "Augustine of Hippo",
+          "kind": "person"
+        }
+      ],
+      "author_vocabulary": [
+        "drew on Origen’s exegetical solutions",
+        "ignores Origen’s controversial doctrines",
+        "freedom of choice",
+        "deterministic readings of the Bible",
+        "Augustine’s doctrine of grace"
+      ],
+      "belief_status": "asserted",
+      "bibliographic_record_ids": [
+        "ixtheo-k10plus:1761200313"
+      ],
+      "claim_kind": "historical-influence",
+      "document_id": "doc:4dfcfd27cbeb2aa4e851",
+      "evidence": [
+        {
+          "id": "evidence:85760ea3531db510a198",
+          "language": "en",
+          "quote": "drew on Origen’s exegetical solutions.",
+          "quote_release": "licensed-verbatim",
+          "selectors": [
+            {
+              "page_text_sha256": "8195b04b22afa77792e5576a95fc7853a5a366e2a1f781004b01bb9cdcbdc56b",
+              "pdf_page": 234,
+              "printed_page": "233",
+              "printed_page_confidence": 0.99,
+              "text_position_selector": {
+                "end": 483,
+                "start": 445,
+                "type": "TextPositionSelector"
+              },
+              "text_quote_selector": {
+                "exact": "drew on Origen’s exegetical solutions.",
+                "prefix": "",
+                "suffix": "",
+                "type": "TextQuoteSelector"
+              }
+            }
+          ]
+        },
+        {
+          "id": "evidence:79a36712654c653a38d1",
+          "language": "en",
+          "quote": "it also ignores Origen’s controversial doctrines; specifically, it dismisses the doctrine of the final reunification of all souls with God.",
+          "quote_release": "licensed-verbatim",
+          "selectors": [
+            {
+              "page_text_sha256": "8195b04b22afa77792e5576a95fc7853a5a366e2a1f781004b01bb9cdcbdc56b",
+              "pdf_page": 234,
+              "printed_page": "233",
+              "printed_page_confidence": 0.99,
+              "text_position_selector": {
+                "end": 683,
+                "start": 544,
+                "type": "TextPositionSelector"
+              },
+              "text_quote_selector": {
+                "exact": "it also ignores Origen’s controversial doctrines; specifically, it dismisses the doctrine of the final reunification of all souls with God.",
+                "prefix": "",
+                "suffix": "",
+                "type": "TextQuoteSelector"
+              }
+            }
+          ]
+        },
+        {
+          "id": "evidence:ac3c348988e7774538a4",
+          "language": "en",
+          "quote": "re-uses Origen’s arguments that stress the concept of freedom of choice in its aim to fight against deterministic readings of the Bible.",
+          "quote_release": "licensed-verbatim",
+          "selectors": [
+            {
+              "page_text_sha256": "8195b04b22afa77792e5576a95fc7853a5a366e2a1f781004b01bb9cdcbdc56b",
+              "pdf_page": 234,
+              "printed_page": "233",
+              "printed_page_confidence": 0.99,
+              "text_position_selector": {
+                "end": 854,
+                "start": 718,
+                "type": "TextPositionSelector"
+              },
+              "text_quote_selector": {
+                "exact": "re-uses Origen’s arguments that stress the concept of freedom of choice in its aim to fight against deterministic readings of the Bible.",
+                "prefix": "",
+                "suffix": "",
+                "type": "TextQuoteSelector"
+              }
+            }
+          ]
+        },
+        {
+          "id": "evidence:969d66d4869d4fa27508",
+          "language": "en",
+          "quote": "stresses this concept against Augustine’s doctrine of grace, which it polemically associates with a deterministic belief.",
+          "quote_release": "licensed-verbatim",
+          "selectors": [
+            {
+              "page_text_sha256": "8195b04b22afa77792e5576a95fc7853a5a366e2a1f781004b01bb9cdcbdc56b",
+              "pdf_page": 234,
+              "printed_page": "233",
+              "printed_page_confidence": 0.99,
+              "text_position_selector": {
+                "end": 1096,
+                "start": 975,
+                "type": "TextPositionSelector"
+              },
+              "text_quote_selector": {
+                "exact": "stresses this concept against Augustine’s doctrine of grace, which it polemically associates with a deterministic belief.",
+                "prefix": "",
+                "suffix": "",
+                "type": "TextQuoteSelector"
+              }
+            }
+          ]
+        }
+      ],
+      "human_reviewed": false,
+      "id": "claim:scarponi-2021-reception-and-redirection",
+      "needs_review": true,
+      "relations": [],
+      "scholar": {
+        "name": "Ilaria Scarponi",
+        "orcid": null
+      },
+      "scope": "reuse and redirection of Origenian exegesis in a later defence of freedom of choice",
+      "statement": "Scarponi argues that a later treatise drew on Origen's exegetical solutions and reused his freedom-of-choice arguments, while omitting controversial doctrines and redirecting the anti-determinist polemic against Augustine's doctrine of grace.",
+      "statement_language": "en",
+      "type": "ScholarPosition"
+    }
+  ],
+  "documents": {
+    "doc:4dace22ad1ac2f97c8ac": {
+      "authors": [
+        "Sidnei Francisco do Nascimento"
+      ],
+      "bibliographic_record_ids": [
+        "ixtheo-k10plus:1563461684"
+      ],
+      "doi": "10.23925/1677-1222.2017vol17i2a8",
+      "id": "doc:4dace22ad1ac2f97c8ac",
+      "license": "no public-reuse licence stated",
+      "license_url": null,
+      "public_quote_policy": "short-quotation-only",
+      "source_url": "https://dialnet.unirioja.es/servlet/articulo?codigo=6078175",
+      "title": "Comentario de Origenes a Epistola aos Romanos",
+      "year": 2017
+    },
+    "doc:4dfcfd27cbeb2aa4e851": {
+      "authors": [
+        "Alfons Fürst (editor)"
+      ],
+      "bibliographic_record_ids": [
+        "ixtheo-k10plus:1761200313"
+      ],
+      "doi": "10.17438/978-3-402-13757-4",
+      "id": "doc:4dfcfd27cbeb2aa4e851",
+      "license": "CC BY-NC-ND 4.0 (original text)",
+      "license_url": "https://creativecommons.org/licenses/by-nc-nd/4.0/",
+      "public_quote_policy": "licensed-verbatim",
+      "source_url": "https://www.aschendorff-buchverlag.de/res/user/vam/media/978-3-402-13757-4.pdf",
+      "title": "Perspectives on Origen and the History of His Reception",
+      "year": 2021
+    }
+  },
+  "generated": "2026-09-13",
+  "policy": {
+    "long_quotes_private_by_default": true,
+    "statement": "A public quote is emitted only after an explicit rights clearance; the private graph retains the complete source-anchored evidence."
+  },
+  "schema_version": "evidence-1.0.0"
+}

@@ -112,8 +112,9 @@ OBS_JS=$(cat <<'JS'
   });
   return JSON.stringify({
     observatory_stamp: document.getElementById('stamp').textContent.trim(),
-    observatory_sets: [].map.call(document.querySelectorAll('#key-sets > span'), function (row) {
-      return [row.querySelector('b').textContent.trim(),
+    // each set is a div.set: its figure in .set-v, then its label and its note
+    observatory_sets: [].map.call(document.querySelectorAll('#key-sets .set'), function (row) {
+      return [row.querySelector('.set-v').textContent.trim(),
               row.textContent.replace(/\s+/g, ' ').trim()];
     }),
     observatory_lang: rows('bars-lang'),

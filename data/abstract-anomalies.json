@@ -1,0 +1,84 @@
+{
+  "records": [
+    {
+      "characters": 10,
+      "reason": "placeholder-or-label",
+      "record_id": "ixtheo-k10plus:1635599040",
+      "sha256": "0bbfecd1b00e4a4d12adf3dbc0f0c5473d72f3e1030f5048e0650d8d0d8f928d",
+      "source": "openalex",
+      "words": 1
+    },
+    {
+      "characters": 10,
+      "reason": "placeholder-or-label",
+      "record_id": "ixtheo-k10plus:1637402031",
+      "sha256": "002ff4c7495a76bcd9d5fe14260d46f6d7bedbf60ecffeebb179401ea231e8e0",
+      "source": "openalex",
+      "words": 1
+    },
+    {
+      "characters": 8,
+      "reason": "placeholder-or-label",
+      "record_id": "ixtheo-k10plus:1640830049",
+      "sha256": "d21b4a64a2d8656a0fdf7ab2e89a49164ac504686cfa2a3d442e87c209286330",
+      "source": "semanticscholar",
+      "words": 1
+    },
+    {
+      "characters": 22,
+      "reason": "placeholder-or-label",
+      "record_id": "ixtheo-k10plus:1645216187",
+      "sha256": "4f61bca1286912ce0234ea606c560582cc7861551b2570540a17f8a969e4f2b9",
+      "source": "openalex",
+      "words": 2
+    },
+    {
+      "characters": 10,
+      "reason": "placeholder-or-label",
+      "record_id": "ixtheo-k10plus:1646329686",
+      "sha256": "3d60eaf3c87a2cb3fde618d2c2a08330dd55355817282b0be3b49db33b4e7461",
+      "source": "openalex",
+      "words": 1
+    },
+    {
+      "characters": 23570,
+      "reason": "fulltext-like-payload",
+      "record_id": "ixtheo-k10plus:1799697681",
+      "sha256": "d21dc782e548607bcbd4848efd086587615a72a788b48259c1d08d6dcff53ff1",
+      "source": "openalex",
+      "words": 4253
+    },
+    {
+      "characters": 10,
+      "reason": "placeholder-or-label",
+      "record_id": "ixtheo-k10plus:1980761329",
+      "sha256": "0bbfecd1b00e4a4d12adf3dbc0f0c5473d72f3e1030f5048e0650d8d0d8f928d",
+      "source": "openalex",
+      "words": 1
+    },
+    {
+      "characters": 10,
+      "reason": "placeholder-or-label",
+      "record_id": "ixtheo-k10plus:1980761825",
+      "sha256": "002ff4c7495a76bcd9d5fe14260d46f6d7bedbf60ecffeebb179401ea231e8e0",
+      "source": "openalex",
+      "words": 1
+    },
+    {
+      "characters": 10,
+      "reason": "placeholder-or-label",
+      "record_id": "ixtheo-k10plus:1980765073",
+      "sha256": "3d60eaf3c87a2cb3fde618d2c2a08330dd55355817282b0be3b49db33b4e7461",
+      "source": "openalex",
+      "words": 1
+    },
+    {
+      "characters": 26,
+      "reason": "placeholder-or-label",
+      "record_id": "k10plus:618088792",
+      "sha256": "c5d2e2bf201864455dae82655f75b5b3b924c9f7f0e5d806fd67ba0777cceff9",
+      "source": "k10plus",
+      "words": 4
+    }
+  ]
+}

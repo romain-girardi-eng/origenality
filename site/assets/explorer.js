@@ -1,23 +1,30 @@
 /* Origenality — Explorer, direction C.
    Clusters drawn as dust on a cream field. One publication is one gaussian
-   of grains from the pragma-cloud particle engine. Language tints the grain.
+   of grains from the earlier personal-graph particle engine. Language tints the grain.
    Named from the controlled vocabulary: theme domains and their leaves, or
    the works of Origen. Romain Girardi, 2026. */
-import { createDustField } from './dust-field.js';
+import { createDustField } from './dust-field.js?v=497d3748';
 
 (function () {
   'use strict';
 
   var RM = matchMedia('(prefers-reduced-motion: reduce)').matches;
   var MOBILE = matchMedia('(max-width:760px)').matches;
+  // The build this page shows is read from the data layer at load (buildIdOf),
+  // never typed here: the citation, the b= key of a link and the line that says
+  // a link was made on another build all follow the data the page reads.
+  var DATA_VERSION = null, META = null;
+  // references (BibTeX, RIS, CSL-JSON, COinS): cite.js, a classic script loaded
+  // before this module, required as it is by scripts/test_cite_export.mjs
+  var CITE = (typeof OrigenalityCite !== 'undefined') ? OrigenalityCite : null;
 
   /* ------------------------------------------------------------------ palette */
   var LANGS = [
-    { code: 'eng', label: 'English', col: '#1F5674' },
-    { code: 'ger', label: 'German', col: '#A8371F' },
-    { code: 'ita', label: 'Italian', col: '#8A6A12' },
-    { code: 'fre', label: 'French', col: '#4F7350' },
-    { code: 'spa', label: 'Spanish', col: '#B15A17' },
+    { code: 'en', label: 'English', col: '#1F5674' },
+    { code: 'de', label: 'German', col: '#A8371F' },
+    { code: 'it', label: 'Italian', col: '#8A6A12' },
+    { code: 'fr', label: 'French', col: '#4F7350' },
+    { code: 'es', label: 'Spanish', col: '#B15A17' },
     { code: 'oth', label: 'Other or none', col: '#78766F' }
   ];
   var LCOL = {}, LLAB = {};
@@ -52,7 +59,9 @@ import { createDustField } from './dust-field.js';
   var SRC_NAME = {
     'ixtheo-k10plus': 'IxTheo', 'openalex': 'OpenAlex', 'crossref': 'Crossref',
     'semanticscholar': 'Semantic Scholar', 'bibp': 'BIBP', 'adamantius-girota': 'Adamantius',
-    'isidore': 'ISIDORE', 'thesesfr': 'theses.fr', 'dialnet': 'Dialnet', 'sbn': 'SBN'
+    'isidore': 'ISIDORE', 'thesesfr': 'theses.fr', 'dialnet': 'Dialnet', 'sbn': 'SBN',
+    'gnomon-gbd': 'Gnomon', 'k10plus': 'K10plus', 'sudoc': 'Sudoc', 'b3kat': 'B3Kat',
+    'dnb': 'DNB', 'loc': 'Library of Congress', 'bnf': 'BnF'
   };
   function sourceName(key) {
     if (SRC_NAME[key]) return SRC_NAME[key];
@@ -64,14 +73,6 @@ import { createDustField } from './dust-field.js';
     return ['de', 'fr', 'it'].map(function (k) { return entry.labels[k]; })
       .filter(Boolean).join(' · ');
   }
-  // Every spelling a reader may type for the same heading. The vocabulary
-  // files carry them and the build now serves them, so "Contre Celse" and
-  // "Gegen Kelsos" reach the records that "Contra Celsum" already reached.
-  function aliasLine(entry) {
-    if (!entry || !entry.aliases || !entry.aliases.length) return '';
-    return entry.aliases.join(' · ');
-  }
-
   /* ------------------------------------------------------------------ state */
   var DATA = null, WEIGHTS = null, SEM = null, ABS = null;
   // beyond this many characters a summary is folded to four lines, with a
@@ -92,11 +93,39 @@ import { createDustField } from './dust-field.js';
   var sel = null, hover = null, selPub = null, hoverPub = null, query = '';
   var wizAns = { work: [], approach: [], decade: [], lang: [] };
   var matched = null;                     // Set of publication indices, or null for "everything"
+  var shelfOnly = null;                   // Set of indices reached only through a heading
   var matchLabel = '', hitDepth = 0, tokCount = 0;
   // What the answer really is, kept apart from what the relaxation returns.
   // fullHit: records that carry EVERY term. absentToks: terms that appear
   // nowhere in the corpus. relaxed: the answer on screen is not the answer asked.
   var fullHit = 0, absentToks = [], relaxed = false, vocabHit = 0, vocabLabel = '';
+  // fullHitCounted: the same, counted. absentFiltered: terms present in the
+  // corpus but in none of the records the filters leave. vocabHitCounted: the
+  // heading figure, counted. queryProblem: why the text was not searched.
+  var fullHitCounted = 0, absentFiltered = [], vocabHitCounted = 0, queryProblem = '';
+  // IDX: the shared index. LAST: the engine's last result, RANK its reading
+  // order by record index. scopeDens: counted records the questions leave.
+  var IDX = null, LAST = null, RANK = null, scopeDens = 0;
+  // VIEW: what the open panel shows (see renderPanel), read by the citation
+  // and by any later surface that works on the current view.
+  var VIEW = null;
+  // CMP: the query the decade strip sets beside the view (cmp= in the address).
+  // STRIP: the rows the strip shows, which the SVG and the CSV are written from.
+  var CMP = '', STRIP = null;
+  // selAuthor: the author node whose records the panel lists (a= in the address);
+  // shownAuthor: the author of the view on screen, from a click or an author: query.
+  // AUTHORS: the author nodes of graph.json and the records their edges reach.
+  var selAuthor = null, shownAuthor = null, AUTHORS = null;
+  // linkBuild: the build a restored link was made on, when it is not this one
+  var linkBuild = null;
+  // headings: what the index holds of each record's subject headings and
+  // container. 'loading' until data/cite.json is read after the first render,
+  // 'complete' once it is, 'failed' when it cannot be read: the index then holds
+  // only the headings graph.json keeps. absentPartial: the terms a partial index
+  // did not find, which no surface calls absent.
+  var headings = 'loading', absentPartial = [];
+  // stateText: the state line as the answer writes it, before the build note
+  var stateText = '';
   var cam = { s: 1, x: 0, y: 0 }, tcam = { s: 1, x: 0, y: 0 };
   var tweenT0 = 0, tweenMs = 0, animating = false;
 
@@ -151,16 +180,46 @@ import { createDustField } from './dust-field.js';
   }
 
   /* ------------------------------------------------------------------ load */
-  Promise.all([
-    fetch('../data/graph.json').then(function (r) { return r.json(); }),
-    fetch('assets/weights.json').then(function (r) { return r.json(); }).catch(function () { return null; }),
-    fetch('assets/semantic.json').then(function (r) { return r.json(); }),
-    // the summaries: a record reads better with one, and the reader who
-    // searches expects their words to count. Missing, the map still works.
-    fetch('../data/abstracts.json').then(function (r) { return r.json(); }).catch(function () { return null; })
-  ]).then(function (r) {
-    WEIGHTS = r[1]; SEM = r[2]; ABS = r[3]; build(r[0]);
-  }).catch(function (e) {
+  // The build identifier: the day the data layer was generated, as yyyymmdd, a
+  // hyphen, and the number of work clusters it holds; the form the links made
+  // since 24 August carry. BUILD.json and META.json hold no identifier of their own;
+  // META.json holds both parts, and graph.json holds the same two.
+  function buildIdOf(meta) {
+    if (!meta || !/^\d{4}-\d{2}-\d{2}$/.test(String(meta.generated || ''))) return null;
+    var n = Number(meta.records);
+    if (!(n > 0) || Math.floor(n) !== n) return null;
+    return meta.generated.replace(/-/g, '') + '-' + n;
+  }
+  function versioned(url) { return DATA_VERSION ? url + '?v=' + DATA_VERSION : url; }
+  // META.json is small and revalidated on every visit; its build then keys the
+  // cache of the larger files, so a new build is never served from an old copy
+  fetch('../data/META.json', { cache: 'no-cache' })
+    .then(function (r) { return r.ok ? r.json() : null; })
+    .catch(function () { return null; })
+    .then(function (meta) {
+      META = meta;
+      DATA_VERSION = buildIdOf(meta);
+      var opt = DATA_VERSION ? {} : { cache: 'no-cache' };
+      return Promise.all([
+        fetch(versioned('../data/graph.json'), opt).then(function (r) { return r.json(); }),
+        fetch(versioned('assets/weights.json'), opt).then(function (r) { return r.json(); }).catch(function () { return null; }),
+        fetch(versioned('assets/semantic.json'), opt).then(function (r) { return r.json(); }),
+        // the summaries: a record reads better with one, and the reader who
+        // searches expects their words to count. Missing, the map still works.
+        fetch(versioned('../data/abstracts.json'), opt).then(function (r) { return r.json(); }).catch(function () { return null; })
+      ]);
+    }).then(function (r) {
+      WEIGHTS = r[1]; SEM = r[2]; ABS = r[3];
+      // META.json unread: the graph gives the day and the records itself
+      if (!DATA_VERSION) {
+        DATA_VERSION = buildIdOf({
+          generated: r[0].generated,
+          records: (r[0].nodes || []).filter(function (n) { return n && n.k === 'pub'; }).length
+        });
+      }
+      build(r[0]);
+      completeIndex();
+    }).catch(function (e) {
     document.getElementById('ask-state').textContent = 'The map could not be loaded.';
     console.error(e);
   });
@@ -168,74 +227,69 @@ import { createDustField } from './dust-field.js';
   /* ------------------------------------------------------------------ model */
   function build(g) {
     DATA = g;
-    var N = g.nodes, E = g.edges;
-
-    var pubSub = [], pubAut = [], pubIn = [];
-    for (var i = 0; i < N.length; i++) { pubSub.push(null); pubAut.push(null); pubIn.push(null); }
-    E.forEach(function (e) {
-      if (e.r === 'sub') { (pubSub[e.s] || (pubSub[e.s] = [])).push(e.t); }
-      else if (e.r === 'aut') { (pubAut[e.s] || (pubAut[e.s] = [])).push(e.t); }
-      else { (pubIn[e.s] || (pubIn[e.s] = [])).push(e.t); }
-    });
-
-    N.forEach(function (n, i) {
-      if (n.k !== 'pub') return;
-      var subs = pubSub[i] || [], auts = pubAut[i] || [], cont = (pubIn[i] || [])[0];
-      var subLabels = subs.map(function (t) { return N[t].label; });
-      var autLabels = auts.map(function (t) { return N[t].label; });
-      var wr = (WEIGHTS && WEIGHTS.w && WEIGHTS.w[n.ppn]) || null;
+    // The one index, built by search-core.js for the page and for the CLI alike.
+    // `lang` and `rawlang` keep the catalogue's code, the value the lang: filter
+    // compares; the page adds `lkey`, the colour and legend key, and the fields
+    // it draws with (weight, tier, disc radius, grains).
+    IDX = CORE.buildIndex(g, SEM, ABS);
+    PUBS = IDX.records;
+    RECORD_KEYS = null;
+    AUTHORS = null;
+    PUBS.forEach(function (p) {
+      p.lkey = lkey(p.rawlang);
+      var wr = (WEIGHTS && WEIGHTS.w && WEIGHTS.w[p.ppn]) || null;
       var wv = wr ? wr.w : 0.5;
       var tier = 0;
       while (tier < TIER_CUT.length && wv > TIER_CUT[tier]) tier++;
-
-      var tag = (SEM.byPpn && SEM.byPpn[n.ppn]) || { r: 'none' };
-      var themes = (tag.t || []).filter(function (t) { return SEM.themes[t]; });
-      var works = (tag.w || []).filter(function (w) { return SEM.works[w] && w !== 'unspecified'; });
-      var appr = (tag.a || []).filter(function (a) { return SEM.approaches[a]; });
-      var doms = [], seenDom = {};
-      themes.forEach(function (t) {
-        var d = SEM.themes[t].domain;
-        if (!seenDom[d]) { seenDom[d] = 1; doms.push(d); }
-      });
-
-      // Two indexes, not one. `semWords` holds what a record is ABOUT closely
-      // enough to answer a free-text search: its themes. The controlled
-      // vocabulary — the domain a theme belongs to, the work, the approach —
-      // goes to `vocabWords`, matched as a whole phrase and counted in its own
-      // channel. Folding a domain label into the free-text index made
-      // "prière", "Gebet", "Martyrium" and "vie ascétique" return the same 156
-      // records, because they are all spellings of one domain label.
-      var semWords = [], vocabWords = [];
-      themes.forEach(function (t) { semWords.push(SEM.themes[t].label, altLine(SEM.themes[t])); });
-      themes.forEach(function (t) { vocabWords.push(SEM.themes[t].label, altLine(SEM.themes[t]), aliasLine(SEM.themes[t])); });
-      doms.forEach(function (d) { vocabWords.push(SEM.domains[d].label, altLine(SEM.domains[d]), aliasLine(SEM.domains[d])); });
-      works.forEach(function (w) { vocabWords.push(SEM.works[w].label, altLine(SEM.works[w]), aliasLine(SEM.works[w])); });
-      appr.forEach(function (a) { vocabWords.push(SEM.approaches[a].label, altLine(SEM.approaches[a]), aliasLine(SEM.approaches[a])); });
-
-      var ab = (ABS && ABS.byPpn && ABS.byPpn[n.ppn]) || null;
-
-      PUBS.push({
-        i: PUBS.length, title: n.title, year: n.year, lang: lkey(n.lang), rawlang: n.lang || '',
-        w: wv, tier: tier, r: TIERS[tier], wr: wr,
-        type: n.type, ppn: n.ppn, doi: n.doi || '',
-        url: n.url || '', src: (n.src && n.src[0]) || '',
-        publisher: n.pub || '', isbn: n.isbn || '',
-        authors: autLabels, container: cont != null ? N[cont].label : '',
-        rel: tag.r || 'none', review: !!tag.n,
-        themes: themes, doms: doms, works: works, appr: appr,
-        dens: tag.r === 'core' || tag.r === 'partial',
-        o: {}, lobeName: null, ab: ab,
-        hay: norm([n.title, autLabels.join(' '), subLabels.join(' '), cont != null ? N[cont].label : '',
-          n.year || '', LLAB[lkey(n.lang)], semWords.join(' '), ab ? ab.t : ''].join(' ')),
-        vocab: norm(vocabWords.join(' · '))
-      });
-      attachGrains(PUBS[PUBS.length - 1]);
+      p.w = wv; p.tier = tier; p.r = TIERS[tier]; p.wr = wr;
+      p.o = {}; p.lobeName = null;
+      attachGrains(p);
     });
 
     buildMode('theme');
     useMode('theme', false);
     boot();
     invalidate();
+  }
+
+  /* Every subject heading and container of a record, read after the first
+     render. graph.json keeps a heading only when three records share it and a
+     container only when five do; until data/cite.json is read the index holds
+     those alone, the state line says so, and no term is called absent. The CLI
+     reads the same file before it answers, through the same applyCite. */
+  var citeAsked = null;
+  function readCiteFile() {
+    if (!citeAsked) {
+      citeAsked = fetch(versioned('../data/cite.json')).then(function (r) {
+        if (!r.ok) throw new Error('cite.json answered ' + r.status);
+        return r.json();
+      });
+    }
+    return citeAsked;
+  }
+  function completeIndex() {
+    readCiteFile().then(function (json) {
+      CORE.applyCite(IDX, json);
+      headings = IDX.fields === 'complete' ? 'complete' : 'failed';
+    }, function (err) {
+      headings = 'failed';
+      console.warn('Explorer search: ' + err.message + '; only the headings graph.json keeps are searched');
+    }).then(refreshAnswer);
+  }
+  // the answer on screen, counted again on the completed index; the field is
+  // laid out again only when the records it answers with have changed
+  function refreshAnswer() {
+    if (!CLUSTERS.length) return;
+    var open = panel.classList.contains('open');
+    var had = document.activeElement;
+    var inside = open && !!had && had !== panel && panel.contains(had);
+    if (matched || queryProblem || !CORE.queryIsBlank(query)) applyMatch(false, true);
+    if (open && VIEW) {
+      renderPanel();
+      // only a control inside the panel that the redraw took away hands the
+      // focus on; the panel itself, or a field outside it, keeps it
+      if (inside && !document.contains(had)) focusPanelHead();
+    }
   }
 
   /* ------------------------------------------------------------------ grouping */
@@ -307,7 +361,7 @@ import { createDustField } from './dust-field.js';
         // the language mix breaks down the figure the card prints, not the
         // wider set the cluster holds: the reservoir of records held aside
         // shows its own, everything else shows the counted records
-        if (p.dens || c.id === OFF) c.mix[p.lang] = (c.mix[p.lang] || 0) + 1;
+        if (p.dens || c.id === OFF) c.mix[p.lkey] = (c.mix[p.lkey] || 0) + 1;
         if (p.dens) c.dens++;
       });
     });
@@ -731,7 +785,7 @@ import { createDustField } from './dust-field.js';
     });
 
     out.lang = LANGS.map(function (l) {
-      return option(l.code, l.label, function (p) { return p.lang === l.code; });
+      return option(l.code, l.label, function (p) { return p.lkey === l.code; });
     }).filter(function (o) { return o.n > 0; });
 
     return out;
@@ -750,8 +804,6 @@ import { createDustField } from './dust-field.js';
   }
 
   /* ------------------------------------------------------------------ filtering */
-  var tokens = CORE.tokens;
-
   function chosen(kind) {
     return wizAns[kind].map(function (id) {
       for (var i = 0; i < OPTS[kind].length; i++) if (OPTS[kind][i].id === id) return OPTS[kind][i];
@@ -759,21 +811,27 @@ import { createDustField } from './dust-field.js';
     }).filter(Boolean);
   }
 
-  // A term matches at a word start, not anywhere inside a word. Without this,
-  // "rome" answered with the Jerome bibliography (jerome, 227 records), and
-  // "man" returned 834 records — half the corpus — because the language label
-  // "german" is indexed.
-  function computeMatch() {
+  // A query the engine could not evaluate is said in words and never drawn as a
+  // zero: an unknown field, an invalid year, a quotation mark left open, or text
+  // with no searchable word in it.
+  function problemLine(r) {
+    if (r.invalid) {
+      return 'The query was not searched. ' + r.errors.map(function (e) { return e.message; }).join(' ');
+    }
+    return 'Nothing was searched: words under three letters and common words are left out' +
+      (r.droppedTerms.length ? ' (here: ' + r.droppedTerms.join(', ') + ')' : '') + '.';
+  }
+
+  // The four questions filter conjunctively, before anything textual. The
+  // search runs under this restriction, and so does a query the decade strip
+  // compares, so that both count what the search field would count.
+  function answersKeep() {
     var picked = {}, anyPick = false;
     QUESTIONS.forEach(function (q) {
       picked[q.kind] = chosen(q.kind);
       if (picked[q.kind].length) anyPick = true;
     });
-    fullHit = 0; absentToks = []; relaxed = false; vocabHit = 0; vocabLabel = '';
-    if (!tokens(query).length && !anyPick) { matched = null; matchLabel = ''; return; }
-
-    // The four questions filter conjunctively, before anything textual.
-    var keep = anyPick ? function (p) {
+    return anyPick ? function (p) {
       for (var k = 0; k < QUESTIONS.length; k++) {
         var opts = picked[QUESTIONS[k].kind];
         if (!opts.length) continue;
@@ -783,113 +841,245 @@ import { createDustField } from './dust-field.js';
       }
       return true;
     } : null;
+  }
 
-    var r = CORE.search(PUBS, query, { keep: keep });
+  function computeMatch() {
+    var picked = {}, anyPick = false;
+    QUESTIONS.forEach(function (q) {
+      picked[q.kind] = chosen(q.kind);
+      if (picked[q.kind].length) anyPick = true;
+    });
+    fullHit = 0; fullHitCounted = 0; absentToks = []; absentFiltered = []; absentPartial = []; relaxed = false;
+    vocabHit = 0; vocabHitCounted = 0; vocabLabel = ''; tokCount = 0; hitDepth = 0;
+    queryProblem = ''; LAST = null; RANK = null; scopeDens = 0;
+    // blank is decided by the engine's own parser: `l:fr`, `foo:bar` and `PG`
+    // all reach it, and come back as an answer or as a reported problem
+    var blank = CORE.queryIsBlank(query);
+    if (blank && !anyPick) { matched = null; shelfOnly = null; matchLabel = ''; return; }
+
+    var keep = answersKeep();
+
+    var r = CORE.search(IDX, query, { keep: keep });
+    var textSearched = !blank;
+    if (r.invalid || r.normalisedEmpty) {
+      queryProblem = problemLine(r) +
+        (anyPick ? ' The map shows your answers to the four questions without it.' : '');
+      textSearched = false;
+      if (!anyPick) { matched = null; shelfOnly = null; matchLabel = ''; return; }
+      r = CORE.search(IDX, '', { keep: keep });
+    }
+    LAST = r;
     matched = r.matched;
+    shelfOnly = r.vocabOnly;
     fullHit = r.fullHit;
+    fullHitCounted = r.fullHitCounted;
     absentToks = r.absentTerms;
+    absentFiltered = r.absentUnderFilters;
+    absentPartial = r.absentFromPartialIndex || [];
     relaxed = r.relaxed;
     hitDepth = r.hitDepth;
     tokCount = r.terms.length;
     vocabHit = r.vocabHit;
+    vocabHitCounted = r.vocabHitCounted;
     vocabLabel = r.heading;
-    window.__scores = r.scores;
-    window.__vocabOnly = r.vocabOnly;
+    RANK = {};
+    r.order.forEach(function (i, at) { RANK[i] = at; });
+    PUBS.forEach(function (p) { if (counts(p) && (!keep || keep(p))) scopeDens++; });
 
     var bits = [];
-    if (query.trim()) bits.push('\u201c' + query.trim() + '\u201d');
+    if (textSearched && query.trim()) bits.push('“' + query.trim() + '”');
     QUESTIONS.forEach(function (q) {
       if (picked[q.kind].length) {
         bits.push(picked[q.kind].map(function (o) { return o.label; }).join(', '));
       }
     });
-    matchLabel = bits.join(' \u00b7 ');
+    matchLabel = bits.join(' · ');
+  }
+
+  function quoteTerms(terms) {
+    return terms.map(function (x) { return '“' + x + '”'; }).join(', ');
+  }
+  function absentPhrase(terms, where) {
+    return quoteTerms(terms) + (terms.length === 1 ? ' appears' : ' appear') + ' in none of ' + where;
+  }
+  // the fields a term was looked for in, as the engine names them
+  function fieldsSearched() {
+    return CORE.searchedFields(IDX).join(', ');
+  }
+  // While the subject headings of each record are loading, or when they could
+  // not be read, a count may be short and a term not found is not called absent.
+  function partialPhrase(terms) {
+    var are = terms.length === 1 ? ' is' : ' are';
+    if (headings === 'loading') return quoteTerms(terms) + are + ' not found yet: the subject headings of each record are still loading';
+    return quoteTerms(terms) + are + ' not found, and not called absent: the subject headings of each record could not be read';
+  }
+  function headingsNote(r) {
+    if (headings === 'complete' || !r || r.invalid) return '';
+    var free = r.terms.length || r.phrases.length || r.exclude.length || r.excludePhrases.length ||
+      r.filters.some(function (f) { return f.field === 'container'; });
+    if (!free) return '';
+    if (absentPartial.length) return ' · ' + partialPhrase(absentPartial);
+    if (headings === 'loading') return ' · the subject headings of each record are still loading, so this count may rise';
+    var t = (IDX && IDX.thresholds && IDX.thresholds.subject_min_publications) || 'several';
+    return ' · the subject headings of each record could not be read: only headings ' + t +
+      ' or more records share were searched';
   }
 
   // One sentence, and it must survive a reader who checks it. The order is:
-  // what your terms actually answer, then the denominator, then what was
-  // widened, then what a language filter is hiding.
-  function stateLine(hit, extra, hidden, total) {
-    var out;
+  // what your terms actually answer, counted, then the denominator, then what
+  // was widened, then what a filter or a language toggle is hiding.
+  function stateLine(t, total) {
+    var hit = t.hit, extra = t.mention + t.aside, out;
     if (tokCount > 1 && relaxed) {
-      if (!fullHit) {
-        out = 'No study carries all ' + tokCount + ' of your terms';
-        if (absentToks.length) {
-          out += ' \u2014 ' + absentToks.map(function (t) { return '\u201c' + t + '\u201d'; }).join(', ')
-               + (absentToks.length === 1 ? ' appears' : ' appear')
-               + ' in none of the ' + nf(PUBS.length) + ' records';
-        }
-        out += '. Widened to ' + hitDepth + ' of ' + tokCount + ': ' + nf(hit) + ' listed';
-      } else {
-        out = nf(fullHit) + (fullHit === 1 ? ' study carries' : ' studies carry')
-            + ' all ' + tokCount + ' of your terms'
-            + ' \u00b7 widened to ' + hitDepth + ' of ' + tokCount + ': ' + nf(hit);
-      }
+      // the question asked is every term at once: that count leads, and the
+      // widened list is named second, as a list
+      out = t.full
+        ? nf(t.full) + (t.full === 1 ? ' counted work carries' : ' counted works carry') +
+          ' all ' + tokCount + ' of your terms'
+        : 'No counted work carries all ' + tokCount + ' of your terms';
+      if (absentToks.length) out += ': ' + absentPhrase(absentToks, 'the ' + nf(PUBS.length) + ' records');
+      out += ' · widened to ' + hitDepth + ' of ' + tokCount + ': ' + nf(hit) + ' counted';
     } else if (!hit && vocabHit) {
-      // The reader named a shelf rather than a phrase: the shelf IS the answer.
-      out = nf(vocabHit) + (vocabHit === 1 ? ' work is filed under \u201c' : ' works are filed under \u201c')
-          + vocabLabel + '\u201d';
-      if (total) out += ', of ' + nf(total);
-      out += ' \u00b7 none names it in so many words';
-      if (extra) out += ' \u00b7 ' + nf(extra) + ' more listed';
-      if (hidden) out += ' \u00b7 ' + nf(hidden) + ' hidden by the language filter';
+      // The reader named a shelf rather than a phrase: the shelf IS the answer,
+      // counted like every other figure
+      out = vocabHitCounted
+        ? nf(vocabHitCounted) + (vocabHitCounted === 1 ? ' work is filed under “' : ' works are filed under “') +
+          vocabLabel + '”' + (total ? ', of ' + nf(total) : '') + ' · none names it in so many words'
+        : 'No counted work is filed under “' + vocabLabel + '”';
+      extra += t.shelf - t.shelfCounted;
+      if (extra) out += ' · ' + nf(extra) + ' more listed, mentioned only or held aside';
+      if (t.hidden) out += ' · ' + nf(t.hidden) + ' hidden by the language filter';
       return out;
     } else {
       out = nf(hit) + (hit === 1 ? ' work matches' : ' works match');
       if (total && hit) out += ' of ' + nf(total);
+      if (!hit && !t.shelf && absentToks.length) {
+        out += ': ' + absentPhrase(absentToks, 'the ' + nf(PUBS.length) + ' records');
+      }
     }
-    if (vocabHit && vocabLabel) {
-      out += ' \u00b7 ' + nf(vocabHit) + ' filed under the heading \u201c' + vocabLabel + '\u201d';
+    if (vocabHitCounted && vocabLabel) {
+      out += ' · ' + nf(vocabHitCounted) + ' filed under the heading “' + vocabLabel + '”';
     }
-    if (extra) out += ' \u00b7 ' + nf(extra) + ' more listed, mentioned only or held aside';
-    if (hidden) out += ' \u00b7 ' + nf(hidden) + ' hidden by the language filter';
+    if (absentFiltered.length) out += ' · ' + absentPhrase(absentFiltered, 'the records your filters leave');
+    if (extra) out += ' · ' + nf(extra) + ' more listed, mentioned only or held aside';
+    if (t.hidden) out += ' · ' + nf(t.hidden) + ' hidden by the language filter';
     return out;
   }
 
-  function visiblePub(p) { return !langOff[p.lang]; }
+  function visiblePub(p) { return !langOff[p.lkey]; }
 
-  function applyMatch(openPanel) {
+  // The figures of one answer, computed once for the state line and for the
+  // panel, so that the two cannot print different numbers. A record hidden by
+  // the language filter is set apart first; a record reached only through a
+  // heading (`shelf`) is listed and enters neither figure, as in search-core.js.
+  // With several terms, `full` counts the counted records carrying all of them.
+  function tallyMatch(list, shelf, scores, terms) {
+    var t = { hit: 0, full: 0, mention: 0, aside: 0, shelf: 0, shelfCounted: 0, hidden: 0 };
+    list.forEach(function (p) {
+      if (!visiblePub(p)) { t.hidden++; return; }
+      if (shelf && shelf.has(p.i)) { t.shelf++; if (counts(p)) t.shelfCounted++; return; }
+      if (counts(p)) {
+        t.hit++;
+        if (terms > 1 && scores && (scores[p.i] || 0) >= terms) t.full++;
+      } else if (p.rel === 'none') t.aside++;
+      else t.mention++;
+    });
+    return t;
+  }
+
+  // The records a headline counts, out of the records a view lists (`list`,
+  // tallied as `t`) for the engine result `r` (null for the map at rest): the
+  // counted records, less those reached only through a heading; with several
+  // terms, those carrying every term; for a query that names a heading and no
+  // word of it, the counted records filed under that heading. A cluster is never
+  // answered by a heading, and the reservoir held aside counts nothing.
+  function headlineRecords(list, t, r, inCluster, held) {
+    if (held) return [];
+    var k = r ? r.terms.length : 0, shelf = r ? r.vocabOnly : null, scores = r ? r.scores : null;
+    var conj = !!r && k > 1;
+    var shelfAnswer = !inCluster && !!r && !t.hit && t.shelf > 0 && r.vocabHitCounted > 0;
+    return list.filter(function (p) {
+      if (!counts(p)) return false;
+      if (shelfAnswer) return shelf.has(p.i);
+      if (shelf && shelf.has(p.i)) return false;
+      return !conj || (scores[p.i] || 0) >= k;
+    });
+  }
+
+  function sameMatch(a, b) {
+    if (!a || !b) return a === b;
+    if (a.size !== b.size) return false;
+    var same = true;
+    a.forEach(function (i) { if (!b.has(i)) same = false; });
+    return same;
+  }
+  // quiet: a recount of the same question (the index completed); the field
+  // keeps its layout when the records answering have not changed
+  function applyMatch(openPanel, quiet) {
+    var before = matched;
     computeMatch();
+    var still = !!quiet && sameMatch(before, matched);
     CLUSTERS.forEach(function (c) {
       c.mn = 0; c.mdens = 0;
       if (!matched) { c.mn = c.n; c.mdens = c.dens; return; }
       c.pubs.forEach(function (p) {
-        if (matched.has(p.i)) { c.mn++; if (p.dens) c.mdens++; }
+        if (!matched.has(p.i)) return;
+        c.mn++;
+        if (p.dens && !shelfOnly.has(p.i)) c.mdens++;
       });
     });
-    var live = new Set();
-    if (matched) {
-      CLUSTERS.forEach(function (c) {
-        if (c.mn > 0) live.add(c.k);
-        packMatched(c);
-      });
-      layoutFocus(live);
-      CLUSTERS.forEach(function (c) { c.ta = (c.mn > 0 && !isFolded(c)) ? 1 : 0; });
-    } else {
-      CLUSTERS.forEach(function (c) {
-        c.tx = c.bx; c.ty = c.by; c.ta = isFolded(c) ? 0 : 1; c.mr = c.r;
-        c.pubs.forEach(function (p) { p.tox = p.ox; p.toy = p.oy; });
-      });
+    if (!still) {
+      var live = new Set();
+      if (matched) {
+        CLUSTERS.forEach(function (c) {
+          if (c.mn > 0) live.add(c.k);
+          packMatched(c);
+        });
+        layoutFocus(live);
+        CLUSTERS.forEach(function (c) { c.ta = (c.mn > 0 && !isFolded(c)) ? 1 : 0; });
+      } else {
+        CLUSTERS.forEach(function (c) {
+          c.tx = c.bx; c.ty = c.by; c.ta = isFolded(c) ? 0 : 1; c.mr = c.r;
+          c.pubs.forEach(function (p) { p.tox = p.ox; p.toy = p.oy; });
+        });
+      }
+      startTween(RM ? 1 : 780);
+      fitView();
     }
-    startTween(RM ? 1 : 780);
-    fitView();
     // The state line says what was asked before it says what was found, gives
     // the denominator, and never passes a widened set off as the answer.
-    var hit = 0, extra = 0, hidden = 0, total = 0;
+    var state = '';
     if (matched) {
-      PUBS.forEach(function (p) {
-        if (counts(p)) total++;
-        if (!matched.has(p.i)) return;
-        if (!visiblePub(p)) { hidden++; return; }
-        if (window.__vocabOnly && window.__vocabOnly.has(p.i)) return;
-        if (counts(p)) hit++; else extra++;
-      });
+      var total = 0;
+      PUBS.forEach(function (p) { if (counts(p)) total++; });
+      var t = tallyMatch(PUBS.filter(function (p) { return matched.has(p.i); }), shelfOnly,
+        LAST ? LAST.scores : null, tokCount);
+      state = stateLine(t, total) + headingsNote(LAST);
     }
-    document.getElementById('ask-state').textContent = matched
-      ? stateLine(hit, extra, hidden, total)
-      : '';
+    if (queryProblem) state = queryProblem + (state ? ' ' + state : '');
+    stateText = state;
+    renderState();
     renderHeld();
-    if (openPanel) { sel = null; renderPanel(); }
+    if (openPanel) {
+      // a refused query has no neighbourhood to show: the state line says why
+      if (queryProblem && !matched) closePanel();
+      else { sel = null; selPub = null; selAuthor = null; renderPanel(); }
+    }
+    syncHash(false);
+  }
+
+  function renderState() {
+    document.getElementById('ask-state').textContent = linkBuild
+      ? buildNote() + (stateText ? ' ' + stateText : '') : stateText;
+  }
+  // A link made on another build is noted until the reader moves on from the
+  // view it opened; a view replayed from an address keeps the note.
+  function userMoved() {
+    if (restoring || !linkBuild) return;
+    linkBuild = null;
+    renderState();
+    var note = panel.querySelector('.cite-note');
+    if (note) note.remove();
   }
 
   /* ------------------------------------------------------------------ reservoirs */
@@ -927,6 +1117,7 @@ import { createDustField } from './dust-field.js';
       b.title = (c.alt || '') + (on ? ' Drawn on the map.' : ' Click to draw it on the map.');
       b.innerHTML = esc(c.label) + '<span class="n">' + clusterCount(c).text + '</span>';
       b.addEventListener('click', function () {
+        userMoved();
         var show = isFolded(c);
         folded[c.id] = !show;
         applyMatch(false);
@@ -1080,7 +1271,7 @@ import { createDustField } from './dust-field.js';
           x: c.px + ox,
           y: c.py + oy,
           r: p.r,
-          lang: lkey(p.lang),
+          lang: p.lkey,
           weight: p.tier + 1
         });
       });
@@ -1184,7 +1375,7 @@ import { createDustField } from './dust-field.js';
     ctx.globalAlpha = 1;
   }
   function paintUnit(p, x, y, r, a, grainN, lit) {
-    var col = LCOL[p.lang] || LCOL.oth;
+    var col = LCOL[p.lkey] || LCOL.oth;
     if (!grainN || r < 6) {
       stampPuff(col, x, y, r, a * (lit ? 0.95 : 0.72));
       return;
@@ -1213,11 +1404,10 @@ import { createDustField } from './dust-field.js';
   }
 
   /* ---------------------------------------------------------- naming the clouds */
-  /* Names are set by repulsion. Each name is pushed away from every cloud, from
-     the furniture of the page and from the names already set; it takes the first
-     free slot on a ring that grows outward, the widest clouds choosing first. A
-     name that had to leave its cloud keeps a hairline back to it. Nothing is
-     dropped: if no free slot exists the least crowded one is used. */
+  /* A cloud's name is a tag set on the centroid of its visible works, the
+     largest clouds first; a tag that would sit on the furniture of the page or
+     on a tag already set is not drawn (drawClusterTags). Leaf names follow the
+     same rule inside their own domain (drawLobeLabels). */
   var chromeBoxes = [], chromeAt = -1e9;
   var CHROME_SEL = ['.bar', '.ask-field', '.ask-alt', '.wiz.open', '.legend-wrap',
     '.controls', '.panel.open'];
@@ -1240,236 +1430,7 @@ import { createDustField } from './dust-field.js';
     var dx = d.x - nx, dy = d.y - ny;
     return dx * dx + dy * dy < d.r * d.r;
   }
-  // the shortest push that separates two boxes, or null when they are apart
-  function boxPush(a, b) {
-    var ox = Math.min(a.x + a.w, b.x + b.w) - Math.max(a.x, b.x);
-    if (ox <= 0) return null;
-    var oy = Math.min(a.y + a.h, b.y + b.h) - Math.max(a.y, b.y);
-    if (oy <= 0) return null;
-    var cx = (a.x + a.w / 2) - (b.x + b.w / 2), cy = (a.y + a.h / 2) - (b.y + b.h / 2);
-    if (ox < oy) return [(cx < 0 ? -ox : ox), 0];
-    return [0, (cy < 0 ? -oy : oy)];
-  }
-  // the shortest push that clears a box from a disc
-  function discPush(b, d) {
-    var nx = Math.max(b.x, Math.min(d.x, b.x + b.w));
-    var ny = Math.max(b.y, Math.min(d.y, b.y + b.h));
-    var dx = nx - d.x, dy = ny - d.y, dist = Math.hypot(dx, dy);
-    if (dist >= d.r) return null;
-    if (dist < 0.001) {
-      var cx = (b.x + b.w / 2) - d.x, cy = (b.y + b.h / 2) - d.y;
-      var m = Math.hypot(cx, cy) || 1;
-      return [cx / m * d.r, cy / m * d.r];
-    }
-    var k = (d.r - dist) / dist;
-    return [dx * k, dy * k];
-  }
-
-  /* The repair pass: every name that the ring search could not seat is put at
-     its preferred place, and the whole set is then relaxed — names push each
-     other, push off the clouds and off the furniture, and each one is pulled
-     back toward its own cloud. What still sits on something at the end is left
-     to the tap on a narrow screen, and drawn anyway on a wide one. */
-  function relaxLabels(items, discs, chrome) {
-    var i, j, p, PASSES = 150;
-    for (var pass = 0; pass < PASSES; pass++) {
-      // the pull toward the cloud eases off, so the last passes only separate
-      var pull = pass < PASSES - 40 ? 0.055 : 0;
-      // once the pull is off, the pushes work on a slightly grown box, so what
-      // settles keeps a real gap rather than resting exactly on contact
-      var pad = pull ? 0 : 1.6;
-      var moved = 0;
-      for (i = 0; i < items.length; i++) {
-        var a = items[i];
-        var ab = pad ? { x: a.box.x - pad, y: a.box.y - pad, w: a.box.w + 2 * pad, h: a.box.h + 2 * pad }
-          : a.box;
-        for (j = 0; j < items.length; j++) {
-          if (j === i) continue;
-          p = boxPush(ab, items[j].box);
-          if (p) { a.box.x += p[0] * 0.55; ab.x += p[0] * 0.55; a.box.y += p[1] * 0.55; ab.y += p[1] * 0.55; moved++; }
-        }
-        for (j = 0; j < chrome.length; j++) {
-          p = boxPush(ab, chrome[j]);
-          if (p) { a.box.x += p[0]; ab.x += p[0]; a.box.y += p[1]; ab.y += p[1]; moved++; }
-        }
-        for (j = 0; j < discs.length; j++) {
-          p = discPush(ab, discs[j]);
-          if (p) { a.box.x += p[0]; ab.x += p[0]; a.box.y += p[1]; ab.y += p[1]; moved++; }
-        }
-        if (pull) {
-          var dx = a.px - (a.box.x + a.box.w / 2), dy = a.py - (a.box.y + a.box.h / 2);
-          a.box.x += dx * pull; a.box.y += dy * pull;
-        }
-        a.box.x = Math.min(Math.max(8, a.box.x), Math.max(8, W - a.box.w - 8));
-        a.box.y = Math.min(Math.max(8, a.box.y), Math.max(8, H - a.box.h - 8));
-      }
-      if (!moved && !pull) break;
-    }
-    // what is still sitting on something: a name is kept only when it stands
-    // clear of everything, with a hair of margin
-    var E = 0;
-    function tight(b) { return { x: b.x + E, y: b.y + E, w: b.w - 2 * E, h: b.h - 2 * E }; }
-    items.forEach(function (a) {
-      a.clean = true;
-      var ta = tight(a.box), k;
-      for (k = 0; k < items.length; k++) {
-        if (items[k] !== a && boxPush(ta, tight(items[k].box))) { a.clean = false; return; }
-      }
-      for (k = 0; k < chrome.length; k++) if (boxPush(ta, chrome[k])) { a.clean = false; return; }
-      for (k = 0; k < discs.length; k++) {
-        if (discPush(ta, { x: discs[k].x, y: discs[k].y, r: discs[k].r - E })) { a.clean = false; return; }
-      }
-    });
-  }
-
-  function rectOverlap(a, b) {
-    var ox = Math.min(a.x + a.w, b.x + b.w) - Math.max(a.x, b.x);
-    var oy = Math.min(a.y + a.h, b.y + b.h) - Math.max(a.y, b.y);
-    return ox > 0 && oy > 0 ? ox * oy : 0;
-  }
-  // under the cloud first, then over it, then beside it, then on the diagonals
-  var ANGLES = [90, 270, 0, 180, 62, 118, 298, 242, 34, 146, 326, 214, 76, 104, 284, 256,
-    18, 162, 342, 198, 48, 132, 312, 228].map(function (d, i) {
-      return { a: d * Math.PI / 180, p: i };
-    });
-  var RINGS = 14, RING_STEP = 17;
-
-  var LAB = [], DISCS = [], LOBE_BOXES = [], TAG_BOXES = [], labSig = '';
-  function layoutLabels(now) {
-    refreshChrome(now);
-    var hl = hover || sel;
-    var chromeSig = 0;
-    chromeBoxes.forEach(function (b) { chromeSig += b.x + b.y * 3 + b.w * 7 + b.h * 11; });
-    var sig = [Math.round(cam.s * 200), Math.round(cam.x), Math.round(cam.y), MODE, W, H,
-      hl ? hl.k : -1, matched ? matched.size : -1, Math.round(chromeSig)].join(',');
-    if (!animating && sig === labSig) return;
-    labSig = sig;
-
-    var discs = [];
-    CLUSTERS.forEach(function (c) {
-      if (c.a < 0.06) return;
-      discs.push({ x: wx(c.px), y: wy(c.py), r: haloR(c) + 2, c: c });
-    });
-    DISCS = discs;
-    var order = CLUSTERS.filter(function (c) { return c.a >= 0.3; }).sort(function (a, b) {
-      var pa = (a === hl ? 4 : 0) + (matched && a.mn > 0 ? 2 : 0);
-      var pb = (b === hl ? 4 : 0) + (matched && b.mn > 0 ? 2 : 0);
-      if (pa !== pb) return pb - pa;
-      return (matched ? b.mn - a.mn : b.n - a.n);
-    });
-    var boxes = chromeBoxes.slice(), items = [];
-    LAB = [];
-    var cap = MOBILE ? 30 : 60;
-
-    order.forEach(function (c) {
-      var R = radiusOf(c) * cam.s, ax = wx(c.px), ay = wy(c.py);
-      // a cloud whose centre has left the screen, or sits under a panel, keeps
-      // its name off the screen too
-      if (ax < -20 || ax > W + 20 || ay < -20 || ay > H + 20) return;
-      for (var ci = 0; ci < chromeBoxes.length; ci++) {
-        var cb = chromeBoxes[ci];
-        if (ax > cb.x && ax < cb.x + cb.w && ay > cb.y && ay < cb.y + cb.h) return;
-      }
-      if (items.length >= cap && c !== hl) return;
-      var step = c.n >= 60 ? 16.5 : (c.n >= 25 ? 14.2 : 12.4);
-      if (MOBILE) step -= 2.6;
-      if (c === hl) step += 1.4;
-      var fs = MOBILE ? Math.min(12.4, Math.max(10.6, step))
-        : Math.max(11.5, step * Math.min(Math.max(cam.s, 0.8), 1.2));
-      ctx.font = (c === hl ? 600 : 500) + ' ' + fs + 'px "EB Garamond",Georgia,serif';
-      // a long name breaks into two lines rather than being cut short
-      var lines = wrapLabel(c.label, MOBILE ? 15 : 26, MOBILE ? 3 : 2);
-      var tw = 0;
-      lines.forEach(function (ln) { tw = Math.max(tw, ctx.measureText(ln).width); });
-      var lh = fs * 1.18, bw = tw + 14, bh = lh * lines.length + 7;
-
-      function at(ai, ring) {
-        var a = ANGLES[ai].a;
-        var half = Math.abs(Math.cos(a)) * bw / 2 + Math.abs(Math.sin(a)) * bh / 2;
-        var d = R + 9 + ring * RING_STEP + half;
-        var b = { x: ax + Math.cos(a) * d - bw / 2, y: ay + Math.sin(a) * d - bh / 2, w: bw, h: bh };
-        if (b.x < 8 || b.y < 8 || b.x + bw > W - 8 || b.y + bh > H - 8) return null;
-        var pen = 0, i;
-        for (i = 0; i < discs.length; i++) if (rectHitsDisc(b, discs[i])) pen += 4e5;
-        for (i = 0; i < boxes.length; i++) pen += rectOverlap(b, boxes[i]) * 14;
-        return { box: b, pen: pen, ang: ai, ring: ring };
-      }
-
-      // a name whose hairline would run across another cloud is a second choice
-      function crossings(b) {
-        var nx = Math.max(b.x, Math.min(ax, b.x + b.w));
-        var ny = Math.max(b.y, Math.min(ay, b.y + b.h));
-        var vx = nx - ax, vy = ny - ay, len = Math.hypot(vx, vy);
-        if (len < R + 10) return 0;
-        var k = 0;
-        for (var i = 0; i < discs.length; i++) {
-          var dd = discs[i];
-          if (Math.abs(dd.x - ax) < 1 && Math.abs(dd.y - ay) < 1) continue;
-          var u = ((dd.x - ax) * vx + (dd.y - ay) * vy) / (len * len);
-          if (u < 0 || u > 1) continue;
-          var qx = ax + vx * u - dd.x, qy = ay + vy * u - dd.y;
-          if (qx * qx + qy * qy < dd.r * dd.r) k++;
-        }
-        return k;
-      }
-      var got = null, clear = null, fall = null, fpen = 1e18, t;
-      if (c._sl) { t = at(c._sl[0], c._sl[1]); if (t && !t.pen && !crossings(t.box)) got = t; }
-      for (var ring = 0; ring <= RINGS && !got; ring++) {
-        for (var ai = 0; ai < ANGLES.length; ai++) {
-          t = at(ai, ring);
-          if (!t) continue;
-          if (!t.pen) {
-            if (!crossings(t.box)) { got = t; break; }
-            if (!clear) clear = t;
-            continue;
-          }
-          var tot = t.pen + ring * 60 + ANGLES[ai].p * 8;
-          if (tot < fpen) { fpen = tot; fall = t; }
-        }
-      }
-      if (!got && clear) got = clear;
-      var slot = got || fall;
-      if (!slot) {
-        slot = { ang: 0, ring: 0, box: {
-          x: Math.min(Math.max(8, ax - bw / 2), Math.max(8, W - bw - 8)),
-          y: Math.min(Math.max(8, ay + R + 9), Math.max(8, H - bh - 8)), w: bw, h: bh } };
-      }
-      c._sl = got ? [slot.ang, slot.ring] : null;
-      boxes.push(slot.box);
-      items.push({ c: c, box: slot.box, lines: lines, fs: fs, lh: lh,
-        ax: ax, ay: ay, R: R, lit: c === hl, free: !!got, clean: !!got, px: ax, py: ay });
-    });
-
-    // whatever the ring search could not seat sends the whole set through one
-    // relaxation; a name still sitting on something is left to the tap on a
-    // narrow screen, and kept on a wide one rather than lost
-    if (items.some(function (i) { return !i.free; })) {
-      relaxLabels(items, discs, chromeBoxes);
-    }
-    LAB = items.filter(function (i) { return i.clean || !MOBILE || i.c === hl; });
-    LAB.forEach(function (i) { i.free = i.clean; });
-    // a programmatic check can read what was named and what was not
-    var onScreen = CLUSTERS.filter(function (c) {
-      if (c.a < 0.3) return false;
-      var x = wx(c.px), y = wy(c.py);
-      return x > -20 && x < W + 20 && y > -20 && y < H + 20;
-    });
-    window.__labels = {
-      mode: MODE,
-      clusters: onScreen.length,
-      named: LAB.length,
-      crowded: LAB.filter(function (l) { return !l.free; }).length,
-      names: LAB.map(function (l) { return l.c.label; }),
-      boxes: LAB.map(function (l) {
-        return { n: l.c.label, x: l.box.x, y: l.box.y, w: l.box.w, h: l.box.h };
-      }),
-      discs: discs.map(function (d) { return { x: d.x, y: d.y, r: d.r }; }),
-      chrome: chromeBoxes.map(function (b) { return { x: b.x, y: b.y, w: b.w, h: b.h }; }),
-      missing: onScreen.filter(function (c) {
-        return LAB.every(function (l) { return l.c !== c; });
-      }).map(function (c) { return c.label; })
-    };
-  }
+  var LOBE_BOXES = [], TAG_BOXES = [];
 
   function tagHits(box, list) {
     var i, q;
@@ -1587,6 +1548,11 @@ import { createDustField } from './dust-field.js';
     ctx.font = '500 11px "Literata",Georgia,serif';
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
     var placed = TAG_BOXES.concat(chromeBoxes);
+    // every drawn cloud, as a disc on the screen: a leaf name may not land on
+    // a neighbour's disc
+    var discs = CLUSTERS.filter(function (c) { return c.a >= 0.06; }).map(function (c) {
+      return { x: wx(c.px), y: wy(c.py), r: haloR(c) + 2, c: c };
+    });
     LOBE_BOXES = [];
     CLUSTERS.forEach(function (c) {
       if (c.a < 0.6 || c.kind === 'tail' || !c.lobes || matched) return;
@@ -1605,8 +1571,8 @@ import { createDustField } from './dust-field.js';
         var box = { x: bx, y: by, w: bw, h: bh }, i;
         // a leaf name stays on its own domain and never lands on a neighbour
         if (Math.hypot(x - cx, y - cy) + bw / 2 > R * 1.4 + 26) return;
-        for (i = 0; i < DISCS.length; i++) {
-          if (DISCS[i].c !== c && rectHitsDisc(box, DISCS[i])) return;
+        for (i = 0; i < discs.length; i++) {
+          if (discs[i].c !== c && rectHitsDisc(box, discs[i])) return;
         }
         for (i = 0; i < placed.length; i++) {
           var q = placed[i];
@@ -1787,20 +1753,24 @@ import { createDustField } from './dust-field.js';
      Every displayed summary names the database that wrote it and links to the
      record there; one written for this project says so instead. Any rights
      holder who asks has theirs removed — the procedure is on the Credits page. */
+  // the credit an abstract carries, in words: the list prints it under the
+  // abstract, and an export that includes the abstract writes the same words
+  function abstractCredit(p) {
+    if (!p.ab || !p.ab.t) return null;
+    if (p.ab.k === 'generated') return { text: 'Summary written for Origenality', label: '', url: '' };
+    // set as the English pages set a catalogue label (no spaced colon)
+    var label = englishLabel((ABS && ABS.sources && ABS.sources[p.ab.s] && ABS.sources[p.ab.s].label) || p.ab.s);
+    return { text: 'Abstract from ' + label, label: label, url: p.ab.u || '' };
+  }
   function abstractHTML(p, index) {
     if (!p.ab || !p.ab.t) return '';
     var text = p.ab.t;
     var long = text.length > ABSTRACT_FOLD;
     var id = 'ab-' + index;
-    var credit;
-    if (p.ab.k === 'generated') {
-      credit = 'Summary written for Origenality';
-    } else {
-      var label = (ABS && ABS.sources && ABS.sources[p.ab.s] && ABS.sources[p.ab.s].label) || p.ab.s;
-      credit = 'Abstract from ' + (p.ab.u
-        ? '<a href="' + esc(p.ab.u) + '" target="_blank" rel="noopener">' + esc(label) + '</a>'
-        : esc(label));
-    }
+    var c = abstractCredit(p);
+    var credit = c.label && c.url
+      ? 'Abstract from <a href="' + esc(c.url) + '" target="_blank" rel="noopener">' + esc(c.label) + '</a>'
+      : esc(c.text);
     return '<div class="abstract">' +
       '<p class="abstract-text' + (long ? ' folded' : '') + '" id="' + id + '">' + esc(text) + '</p>' +
       (long ? '<button type="button" class="abstract-more" aria-expanded="false" aria-controls="' +
@@ -1808,19 +1778,40 @@ import { createDustField } from './dust-field.js';
       '<p class="abstract-credit">' + credit + '</p></div>';
   }
 
-  function recordHTML(p) {
-    var meta = [];
-    if (p.authors.length) meta.push(esc(p.authors.slice(0, 3).join(', ')) + (p.authors.length > 3 ? ' and others' : ''));
-    if (p.year != null) meta.push(String(p.year));
-    if (p.container) meta.push('<i>' + esc(p.container) + '</i>');
-    if (p.publisher) meta.push(esc(p.publisher));
-    // the link is the one the record carries, under the name of the base that
-    // holds it; a record without a link gets no link rather than a guessed one
-    var links = [];
-    if (p.url) {
+  // The link is the one the record carries, under the name of the base that
+  // holds it; a record without a link gets no link rather than a guessed one.
+  // A merged record can hold several records of one base: each of those links
+  // then carries its catalogue number, or the reader sees identical links.
+  function recordLinks(p) {
+    var links = [], perSource = {}, seen = {};
+    (p.sourceIds || []).forEach(function (entry) {
+      if (entry.url) perSource[entry.source] = (perSource[entry.source] || 0) + 1;
+    });
+    (p.sourceIds || []).forEach(function (entry) {
+      if (!entry.url) return;
+      var label = esc(sourceName(entry.source)) + ' record';
+      var many = perSource[entry.source];
+      if (many > 1) {
+        seen[entry.source] = (seen[entry.source] || 0) + 1;
+        label += '<span class="rec-id">\u00a0' +
+          (entry.id ? esc(entry.id) : seen[entry.source] + ' of ' + many) + '</span>';
+      }
+      links.push('<a href="' + esc(entry.url) + '" target="_blank" rel="noopener">' + label + '</a>');
+    });
+    if (!links.length && p.url) {
       links.push('<a href="' + esc(p.url) + '" target="_blank" rel="noopener">' +
         esc(sourceName(p.src)) + ' record</a>');
     }
+    return links;
+  }
+
+  function recordHTML(p) {
+    var meta = [];
+    if (p.authors.length) meta.push(authorsHTML(p) + (p.authors.length > 3 ? ' and others' : ''));
+    if (p.year != null) meta.push(String(p.year));
+    if (p.container) meta.push('<i>' + esc(p.container) + '</i>');
+    if (p.publisher) meta.push(esc(p.publisher));
+    var links = recordLinks(p);
     if (p.doi) links.push('<a href="https://doi.org/' + esc(p.doi) + '" target="_blank" rel="noopener">DOI</a>');
     if (p.isbn) links.push('<span class="isbn">ISBN ' + esc(p.isbn) + '</span>');
     var wgt;
@@ -1842,8 +1833,8 @@ import { createDustField } from './dust-field.js';
 
     return '<article class="rec"><h5>' + esc(p.title) + '</h5>' +
       '<p class="meta">' + meta.join('<span class="dot">·</span>') +
-      '<span class="dot">·</span><span class="lang"><i style="background:' + LCOL[p.lang] + '"></i>' +
-      esc(LLAB[p.lang]) + '</span>' +
+      '<span class="dot">·</span><span class="lang"><i style="background:' + LCOL[p.lkey] + '"></i>' +
+      esc(LLAB[p.lkey]) + '</span>' +
       (p.type ? '<span class="dot">·</span>' + esc(p.type) : '') + '</p>' +
       (tags.length ? '<p class="tags">' + tags.join(' · ') +
         (flags.length ? ' <span class="flag">· ' + flags.join(' · ') + '</span>' : '') + '</p>'
@@ -1851,16 +1842,102 @@ import { createDustField } from './dust-field.js';
       '<p class="weight" title="Node size = mean of the citation percentile inside the cohort and ' +
       'the PageRank percentile in this graph"><span class="tier t' + p.tier + '"></span>' + wgt + '</p>' +
       abstractHTML(p, p.i) +
-      '<div class="links">' + links.join('') + '</div></article>';
+      '<div class="links">' + links.join('') + '</div>' + coinsHTML(p) + '</article>';
+  }
+
+  /* What a density figure rests on (Method, section 4): of the counted records
+     the figure counts, how many are flagged for review, how many were classified
+     with an abstract, how many carry no year, and which catalogue gave most of
+     them. Computed on the records, never typed. */
+  function ledgerFigures(list) {
+    var f = { n: 0, review: 0, withAbstract: 0, undated: 0, topSource: null, topCount: 0, topShare: 0 };
+    var bySource = {};
+    list.forEach(function (p) {
+      if (!counts(p)) return;
+      f.n++;
+      if (p.review) f.review++;
+      if (p.abstract) f.withAbstract++;
+      if (!CORE.isDated(p)) f.undated++;
+      if (p.src) bySource[p.src] = (bySource[p.src] || 0) + 1;
+    });
+    var top = Object.keys(bySource).sort(function (a, b) {
+      return (bySource[b] - bySource[a]) || (a < b ? -1 : 1);
+    })[0];
+    if (top) {
+      f.topSource = top; f.topCount = bySource[top];
+      f.topShare = Math.round((bySource[top] * 100) / f.n);
+    }
+    return f;
+  }
+  function ledgerHTML(f) {
+    if (!f.n) return '';
+    var bits = [];
+    bits.push(f.review ? nf(f.review) + ' flagged for review' : 'none flagged for review');
+    if (!f.withAbstract) bits.push('none with an abstract, so classified from title, headings and container');
+    else if (f.withAbstract === f.n) bits.push(f.n === 1 ? 'classified with its abstract' : 'all with an abstract');
+    else bits.push(nf(f.withAbstract) + ' with an abstract, the rest classified from title, headings and container');
+    if (f.undated) bits.push(nf(f.undated) + ' undated');
+    if (f.topSource) bits.push(f.topShare + '% from ' + esc(sourceName(f.topSource)));
+    if (f.n < 10) bits.push('small figure');
+    var src = (SEM && SEM.source) || {};
+    var classes = (src.counts_in_density || ['core', 'partial']).join(' and ');
+    var wave = src.wave ? 'wave ' + esc(src.wave) : 'the tagging of ' + esc(SEM.generated || 'this build');
+    return '<p class="ledger">' + (f.n === 1 ? 'Of this work: ' : 'Of these ' + nf(f.n) + ': ') +
+      bits.join(' · ') + '.</p>' +
+      '<p class="ledger">Tags from ' + wave + '; counted: ' + esc(classes) + '. Tagging agreement is ' +
+      'reported in Method, § 1; no current figure against the hand-tagged set (§ 3).</p>';
+  }
+
+  /* How many counted works each term of the query reaches, in the population
+     the questions leave. A term that reaches most of it narrows the question
+     very little, and the reader should see that before reading the figure. */
+  function termReach(r, total) {
+    return r.terms.map(function (term, j) {
+      var n = r.termHitsCounted ? r.termHitsCounted[j] : 0;
+      return {
+        term: term, n: n, most: total > 0 && n * 2 > total,
+        absent: r.absentTerms.indexOf(term) >= 0 ? 'corpus'
+          : (r.absentUnderFilters.indexOf(term) >= 0 ? 'filters'
+            : ((r.absentFromPartialIndex || []).indexOf(term) >= 0 ? 'partial' : null))
+      };
+    });
+  }
+  function reachHTML(rows, narrowed) {
+    if (!rows.length) return '';
+    var notes = [];
+    var cells = rows.map(function (row) {
+      var q = '“' + esc(row.term) + '”';
+      if (row.absent === 'corpus') {
+        notes.push(q + ' appears in none of the ' + nf(PUBS.length) + ' records, in any field searched (' +
+          esc(fieldsSearched()) + ')');
+      } else if (row.absent === 'partial') notes.push(partialPhrase([esc(row.term)]));
+      else if (row.absent === 'filters') notes.push(q + ' appears in none of the records your answers leave');
+      else if (row.most) {
+        notes.push(q + ' matches most of ' + (narrowed ? 'the works your answers leave' : 'the corpus') +
+          ', so it narrows little');
+      }
+      return '<span class="zc">' + esc(row.term) + ' ' + nf(row.n) + '</span>';
+    });
+    var said = notes.join('; ');
+    return '<p class="reach"><b>Reach of each term</b>, in counted works: ' + cells.join(' · ') + '.' +
+      (said ? ' ' + said.charAt(0).toUpperCase() + said.slice(1) + '.' : '') + '</p>';
+  }
+
+  function byRank(a, b) {
+    var ra = RANK && RANK[a.i] != null ? RANK[a.i] : Infinity;
+    var rb = RANK && RANK[b.i] != null ? RANK[b.i] : Infinity;
+    return ra === rb ? a.i - b.i : (ra < rb ? -1 : 1);
   }
 
   function renderPanel() {
-    var list, title, adjacent = [], dens = 0;
+    var list, title, adjacent = [];
+    printShown = null;
+    shownAuthor = null;
     panel.classList.toggle('one-work', !!selPub);
     if (selPub) {
       list = [selPub];
       title = selPub.title;
-      pSubject.textContent = (selPub.year != null ? selPub.year + ' · ' : '') + (LLAB[selPub.lang] || '');
+      pSubject.textContent = (selPub.year != null ? selPub.year + ' · ' : '') + (LLAB[selPub.lkey] || '');
       pDensity.innerHTML = esc(selPub.title);
       pAlt.textContent = '';
       var home = CLUSTERS.filter(function (c) {
@@ -1871,12 +1948,14 @@ import { createDustField } from './dust-field.js';
         : '';
       if (home) {
         pZones.querySelectorAll('.z').forEach(function (b) {
-          b.addEventListener('click', function () { openCluster(CLUSTERS[+b.dataset.k]); });
+          b.addEventListener('click', function () { openCluster(CLUSTERS[+b.dataset.k]); focusPanelHead(); });
         });
       }
+      VIEW = { kind: 'record', title: title, record: selPub, cluster: home || null,
+        records: list, counted: selPub.dens ? list : [], figures: null };
       currentList = list;
       shownCount = 0;
-      pBody.innerHTML = '';
+      pBody.innerHTML = citeHTML();
       var head = document.createElement('div');
       head.className = 'listhead';
       head.innerHTML = '<span>Source</span><span>1 listed</span>';
@@ -1886,6 +1965,9 @@ import { createDustField } from './dust-field.js';
       pBody.scrollTop = 0;
       return;
     }
+    // an author opened by name, or a query that is one author and nothing else
+    var author = selAuthor || (sel ? null : soleAuthor());
+    if (author) { renderAuthor(author); return; }
     if (sel) {
       list = sel.pubs.filter(function (p) { return visiblePub(p) && (!matched || matched.has(p.i)); });
       title = sel.label;
@@ -1895,9 +1977,6 @@ import { createDustField } from './dust-field.js';
         .filter(function (c) { return c && c.kind === 'subject'; });
     } else {
       list = PUBS.filter(function (p) { return visiblePub(p) && (!matched || matched.has(p.i)); });
-      if (matched && window.__scores) {
-        list.sort(function (a, b) { return (window.__scores[b.i] || 0) - (window.__scores[a.i] || 0); });
-      }
       title = matchLabel || 'The whole corpus';
       pSubject.textContent = '';
       pAlt.textContent = '';
@@ -1915,45 +1994,68 @@ import { createDustField } from './dust-field.js';
       adjacent = Object.keys(adjScore).sort(function (a, b) { return adjScore[b] - adjScore[a]; })
         .slice(0, 3).map(function (k) { return CLUSTERS[+k]; });
     }
+    // an answer reads in the order the engine returned it, a cluster included
+    if (matched && RANK) list.sort(byRank);
 
     // the headline figure is the counted population, the same one every other
-    // surface prints; what the list holds beyond it is named underneath
-    var mention = 0, aside = 0;
-    list.forEach(function (p) {
-      if (p.dens) dens++;
-      else if (p.rel === 'none') aside++;
-      else mention++;
-    });
+    // surface prints and the same tally as the state line; what the list holds
+    // beyond it is named underneath
+    var scores = matched && LAST ? LAST.scores : null;
+    var k = matched ? tokCount : 0;
+    var t = tallyMatch(list, matched ? shelfOnly : null, scores, k);
+    var mention = t.mention, aside = t.aside, shelf = t.shelf;
+    var dens = t.hit;
     currentList = list;
     var n = list.length;
+    var held = !!(sel && sel.id === OFF);
+    // several terms: the headline is the records carrying all of them
+    var conj = !!matched && k > 1 && !held;
+    // a named shelf with no word of the query in its records: the state line
+    // gives the shelf as the answer, and so does the headline, counted
+    var shelfAnswer = !sel && !!matched && !dens && shelf > 0 && vocabHitCounted > 0;
     // the reservoir of records held as not about Origen states its own size:
     // it is a reservoir, not a figure of the field
-    var headline = (sel && sel.id === OFF) ? aside : dens;
-    // A thin neighbourhood is the point of this site, so it is typeset as an
-    // answer: the figure, then what it is a figure OF. "0 works" over three
-    // listed records was a lie of rounding — the reservoir is named instead.
+    var headline = held ? n : (shelfAnswer ? vocabHitCounted : (conj ? t.full : dens));
+    // the records the headline counts, which the reliability line describes
+    var headRecs = headlineRecords(list, t, matched ? LAST : null, !!sel, held);
     var corpusDens = 0;
     PUBS.forEach(function (p) { if (counts(p)) corpusDens++; });
-    var caption;
-    if (sel) caption = 'in ' + esc(title) + (matched ? ', under your current answers' : '');
-    else if (matched) {
-      caption = 'in the neighbourhood of ' + esc(matchLabel) + ' \u2014 of ' + nf(corpusDens);
-      if (tokCount > 1 && relaxed) {
-        caption += fullHit
-          ? ', widened from ' + nf(fullHit) + ' carrying all ' + tokCount + ' terms'
-          : ', widened: none carries all ' + tokCount + ' terms';
+    // A thin neighbourhood is the point of this site, so it is typeset as an
+    // answer: the figure, then what it is a figure OF.
+    var where;
+    if (sel) where = 'in ' + esc(title) + (matched ? ', under your current answers' : '');
+    else if (matched) where = 'in the neighbourhood of ' + esc(matchLabel) + ', of ' + nf(corpusDens);
+    else where = 'in the whole corpus';
+    if (conj) {
+      var wide = relaxed
+        ? 'widened to ' + hitDepth + ' of ' + k + ' terms: ' + nf(n) + ' listed, ' + nf(dens) + ' counted, ' + where
+        : '';
+      if (t.full) {
+        pDensity.innerHTML = nf(t.full) + (t.full === 1 ? ' work' : ' works') +
+          '<small>' + (t.full === 1 ? 'carries' : 'carry') + ' all ' + k + ' of your terms' +
+          (relaxed ? '' : ', ' + where) + '</small>' +
+          (wide ? '<small>' + wide + '</small>' : '');
+      } else {
+        pDensity.innerHTML = '<span class="words">No counted work carries all ' + k + ' terms</span>' +
+          '<small>' + (wide || (n ? nf(n) + (n === 1 ? ' record' : ' records') +
+            ' listed, none of them counted, ' + where : where)) + '</small>';
       }
-    } else caption = 'in the whole corpus';
-    if (!headline && n) {
+    } else if (shelfAnswer) {
+      pDensity.innerHTML = nf(headline) + (headline === 1 ? ' work' : ' works') + '<small>' +
+        'filed under “' + esc(vocabLabel) + '”, of ' + nf(corpusDens) +
+        '; none names it in so many words</small>';
+    } else if (!headline && n) {
       pDensity.innerHTML = nf(n) + (n === 1 ? ' record' : ' records') + '<small>' +
-        'listed, none of them counted in the density figures \u2014 ' + caption + '</small>';
+        'listed, none of them counted in the density figures, ' + where + '</small>';
     } else {
       pDensity.innerHTML = nf(headline) + (headline === 1 ? ' work' : ' works') +
-        '<small>' + caption + '</small>';
+        '<small>' + where + '</small>';
     }
 
     var zoneBits = [];
-    if (sel && sel.id === OFF) {
+    zoneBits.push(ledgerHTML(ledgerFigures(headRecs)));
+    if (conj && LAST) zoneBits.push(reachHTML(termReach(LAST, scopeDens), scopeDens !== corpusDens));
+    if (held) {
       zoneBits.push('<p>This reservoir is held outside every figure on the site. ' +
         'Its records stay in the index and stay searchable.</p>');
     } else if (mention || aside) {
@@ -1969,6 +2071,11 @@ import { createDustField } from './dust-field.js';
       zoneBits.push('<p>' + tail.join(', and ') + '. They are listed below the count, ' +
         'and they enter no figure on this site.</p>');
     }
+    if (shelf && !shelfAnswer && !held) {
+      zoneBits.push('<p>' + nf(shelf) + (shelf === 1 ? ' more work is' : ' more works are') +
+        ' filed under the heading “' + esc(vocabLabel) + '” without naming it: ' +
+        (shelf === 1 ? 'it is' : 'they are') + ' listed, and left out of this count.</p>');
+    }
     if (sel && sel.kind === 'subject' && sel.lobes) {
       var leaves = sel.lobes.filter(function (lo) { return lo.name; }).slice(0, 5);
       if (leaves.length) {
@@ -1978,11 +2085,14 @@ import { createDustField } from './dust-field.js';
       }
     }
     if (!sel) {
-      var conc = CLUSTERS.filter(function (c) { return c.kind === 'subject' && c.mn > 0; })
-        .sort(function (a, b) { return b.mn - a.mn; }).slice(0, 3);
+      // the figure beside each zone is a count like the headline: counted records only
+      var conc = CLUSTERS.filter(function (c) { return c.kind === 'subject' && c.mdens > 0; })
+        .sort(function (a, b) { return b.mdens - a.mdens || b.mn - a.mn; }).slice(0, 3);
       if (conc.length) {
         zoneBits.push('<p><b>Concentrated in</b> ' + conc.map(function (c) {
-          return '<button class="z" data-k="' + c.k + '">' + esc(c.label) + '</button> (' + c.mn + ')';
+          // the zone and its figure are kept together on one line when they fit
+          return '<span class="zc"><button class="z" data-k="' + c.k + '">' + esc(c.label) +
+            ' <span class="zn">(' + nf(c.mdens) + ')</span></button></span>';
         }).join(', ') + '</p>');
       }
     }
@@ -1993,8 +2103,20 @@ import { createDustField } from './dust-field.js';
     }
     pZones.innerHTML = zoneBits.join('');
     pZones.querySelectorAll('.z').forEach(function (b) {
-      b.addEventListener('click', function () { openCluster(CLUSTERS[+b.dataset.k]); });
+      b.addEventListener('click', function () { openCluster(CLUSTERS[+b.dataset.k]); focusPanelHead(); });
     });
+
+    // what a later surface (export, print, decade strip) reads of this view
+    VIEW = {
+      kind: sel ? 'cluster' : (matched ? 'search' : 'corpus'),
+      title: title, record: null, cluster: sel || null,
+      records: list, counted: headRecs,
+      figures: {
+        headline: headline, counted: dens, full: t.full, conj: conj, relaxed: relaxed,
+        depth: hitDepth, terms: k, listed: n, mention: mention, aside: aside, shelf: shelf,
+        total: corpusDens, held: held, shelfAnswer: shelfAnswer
+      }
+    };
 
     shownCount = 0;
     pBody.innerHTML = '';
@@ -2003,10 +2125,11 @@ import { createDustField } from './dust-field.js';
       // the corpus, and only offer a remedy that applies here.
       var why = [];
       if (absentToks.length) {
-        why.push(absentToks.map(function (t) { return '\u201c' + esc(t) + '\u201d'; }).join(', ')
-          + (absentToks.length === 1 ? ' appears' : ' appear')
-          + ' in none of the ' + nf(PUBS.length) + ' records');
+        why.push(absentPhrase(absentToks.map(esc), 'the ' + nf(PUBS.length) + ' records') +
+          ', in any field searched (' + esc(fieldsSearched()) + ')');
       }
+      if (absentPartial.length) why.push(partialPhrase(absentPartial.map(esc)));
+      if (absentFiltered.length) why.push(absentPhrase(absentFiltered.map(esc), 'the records your filters leave'));
       var offs = LANGS.filter(function (l) { return langOff[l.code]; });
       var fixes = [];
       if (offs.length) fixes.push('bring back the languages you switched off');
@@ -2014,40 +2137,950 @@ import { createDustField } from './dust-field.js';
       QUESTIONS.forEach(function (q) { if (wizAns[q.kind] && wizAns[q.kind].length) anyAns = true; });
       if (anyAns) fixes.push('drop one answer');
       if (tokCount > 1) fixes.push('use fewer terms');
-      pBody.innerHTML = '<p class="empty"><svg class="mk" viewBox="0 0 100 100" width="12" height="12" aria-hidden="true">' +
+      pBody.innerHTML = citeHTML() +
+        '<p class="empty"><svg class="mk" viewBox="0 0 100 100" width="12" height="12" aria-hidden="true">' +
         '<g stroke="currentColor" stroke-width="12" fill="none"><path d="M50 14 L50 86"/><path d="M14 50 L86 50"/></g>' +
         '<g fill="currentColor"><circle cx="27" cy="27" r="8"/><circle cx="73" cy="27" r="8"/>' +
         '<circle cx="27" cy="73" r="8"/><circle cx="73" cy="73" r="8"/></g></svg> ' +
         'Nothing in the harvest answers this' +
-        (why.length ? ' \u2014 ' + why.join('; ') : '') + '.' +
+        (why.length ? ': ' + why.join('; ') : '') + '.' +
         (fixes.length ? ' You could ' + fixes.join(', or ') + '.' : '') +
         '</p>';
       openPanel();
       return;
     }
+    pBody.innerHTML = (headRecs.length || CMP ? STRIP_SHELL : '') + citeHTML();
+    renderStrip();
+    var head2 = document.createElement('div');
+    head2.className = 'listhead';
+    head2.innerHTML = '<span>Sources</span><span>' + nf(n) + ' listed</span>';
+    pBody.appendChild(head2);
+    appendMore();
+    openPanel();
+    pBody.scrollTop = 0;
+  }
+
+  /* ------------------------------------------------------------------ citing a view */
+  // The view named in words, with the figures the panel prints. The address and
+  // the date are taken when the reader asks for them, not when the panel opened.
+  function viewDescription(v) {
+    var s = 'build ' + DATA_VERSION + ', ';
+    if (!v) return s + 'the map';
+    if (v.kind === 'record') {
+      var p = v.record;
+      return s + 'record “' + p.title + '”' + (p.year != null ? ', ' + p.year : '') +
+        ' (' + recordKey(p) + ')';
+    }
+    var f = v.figures;
+    if (v.kind === 'author') {
+      s += 'author “' + v.author.label + '”, the records filed under that form of the name';
+    } else if (v.kind === 'cluster') {
+      s += 'cluster “' + v.cluster.label + '”, grouped by ' +
+        (MODE === 'work' ? 'work of Origen' : 'theme') + (matched ? ', under ' + matchLabel : '');
+    } else if (v.kind === 'search') s += 'view ' + matchLabel;
+    else s += 'the whole corpus';
+    var fig;
+    if (f.held) fig = nf(f.listed) + ' held outside every count';
+    else if (f.conj) {
+      fig = nf(f.full) + ' counted carrying all ' + f.terms + ' terms, of ' + nf(f.total) +
+        (f.relaxed ? ', widened to ' + f.depth + ' terms: ' + nf(f.listed) + ' listed, ' + nf(f.counted) + ' counted' : '');
+    } else {
+      fig = nf(f.headline) + ' counted of ' + nf(f.total) +
+        (f.mention ? ', ' + nf(f.mention) + ' mentioned only' : '') +
+        (f.aside ? ', ' + nf(f.aside) + ' held aside' : '');
+    }
+    var hidden = v.kind === 'author' ? []
+      : LANGS.filter(function (l) { return langOff[l.code]; }).map(function (l) { return l.label; });
+    return s + ': ' + fig + (hidden.length ? ', not shown: ' + hidden.join(', ') : '');
+  }
+  function viewUrl() {
+    // resolved against the page in hand, so a copy made under a path prefix or
+    // in a local preview points back to that same page
+    var u = new URL(location.href);
+    u.hash = addressOf(currentState());
+    return u.href;
+  }
+  function isoDay(d) {
+    function two(x) { return (x < 10 ? '0' : '') + x; }
+    return d.getFullYear() + '-' + two(d.getMonth() + 1) + '-' + two(d.getDate());
+  }
+  function citationText() {
+    return 'Origenality, ' + viewDescription(VIEW) + ', ' + viewUrl() + ', accessed ' + isoDay(new Date()) + '.';
+  }
+  function buildNote() {
+    return 'Link made on build ' + linkBuild + '; figures shown are from build ' + DATA_VERSION + '.';
+  }
+  function citeHTML() {
+    var v = VIEW, canExport = !!(CITE && v && v.records && v.records.length);
+    return '<div class="cite">' +
+      (linkBuild ? '<p class="cite-note">' + esc(buildNote()) + '</p>' : '') +
+      '<p class="cite-line">' + esc(citationText()) + '</p>' +
+      '<p class="cite-url" hidden></p>' +
+      '<div class="cite-tools">' +
+      '<button type="button" class="btn-quiet cite-link">Copy link</button>' +
+      '<button type="button" class="btn-quiet cite-copy">Copy citation</button>' +
+      // Print comes before Export, so the key reaches the export fold straight
+      // after the control that opens it
+      '<button type="button" class="btn-quiet cite-print">Print this view</button>' +
+      (canExport ? '<button type="button" class="btn-quiet cite-export" aria-expanded="false" ' +
+        'aria-controls="export-fold">' + esc(exportLabel(v)) + '</button>' : '') +
+      '<span class="cite-said" role="status" aria-live="polite"></span></div>' +
+      (canExport ? exportHTML(v) : '') + '</div>';
+  }
+  function copyView(asCitation, box) {
+    var text = asCitation ? citationText() : viewUrl();
+    var line = box.querySelector('.cite-line'), urlEl = box.querySelector('.cite-url');
+    var said = box.querySelector('.cite-said');
+    line.textContent = citationText();
+    function selectInstead() {
+      var target = line;
+      if (!asCitation) { urlEl.textContent = text; urlEl.hidden = false; target = urlEl; }
+      try {
+        var range = document.createRange();
+        range.selectNodeContents(target);
+        var s = getSelection();
+        s.removeAllRanges(); s.addRange(range);
+      } catch (e) { /* the text stays on screen to be copied by hand */ }
+      said.textContent = (asCitation ? 'The citation' : 'The link') +
+        ' is selected: copy it from the menu or the keyboard.';
+    }
+    try {
+      navigator.clipboard.writeText(text).then(function () {
+        said.textContent = asCitation ? 'Citation copied.' : 'Link copied.';
+      }, selectInstead);
+    } catch (e) { selectInstead(); }
+  }
+
+  // focusNew: the reader asked for more, so the focus goes to the first record
+  // added before the control that asked is taken away
+  function appendMore(focusNew) {
+    var slice = currentList.slice(shownCount, shownCount + 20);
+    var first = pBody.querySelectorAll('.rec').length;
+    var frag = document.createElement('div');
+    frag.innerHTML = slice.map(recordHTML).join('');
+    while (frag.firstChild) pBody.appendChild(frag.firstChild);
+    shownCount += slice.length;
+    if (focusNew) {
+      var added = pBody.querySelectorAll('.rec')[first];
+      var h = added && added.querySelector('h5');
+      if (h) { h.setAttribute('tabindex', '-1'); h.focus(); }
+    }
+    placeMore();
+  }
+  function placeMore() {
+    var old = pBody.querySelector('.more'); if (old) old.remove();
+    if (shownCount < currentList.length) {
+      var b = document.createElement('button');
+      b.className = 'btn-quiet more';
+      b.textContent = 'Show 20 more of ' + nf(currentList.length - shownCount);
+      b.addEventListener('click', function () { appendMore(true); });
+      pBody.appendChild(b);
+    }
+  }
+
+  /* ------------------------------------------------------------------ exporting a view
+     The records of the open view as references for a reference manager. What
+     is exported is what the panel lists, in its order: counted records, and the
+     records mentioned only or held aside alike, marked by a keyword; the control
+     says how many. Every field comes from the record, and cite.js says which
+     goes where. Containers are read from the record file when the control is
+     first opened, because graph.json keeps a container only when five records
+     share it. The light file data/cite.json (tools/build_cite_data.py) holds what
+     the export needs of each record; the whole record file is read only when
+     that one cannot be. */
+  var CONTAINERS = null, CITE_FIELDS = null, containersTried = false, containersAsked = null, CITE_KEYS = null;
+  function loadContainers() {
+    if (!containersAsked) {
+      // the file the search index reads after the first render, fetched once
+      containersAsked = readCiteFile()
+        .then(function (json) {
+          var d = CITE.citeData(json);
+          CONTAINERS = d.containers;
+          CITE_FIELDS = d.fields;
+        })
+        .catch(function (first) {
+          console.warn('Explorer export: ' + first.message + '; reading the record file');
+          return fetch(versioned('../data/site-merged/corpus.jsonl'))
+            .then(function (r) {
+              if (!r.ok) throw new Error('record file answered ' + r.status);
+              return r.text();
+            })
+            .then(function (text) { CONTAINERS = CITE.containersFromCorpus(text); CITE_FIELDS = null; })
+            .catch(function (err) { CONTAINERS = null; CITE_FIELDS = null; console.warn('Explorer export: ' + err.message); });
+        })
+        .then(function () { containersTried = true; return CONTAINERS; });
+    }
+    return containersAsked;
+  }
+  // one key per record over the whole build, so a record keeps its key
+  // whichever view exports it
+  function citeKeys() {
+    if (!CITE_KEYS) {
+      CITE_KEYS = Object.create(null);
+      CITE.assignKeys(PUBS.map(function (p) { return CITE.entryFromRecord(p, {}); }))
+        .forEach(function (e) { CITE_KEYS[e.recordId] = e.key; });
+    }
+    return CITE_KEYS;
+  }
+  function citeEntry(p, withAbstract) {
+    var credit = withAbstract ? abstractCredit(p) : null;
+    var e = CITE.entryFromRecord(p, {
+      containers: CONTAINERS, fields: CITE_FIELDS, sourceName: sourceName,
+      abstract: credit ? { text: p.ab.t, credit: credit.text, url: credit.url } : null
+    });
+    e.key = citeKeys()[e.recordId] || '';
+    return e;
+  }
+  // an empty COinS span, read by the browser connector of a reference manager;
+  // its container is the one the list shows until an export has read the file
+  function coinsHTML(p) {
+    if (!CITE) return '';
+    return '<span class="Z3988" title="' +
+      esc(CITE.toCOinS(CITE.entryFromRecord(p, { containers: CONTAINERS, fields: CITE_FIELDS, sourceName: sourceName }))) + '"></span>';
+  }
+  function exportCounts(records) {
+    var c = { n: records.length, mention: 0, aside: 0, abstracts: 0 };
+    records.forEach(function (p) {
+      if (!counts(p)) { if (p.rel === 'none') c.aside++; else c.mention++; }
+      if (p.ab && p.ab.t) c.abstracts++;
+    });
+    return c;
+  }
+  function exportLabel(v) {
+    if (v.kind === 'record') return 'Export this record';
+    var n = v.records.length;
+    return 'Export ' + nf(n) + (n === 1 ? ' record' : ' records');
+  }
+  function exportHTML(v) {
+    var c = exportCounts(v.records), what;
+    if (v.kind === 'record') {
+      what = 'This record as a reference, with the fields its catalogue record gives and a link back to that record.';
+    } else {
+      what = (c.n === 1 ? 'The record listed here' : 'The ' + nf(c.n) + ' records listed here, in the order shown') +
+        ', with the fields each catalogue record gives and a link back to it.';
+      var marked = [];
+      if (c.mention) marked.push(nf(c.mention) + ' mentioned only');
+      if (c.aside) marked.push(nf(c.aside) + ' held aside');
+      if (marked.length) what += ' Included and marked by a keyword: ' + marked.join(', ') + '.';
+    }
+    what += ' The data holds no volume, issue or pages.';
+    var abs = '';
+    if (c.abstracts) {
+      abs = '<label class="export-abs"><input type="checkbox" class="export-abstracts"> ' +
+        (c.n === 1 ? 'Include its abstract' : (c.abstracts === 1 ? 'Include the one abstract'
+          : 'Include the ' + nf(c.abstracts) + ' abstracts')) +
+        (c.abstracts === 1 ? ', credited to the database that wrote it' : ', each credited to the database that wrote it') +
+        '</label>';
+    }
+    return '<div class="export" id="export-fold" hidden>' +
+      '<p class="export-what">' + esc(what) + '</p>' + abs +
+      '<div class="export-formats">' +
+      ['bibtex', 'ris', 'csl'].map(function (f) {
+        return '<button type="button" class="btn-quiet export-fmt" data-format="' + f + '" aria-label="' +
+          esc(CITE.FORMATS[f].label + ', .' + CITE.FORMATS[f].ext + ' file') + '">' +
+          esc(CITE.FORMATS[f].label) + ' <span class="ext">.' + CITE.FORMATS[f].ext + '</span></button>';
+      }).join('') +
+      '<button type="button" class="linkish export-copy" data-format="bibtex">Copy as BibTeX</button>' +
+      '</div></div>';
+  }
+  function toggleExport(btn) {
+    var fold = document.getElementById(btn.getAttribute('aria-controls'));
+    if (!fold) return;
+    var open = fold.hasAttribute('hidden');
+    if (open) fold.removeAttribute('hidden'); else fold.setAttribute('hidden', '');
+    btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+    // the record file is read as the control opens, so the format chosen next
+    // is written within the reader's own click
+    if (open && CITE) loadContainers();
+  }
+  function download(text, name, mime) {
+    var url = URL.createObjectURL(new Blob([text], { type: mime }));
+    var a = document.createElement('a');
+    a.href = url; a.download = name; a.hidden = true;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(function () { URL.revokeObjectURL(url); }, 10000);
+  }
+  function exportView(format, copy, box) {
+    if (!CITE || !CITE.FORMATS[format] || !VIEW || !VIEW.records || !VIEW.records.length) return;
+    var said = box.querySelector('.cite-said');
+    var check = box.querySelector('.export-abstracts');
+    var withAbstracts = !!(check && check.checked);
+    var view = VIEW;
+    function write() {
+      if (VIEW !== view) return;
+      var entries = view.records.map(function (p) { return citeEntry(p, withAbstracts); });
+      var many = nf(entries.length) + (entries.length === 1 ? ' entry' : ' entries');
+      var text = CITE.render(format, entries, {
+        header: ['Origenality, ' + viewDescription(view), viewUrl(),
+          'accessed ' + isoDay(new Date()) + ', ' + many + ', UTF-8']
+      });
+      var thin = CONTAINERS ? '' : ' The record file could not be read, so a container is given only where five records share it.';
+      if (copy) {
+        var done = function () { said.textContent = many + ' copied as BibTeX.' + thin; };
+        var refused = function () { said.textContent = 'The browser refused the copy; the BibTeX file holds the same text.' + thin; };
+        try { navigator.clipboard.writeText(text).then(done, refused); } catch (e) { refused(); }
+        return;
+      }
+      // a file with abstracts is named apart, so it never replaces one without
+      var name = CITE.fileName((view.kind === 'record' ? 'record ' + recordKey(view.record) : view.title) +
+        (withAbstracts ? ' with abstracts' : ''), DATA_VERSION, format);
+      download(text, name, CITE.FORMATS[format].mime);
+      said.textContent = many + ' written to ' + name + '.' + thin;
+    }
+    if (containersTried) write();
+    else {
+      said.textContent = 'Reading the record file…';
+      loadContainers().then(write);
+    }
+  }
+
+  /* ------------------------------------------------------------------ an author
+     One author node of graph.json and the records its edges reach: the name as
+     the catalogue writes it. Two spellings of one scholar are two nodes, and the
+     data holds no link between them, so nothing here merges them. The view lists
+     every record under the name, whatever the search and the filters leave. */
+  var AUTHOR_NOTE = 'Records filed under this exact form of the name in the harvested catalogues. ' +
+    'Other spellings of the same scholar are separate entries and are not merged. ' +
+    'Your search and the filters do not narrow this list.';
+
+  function authorsOf(g, records) {
+    var at = {}, byId = Object.create(null), ofPub = {}, list = [];
+    records.forEach(function (p) { at[p.nodeIndex] = p; });
+    ((g && g.edges) || []).forEach(function (e) {
+      if (e.r !== 'aut') return;
+      var p = at[e.s], node = g.nodes[e.t];
+      if (!p || !node || node.k !== 'author' || !node.id || !node.label) return;
+      var a = byId[node.id];
+      if (!a) { a = byId[node.id] = { id: node.id, label: node.label, pubs: [], seen: {} }; list.push(a); }
+      if (a.seen[p.i]) return;
+      a.seen[p.i] = 1;
+      a.pubs.push(p);
+      (ofPub[p.i] || (ofPub[p.i] = [])).push(a);
+    });
+    return { byId: byId, ofPub: ofPub, list: list };
+  }
+  function authorIndex() { return AUTHORS || (AUTHORS = authorsOf(DATA, PUBS)); }
+
+  // a scholar's records in the order they were published, the undated last
+  function byYear(a, b) {
+    var da = CORE.isDated(a), db = CORE.isDated(b);
+    if (da !== db) return da ? -1 : 1;
+    if (da && Number(a.year) !== Number(b.year)) return Number(a.year) - Number(b.year);
+    var ta = a.sortTitle || '', tb = b.sortTitle || '';
+    return ta < tb ? -1 : (ta > tb ? 1 : a.i - b.i);
+  }
+  // the vocabulary keys a set of records carries, most carried first
+  function keyCounts(records, field, vocab) {
+    var n = {};
+    records.forEach(function (p) { (p[field] || []).forEach(function (k) { n[k] = (n[k] || 0) + 1; }); });
+    return Object.keys(n).map(function (k) {
+      return { key: k, label: vocab && vocab[k] ? vocab[k].label : k, n: n[k] };
+    }).sort(function (x, y) { return y.n - x.n || (x.key < y.key ? -1 : (x.key > y.key ? 1 : 0)); });
+  }
+  // What the author view prints, computed once. Every figure counts the counted
+  // records; the co-authors are names without a figure, in alphabetical order,
+  // so nothing here ranks one scholar above another.
+  function authorSummary(a, sem, ofPub) {
+    var records = a.pubs.slice().sort(byYear);
+    var counted = records.filter(counts);
+    var s = {
+      id: a.id, label: a.label, records: records, counted: counted, mention: 0, aside: 0,
+      themes: keyCounts(counted, 'themes', sem.themes), works: keyCounts(counted, 'works', sem.works),
+      approaches: keyCounts(counted, 'approaches', sem.approaches),
+      languages: {}, containers: [], coauthors: []
+    };
+    records.forEach(function (p) {
+      if (counts(p)) return;
+      if (p.rel === 'none') s.aside++; else s.mention++;
+    });
+    var inC = {};
+    counted.forEach(function (p) {
+      var code = p.lang || '';
+      s.languages[code] = (s.languages[code] || 0) + 1;
+      if (p.container) inC[p.container] = (inC[p.container] || 0) + 1;
+    });
+    s.containers = Object.keys(inC).map(function (c) { return { label: c, n: inC[c] }; })
+      .sort(function (x, y) { return y.n - x.n || (x.label < y.label ? -1 : (x.label > y.label ? 1 : 0)); });
+    var seen = {};
+    records.forEach(function (p) {
+      (ofPub[p.i] || []).forEach(function (o) {
+        if (o.id === a.id || seen[o.id]) return;
+        seen[o.id] = 1;
+        s.coauthors.push({ id: o.id, label: o.label });
+      });
+    });
+    s.coauthors.sort(function (x, y) {
+      var nx = norm(x.label), ny = norm(y.label);
+      return nx < ny ? -1 : (nx > ny ? 1 : (x.id < y.id ? -1 : (x.id > y.id ? 1 : 0)));
+    });
+    return s;
+  }
+
+  // A query that holds one author: condition and nothing else, with no answer
+  // and no language switched off, and whose records are exactly those of one
+  // author node, is shown as that author's view: the same records, the same
+  // figures. A name that several nodes answer stays a search.
+  function soleAuthor() {
+    var r = LAST;
+    if (!r || !matched || queryProblem || r.terms.length || r.phrases.length || r.exclude.length ||
+      r.excludePhrases.length || r.filters.length !== 1 || r.filters[0].field !== 'authors' || r.filters[0].neg) {
+      return null;
+    }
+    if (answersKeep() || LANGS.some(function (l) { return langOff[l.code]; })) return null;
+    return soleAuthorOf(r, authorIndex());
+  }
+  function soleAuthorOf(r, idx) {
+    var seen = {}, hit = null, many = false;
+    r.matched.forEach(function (i) {
+      (idx.ofPub[i] || []).forEach(function (a) {
+        if (many || seen[a.id]) return;
+        seen[a.id] = 1;
+        // the name alone, put to the engine with the query as typed
+        if (!CORE.search([{ i: 0, authors: [a.label], hay: '', vocab: '' }], r.query).matched.size) return;
+        if (hit) many = true; else hit = a;
+      });
+    });
+    return hit && !many && hit.pubs.length === r.matched.size ? hit : null;
+  }
+
+  // the first three names of a record, each a button that opens that author,
+  // when the graph holds a node for each name of the record
+  function authorsHTML(p) {
+    var own = (DATA ? authorIndex().ofPub[p.i] : null) || [];
+    var aligned = own.length === p.authors.length &&
+      own.every(function (a, k) { return a.label === p.authors[k]; });
+    return p.authors.slice(0, 3).map(function (name, k) {
+      if (!aligned || own[k] === shownAuthor) return esc(name);
+      return '<button type="button" class="au" data-a="' + esc(own[k].id) + '">' + esc(name) + '</button>';
+    }).join(', ');
+  }
+
+  function openAuthor(a) {
+    if (!a) return;
+    userMoved();
+    selAuthor = a;
+    sel = null;
+    selPub = null;
+    renderPanel();
+    invalidate();
+    syncHash(true);
+  }
+
+  // items of a zone line, each carrying its own comma, so no line opens on one
+  function zoneList(items) {
+    return items.map(function (html, i) {
+      return '<span class="zc">' + html + (i < items.length - 1 ? ',' : '') + '</span>';
+    }).join(' ');
+  }
+  function zoneKeys(title, rows, field, italic) {
+    if (!rows.length) return '';
+    return '<p><b>' + title + '</b> ' + zoneList(rows.slice(0, 5).map(function (r) {
+      var label = italic ? '<i>' + esc(r.label) + '</i>' : esc(r.label);
+      // the count sits inside the button, so it never wraps away from its heading
+      return '<button type="button" class="z" data-q="' + esc(field + ':' + r.key) + '">' + label +
+        ' <span class="zn">(' + nf(r.n) + ')</span></button>';
+    })) + '</p>';
+  }
+
+  function renderAuthor(a) {
+    var s = authorSummary(a, SEM, authorIndex().ofPub);
+    shownAuthor = a;
+    panel.classList.remove('one-work');
+    var list = s.records, n = list.length, dens = s.counted.length;
+    var corpusDens = 0;
+    PUBS.forEach(function (p) { if (counts(p)) corpusDens++; });
+    pSubject.textContent = 'Author, as the catalogues write the name';
+    pDensity.innerHTML = dens
+      ? nf(dens) + (dens === 1 ? ' work' : ' works') + '<small>filed under ' + esc(a.label) + ', of ' +
+        nf(corpusDens) + '</small>'
+      : nf(n) + (n === 1 ? ' record' : ' records') + '<small>listed under ' + esc(a.label) +
+        ', none of them counted in the density figures</small>';
+    pAlt.textContent = AUTHOR_NOTE;
+
+    var zoneBits = [ledgerHTML(ledgerFigures(s.counted))];
+    if (s.mention || s.aside) {
+      var tail = [];
+      if (s.mention) {
+        tail.push(nf(s.mention) + (s.mention === 1 ? ' further work is mentioned only'
+          : ' further works are mentioned only'));
+      }
+      if (s.aside) tail.push(nf(s.aside) + (s.aside === 1 ? ' is held as not about Origen' : ' are held as not about Origen'));
+      zoneBits.push('<p>' + tail.join(', and ') + '. They are listed below the count, ' +
+        'and they enter no figure on this site.</p>');
+    }
+    zoneBits.push(zoneKeys('Themes', s.themes, 'theme', false));
+    zoneBits.push(zoneKeys('Works of Origen', s.works, 'work', true));
+    zoneBits.push(zoneKeys('Angles', s.approaches, 'approach', false));
+    var byKey = {};
+    Object.keys(s.languages).forEach(function (code) {
+      var k = lkey(code);
+      byKey[k] = (byKey[k] || 0) + s.languages[code];
+    });
+    var langs = LANGS.filter(function (l) { return byKey[l.code]; })
+      .sort(function (x, y) { return byKey[y.code] - byKey[x.code]; });
+    if (langs.length) {
+      zoneBits.push('<p><b>Languages</b> ' + zoneList(langs.map(function (l) {
+        return esc(l.label) + ' (' + nf(byKey[l.code]) + ')';
+      })) + '</p>');
+    }
+    if (s.containers.length) {
+      var more = s.containers.length - 5;
+      var inItems = s.containers.slice(0, 5).map(function (c) { return '<i>' + esc(c.label) + '</i> (' + nf(c.n) + ')'; });
+      if (more > 0) inItems.push('and ' + nf(more) + (more === 1 ? ' other journal or volume' : ' other journals or volumes'));
+      zoneBits.push('<p><b>In</b> ' + zoneList(inItems) + '</p>');
+    }
+    if (s.coauthors.length) {
+      zoneBits.push('<p><b>With</b> ' + zoneList(s.coauthors.map(function (o) {
+        return '<button type="button" class="z" data-a="' + esc(o.id) + '">' + esc(o.label) + '</button>';
+      })) + '</p>');
+    }
+    pZones.innerHTML = zoneBits.join('');
+
+    VIEW = {
+      kind: 'author', title: a.label, author: a, record: null, cluster: null,
+      records: list, counted: s.counted,
+      figures: {
+        headline: dens, counted: dens, full: 0, conj: false, relaxed: false, depth: 0, terms: 0,
+        listed: n, mention: s.mention, aside: s.aside, shelf: 0, total: corpusDens, held: false, shelfAnswer: false
+      }
+    };
+    currentList = list;
+    shownCount = 0;
+    pBody.innerHTML = (dens || CMP ? STRIP_SHELL : '') + citeHTML();
+    renderStrip();
     var head = document.createElement('div');
     head.className = 'listhead';
-    head.innerHTML = '<span>Sources</span><span>' + nf(n) + ' listed</span>';
+    head.innerHTML = '<span>By year of publication</span><span>' + nf(n) + ' listed</span>';
     pBody.appendChild(head);
     appendMore();
     openPanel();
     pBody.scrollTop = 0;
   }
 
-  function appendMore() {
-    var slice = currentList.slice(shownCount, shownCount + 20);
-    var frag = document.createElement('div');
-    frag.innerHTML = slice.map(recordHTML).join('');
-    while (frag.firstChild) pBody.appendChild(frag.firstChild);
-    shownCount += slice.length;
-    var old = pBody.querySelector('.more'); if (old) old.remove();
-    if (shownCount < currentList.length) {
-      var b = document.createElement('button');
-      b.className = 'btn-quiet more';
-      b.textContent = 'Show 20 more of ' + nf(currentList.length - shownCount);
-      b.addEventListener('click', appendMore);
-      pBody.appendChild(b);
+  // a heading of the author view opens the Explorer view of that heading, as a
+  // new step: Back returns to the author
+  function searchFor(q) {
+    try { history.pushState({ view: 1 }, '', location.href); } catch (e) { /* the search still runs */ }
+    query = q;
+    linkBuild = null;
+    document.getElementById('ask-input').value = q;
+    document.getElementById('ask-field').classList.toggle('filled', !!q.trim());
+    selAuthor = null;
+    applyMatch(true);
+  }
+
+  /* ------------------------------------------------------------------ decades of a view
+     The counted records the headline counts, by decade of publication, in the
+     columns of decadeRows; a second query beside them, run through the same
+     engine under the same answers and language key, and counted as the search
+     field counts it. The strip, the SVG and the CSV are written from the same
+     rows, so the three cannot disagree. */
+  var STRIP_SHELL = '<div class="strip" id="p-strip"></div>';
+
+  function compareSeries(q) {
+    q = String(q || '').trim();
+    if (!q) return null;
+    var r = CORE.search(IDX, q, { keep: answersKeep() });
+    if (r.invalid || r.normalisedEmpty) {
+      return { label: '“' + q + '”', query: q, records: [], listed: 0, problem: problemLine(r) };
     }
+    var list = PUBS.filter(function (p) { return visiblePub(p) && r.matched.has(p.i); });
+    var t = tallyMatch(list, r.vocabOnly, r.scores, r.terms.length);
+    return {
+      label: '“' + q + '”', query: q, records: headlineRecords(list, t, r, false, false),
+      listed: list.length, problem: ''
+    };
+  }
+  function stripState(v) {
+    if (!v || v.kind === 'record' || !v.figures || v.figures.held) return null;
+    var series = [{ label: v.title, query: '', records: v.counted, listed: v.records.length, problem: '' }];
+    var cmp = compareSeries(CMP);
+    if (cmp && !cmp.problem) series.push(cmp);
+    return {
+      view: v, series: series, rows: decadeRows(series.map(function (x) { return x.records; }), buildYear()),
+      problem: cmp && cmp.problem ? cmp.problem : ''
+    };
+  }
+  function shortDecade(r) {
+    if (r.key === 'before-1950') return '<span aria-hidden="true">&lt;1950</span><span class="sr">Before 1950</span>';
+    // one term for a record with no year, on screen, on paper, in the SVG and the CSV
+    if (r.key === 'undated') return 'Undated';
+    // on a phone eleven columns at 11 px leave a decade 30 px: its label is
+    // abbreviated there (’50s), with the full label as the abbreviation's title
+    return '<span class="dl">' + esc(r.label) + '</span><abbr class="ds" title="' + esc(r.label) + '">\u2019' +
+      esc(String(r.key).slice(2)) + 's</abbr>' + (r.open ? '<small>open</small>' : '');
+  }
+  function stripHTML(st) {
+    var max = 0;
+    st.rows.forEach(function (r) { r.n.forEach(function (x) { max = Math.max(max, x); }); });
+    var restricted = !!answersKeep() || LANGS.some(function (l) { return langOff[l.code]; });
+    var legend = st.series.map(function (x, i) {
+      return '<li class="s' + i + '"><i aria-hidden="true"></i><span>' + esc(x.label) + ', ' + nf(x.records.length) +
+        ' counted' + (i === 0 && x.listed > x.records.length ? ' of ' + nf(x.listed) + ' listed' : '') + '</span></li>';
+    }).join('');
+    var table = '<table class="decades" aria-labelledby="strip-cap"><thead><tr><th scope="col"><span class="sr">Series</span></th>' +
+      st.rows.map(function (r) {
+        return '<th scope="col"' + (r.key === 'undated' ? ' class="undated"' : (r.key === 'before-1950' ? ' class="pre"' : '')) + '>' +
+          shortDecade(r) + '</th>';
+      }).join('') +
+      '</tr></thead><tbody>' + st.series.map(function (x, i) {
+        return '<tr class="s' + i + '"><th scope="row"><i aria-hidden="true"></i><span class="sr">' + esc(x.label) + '</span></th>' +
+          st.rows.map(function (r) {
+            var c = r.n[i];
+            return '<td' + (c ? ' style="--h:' + (c / max).toFixed(3) + '"' : ' class="zero"') + '><span>' + nf(c) + '</span></td>';
+          }).join('') + '</tr>';
+      }).join('') + '</tbody></table>';
+    var notes = ['Counted records, core and partial. Records before 1950 share one column, and undated records have their own.'];
+    var open = st.rows.filter(function (r) { return r.open; })[0];
+    if (open) {
+      notes.push('The ' + open.label + ' are open: this build was generated on ' +
+        esc((META && META.generated) || String(buildYear())) + '.');
+    }
+    if (st.series.length > 1 && restricted) {
+      notes.push('The compared query runs under your answers and the language key, as the search field runs it' +
+        (st.view.kind === 'author' ? '; the author’s records do not.' : '.'));
+    }
+    return '<p class="strip-cap" id="strip-cap">Counted records by decade of publication</p>' +
+      '<ul class="strip-legend">' + legend + '</ul>' +
+      '<div class="strip-wrap" role="region" tabindex="0" aria-label="Counted records by decade">' + table + '</div>' +
+      '<p class="strip-note">' + notes.join(' ') + '</p>' +
+      '<form class="strip-cmp" novalidate><label for="strip-q">Compare with</label><span class="strip-field">' +
+      '<input id="strip-q" type="search" autocomplete="off" spellcheck="false" placeholder="work:princ" value="' + esc(CMP) + '">' +
+      '<button type="submit" class="btn-quiet">Compare</button></span>' +
+      (CMP ? '<button type="button" class="linkish strip-drop">Remove the comparison</button>' : '') + '</form>' +
+      // said once, by the live region outside the strip (sayCompare)
+      (st.problem ? '<p class="strip-problem">' + esc(st.problem) + '</p>' : '') +
+      '<div class="strip-tools"><button type="button" class="btn-quiet strip-svg">Download SVG</button>' +
+      '<button type="button" class="btn-quiet strip-csv">Download CSV</button>' +
+      '<button type="button" class="linkish strip-copy">Copy SVG</button>' +
+      '<span class="strip-said" role="status" aria-live="polite"></span></div>';
+  }
+  function renderStrip() {
+    var box = document.getElementById('p-strip');
+    STRIP = stripState(VIEW);
+    if (!box) return;
+    if (!STRIP) { box.hidden = true; box.innerHTML = ''; return; }
+    box.hidden = false;
+    box.innerHTML = stripHTML(STRIP);
+  }
+  function setCompare(q) {
+    userMoved();
+    CMP = String(q || '').trim();
+    renderStrip();
+    var input = document.getElementById('strip-q');
+    if (input) input.focus({ preventScroll: true });
+    sayCompare();
+    syncHash(false);
+  }
+  // The strip is written again whole, so a live region inside it is never
+  // heard: the result is said by one that stays in the panel.
+  function compareMessage(st, cmp) {
+    if (!st) return cmp ? 'This view has no decade table to compare with.' : '';
+    if (st.problem) return st.problem;
+    if (st.series.length > 1) {
+      var a = st.series[0], b = st.series[1];
+      return 'Compared by decade: ' + b.label + ', ' + nf(b.records.length) + ' counted, beside ' +
+        a.label + ', ' + nf(a.records.length) + ' counted.';
+    }
+    return 'The comparison is removed.';
+  }
+  function sayCompare() {
+    var live = document.getElementById('strip-live');
+    if (!live) return;
+    var text = compareMessage(STRIP, CMP);
+    live.textContent = '';
+    setTimeout(function () { live.textContent = text; }, 60);
+  }
+
+  // What the exported figure says of itself, in lines: the view and its figures,
+  // the compared query, what is counted, the open decade, what the catalogues
+  // are, the address and the day.
+  function figureCaption(st) {
+    var legend = st.series.map(function (x, i) {
+      return x.label + ': ' + nf(x.records.length) + ' counted' +
+        (i === 0 && x.listed > x.records.length ? ' of ' + nf(x.listed) + ' listed' : '');
+    });
+    var lines = ['Origenality, ' + viewDescription(st.view) + '.'];
+    if (st.series.length > 1) {
+      var hidden = LANGS.filter(function (l) { return langOff[l.code]; }).map(function (l) { return l.label; });
+      lines.push('Compared with ' + st.series[1].label + ', counted as the search field counts it' +
+        (answersKeep() ? ', under the same answers' : '') + (hidden.length ? ', not shown: ' + hidden.join(', ') : '') + '.');
+    }
+    lines.push('Counted records are those classed core or partial. Records before 1950 share one column; ' +
+      'undated records have their own.');
+    var open = st.rows.filter(function (r) { return r.open; })[0];
+    if (open) {
+      lines.push('The ' + open.label + ' are open: build ' + DATA_VERSION + ' was generated on ' +
+        ((META && META.generated) || buildYear()) + '.');
+    }
+    lines.push('A count of the harvested catalogues, not of the literature.');
+    lines.push(viewUrl());
+    lines.push('Accessed ' + isoDay(new Date()) + '.');
+    return { title: 'Counted records by decade of publication', legend: legend, lines: lines };
+  }
+  function xmlText(s) {
+    return String(s == null ? '' : s).replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f]/g, ' ')
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;').replace(/'/g, '&apos;');
+  }
+  // lines of at most `max` characters, broken at spaces, or inside a word (an
+  // address) longer than a line
+  function wrapText(text, max) {
+    var out = [], cur = '';
+    String(text).split(/\s+/).filter(Boolean).forEach(function (w) {
+      while (w.length > max) {
+        if (cur) { out.push(cur); cur = ''; }
+        out.push(w.slice(0, max));
+        w = w.slice(max);
+      }
+      if (!w) return;
+      if (!cur) cur = w;
+      else if ((cur + ' ' + w).length > max) { out.push(cur); cur = w; } else cur += ' ' + w;
+    });
+    if (cur) out.push(cur);
+    return out;
+  }
+  // A standalone SVG: no script, no font file, no external reference. The first
+  // series is filled terracotta, the second hatched in ink with an ink outline,
+  // so the two stay apart in black and white; every column carries its number.
+  function figureSVG(st, cap) {
+    var W = 760, pad = 34, font = "'EB Garamond', Georgia, serif", ink = '#23201B', paper = '#FFFDF8';
+    var fills = ['#A03620', 'url(#or-hatch)'];
+    var out = [], y = 46;
+    out.push('<text x="' + pad + '" y="' + y + '" font-size="21" font-weight="500">' + xmlText(cap.title) + '</text>');
+    y += 14;
+    cap.legend.forEach(function (line, i) {
+      y += 22;
+      out.push('<rect x="' + pad + '" y="' + (y - 12) + '" width="15" height="15" fill="' + fills[i] +
+        '" stroke="' + ink + '" stroke-width="1"/>');
+      out.push('<text x="' + (pad + 24) + '" y="' + y + '" font-size="14">' + xmlText(line) + '</text>');
+    });
+    var top = y + 40, plotH = 210, base = top + plotH;
+    var m = Math.max(1, st.rows.length), k = st.series.length, gw = (W - pad * 2) / m;
+    var bw = Math.min(30, gw * (k === 1 ? 0.56 : 0.36)), gap = 3, max = 0;
+    st.rows.forEach(function (r) { r.n.forEach(function (x) { max = Math.max(max, x); }); });
+    st.rows.forEach(function (r, j) {
+      var cx = pad + gw * (j + 0.5), left = cx - (k * bw + (k - 1) * gap) / 2;
+      r.n.forEach(function (x, i) {
+        var bx = left + i * (bw + gap), h = max ? x / max * plotH : 0;
+        if (h > 0) {
+          out.push('<rect x="' + bx.toFixed(1) + '" y="' + (base - h).toFixed(1) + '" width="' + bw.toFixed(1) +
+            '" height="' + h.toFixed(1) + '" fill="' + fills[i] + '" stroke="' + ink + '" stroke-width="' + (i ? 1 : 0.6) + '"/>');
+        }
+        out.push('<text x="' + (bx + bw / 2).toFixed(1) + '" y="' + (base - h - 5).toFixed(1) +
+          '" font-size="12" text-anchor="middle">' + x + '</text>');
+      });
+      out.push('<text x="' + cx.toFixed(1) + '" y="' + (base + 19) + '" font-size="12.5" text-anchor="middle">' +
+        xmlText(r.label) + '</text>');
+      if (r.open) {
+        out.push('<text x="' + cx.toFixed(1) + '" y="' + (base + 34) +
+          '" font-size="11" font-style="italic" text-anchor="middle">open</text>');
+      }
+    });
+    out.push('<line x1="' + pad + '" y1="' + base + '" x2="' + (W - pad) + '" y2="' + base +
+      '" stroke="' + ink + '" stroke-width="1"/>');
+    y = base + 66;
+    cap.lines.forEach(function (line) {
+      wrapText(line, 104).forEach(function (part) {
+        out.push('<text x="' + pad + '" y="' + y + '" font-size="12.5">' + xmlText(part) + '</text>');
+        y += 17;
+      });
+    });
+    var H = Math.ceil(y + 16);
+    return '<?xml version="1.0" encoding="UTF-8"?>\n' +
+      '<svg xmlns="http://www.w3.org/2000/svg" width="' + W + '" height="' + H + '" viewBox="0 0 ' + W + ' ' + H +
+      '" role="img" aria-labelledby="or-title or-desc">\n' +
+      '<title id="or-title">' + xmlText(cap.title) + '</title>\n' +
+      '<desc id="or-desc">' + xmlText(sentences(cap.legend.concat(cap.lines))) + '</desc>\n' +
+      '<defs><pattern id="or-hatch" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">' +
+      '<rect width="6" height="6" fill="' + paper + '"/><rect width="2.4" height="6" fill="' + ink + '"/></pattern></defs>\n' +
+      '<rect width="' + W + '" height="' + H + '" fill="' + paper + '"/>\n' +
+      '<g font-family="' + font + '" fill="' + ink + '">\n' + out.join('\n') + '\n</g>\n</svg>\n';
+  }
+  // lines read aloud one after the other: each ends with a full stop
+  function sentences(lines) {
+    return lines.map(function (l) { l = String(l).trim(); return /[.!?]$/.test(l) ? l : l + '.'; }).join(' ');
+  }
+  var CSV_QUOTED = /[",\r\n]/;
+  function csvCell(v) {
+    var s = String(v == null ? '' : v);
+    return CSV_QUOTED.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+  }
+  // The same rows as the strip: the caption as # lines, a header naming each
+  // series and its population, one row per decade, the total of each series.
+  function figureCSV(st, cap) {
+    // a caption line is one cell: quoted like any other, so its commas do not split it
+    var lines = [cap.title].concat(cap.legend, cap.lines).map(function (l) {
+      return csvCell('# ' + String(l).replace(/[\r\n]+/g, ' '));
+    });
+    lines.push(['decade'].concat(st.series.map(function (x) {
+      return x.label + ': counted records (core and partial)';
+    })).map(csvCell).join(','));
+    st.rows.forEach(function (r) { lines.push([r.label].concat(r.n).map(csvCell).join(',')); });
+    lines.push(['All counted'].concat(st.series.map(function (x) { return x.records.length; })).map(csvCell).join(','));
+    return lines.join('\r\n') + '\r\n';
+  }
+  function figureFileName(st, ext) {
+    var stem = st.series.map(function (x) { return x.query || x.label; }).join(' and ');
+    var folded = CITE ? CITE.fold(stem) : norm(stem);
+    var slug = folded.split(/[^a-z0-9]+/).filter(Boolean).join('-').slice(0, 60).replace(/-+$/, '') || 'view';
+    return 'origenality-decades-' + slug + (DATA_VERSION ? '-' + DATA_VERSION : '') + '.' + ext;
+  }
+  function stripTool(kind, box) {
+    if (!STRIP || STRIP.view !== VIEW) renderStrip();
+    if (!STRIP || !box) return;
+    var said = box.querySelector('.strip-said');
+    var cap = figureCaption(STRIP);
+    if (kind === 'csv') {
+      var csvName = figureFileName(STRIP, 'csv');
+      download(figureCSV(STRIP, cap), csvName, 'text/csv;charset=utf-8');
+      if (said) said.textContent = 'Written to ' + csvName + '.';
+      return;
+    }
+    var svg = figureSVG(STRIP, cap);
+    if (kind === 'svg') {
+      var svgName = figureFileName(STRIP, 'svg');
+      download(svg, svgName, 'image/svg+xml;charset=utf-8');
+      if (said) said.textContent = 'Written to ' + svgName + '.';
+      return;
+    }
+    var done = function () { if (said) said.textContent = 'SVG copied.'; };
+    var refused = function () { if (said) said.textContent = 'The browser refused the copy; the SVG file holds the same figure.'; };
+    try { navigator.clipboard.writeText(svg).then(done, refused); } catch (e) { refused(); }
+  }
+
+  // the controls of the strip and of the author view, present and future
+  panel.addEventListener('submit', function (ev) {
+    var form = ev.target.closest ? ev.target.closest('.strip-cmp') : null;
+    if (!form) return;
+    ev.preventDefault();
+    setCompare(form.querySelector('input').value);
+  });
+  panel.addEventListener('click', function (ev) {
+    var t = ev.target.closest ? ev.target.closest('.strip-svg, .strip-csv, .strip-copy, .strip-drop, [data-a], [data-q]') : null;
+    if (!t || !panel.contains(t)) return;
+    if (t.hasAttribute('data-a')) {
+      var a = authorIndex().byId[t.getAttribute('data-a')];
+      if (a) { openAuthor(a); focusPanelHead(); }
+    } else if (t.hasAttribute('data-q')) { searchFor(t.getAttribute('data-q')); focusPanelHead(); }
+    else if (t.classList.contains('strip-drop')) setCompare('');
+    else {
+      stripTool(t.classList.contains('strip-svg') ? 'svg' : (t.classList.contains('strip-csv') ? 'csv' : 'copy'),
+        t.closest('.strip'));
+    }
+  });
+
+  /* ------------------------------------------------------------------ printing a view
+     A view prints as a dossier: what it is (title, address, build, day), its
+     figures and what they rest on, the citation, every record listed with its
+     abstract unfolded and credited, then the catalogues the records come from.
+     The list shows twenty records at a time, so it is filled to the end before
+     printing and goes back to the reader's length afterwards. */
+  var printShown = null;
+  function prepareForPrint() {
+    if (!panel.classList.contains('open')) return;
+    if (printShown == null) printShown = shownCount;
+    while (shownCount < currentList.length) appendMore();
+    fillPrint();
+  }
+  function afterPrint() {
+    if (printShown == null) return;
+    var keep = printShown;
+    printShown = null;
+    var recs = pBody.querySelectorAll('.rec');
+    for (var i = keep; i < recs.length; i++) recs[i].remove();
+    shownCount = Math.min(keep, recs.length);
+    placeMore();
+  }
+  function printView() {
+    prepareForPrint();
+    try { window.print(); } catch (e) { /* a frame that refuses to print keeps a working page */ }
+  }
+  addEventListener('beforeprint', prepareForPrint);
+  addEventListener('afterprint', afterPrint);
+
+  function buildYear() {
+    var y = parseInt(String(DATA_VERSION || '').slice(0, 4), 10);
+    return isFinite(y) ? y : null;
+  }
+  // a catalogue label as the English pages write it (build_summary_figures.py)
+  function englishLabel(s) { return String(s).replace(/\s+[:\u2014\u2013]\s+/g, ', '); }
+  // Counted records by decade of publication: before 1950 in one column, as the
+  // questions group it; every decade from the first to the build's own, which
+  // is marked open; the undated in a column of their own.
+  // The columns every series of the strip shares: before 1950 in one column, as
+  // the questions group it, when any series has a record there; every decade from
+  // the first to the build's own, which is marked open; the undated in a column
+  // of their own when any series has one. `series` is a list of record lists;
+  // each row carries one count per series.
+  function decadeRows(series, year) {
+    var m = series.length, cols = {}, lo = null, hi = null, anyPre = false, anyNone = false;
+    function zero() { var z = []; for (var s = 0; s < m; s++) z.push(0); return z; }
+    var pre = zero(), none = zero();
+    series.forEach(function (records, s) {
+      records.forEach(function (p) {
+        if (!CORE.isDated(p)) { none[s]++; anyNone = true; return; }
+        var y = Number(p.year);
+        if (y < 1950) { pre[s]++; anyPre = true; return; }
+        var d = Math.floor(y / 10) * 10;
+        (cols[d] || (cols[d] = zero()))[s]++;
+        lo = lo == null ? d : Math.min(lo, d);
+        hi = hi == null ? d : Math.max(hi, d);
+      });
+    });
+    var now = year != null ? Math.floor(year / 10) * 10 : null;
+    if (now != null) { lo = lo == null ? now : lo; hi = hi == null ? now : Math.max(hi, now); }
+    var out = [];
+    if (anyPre) out.push({ key: 'before-1950', label: 'Before 1950', n: pre, open: false });
+    if (lo != null) {
+      for (var d = lo; d <= hi; d += 10) {
+        out.push({ key: String(d), label: d + 's', n: cols[d] || zero(), open: now != null && d === now });
+      }
+    }
+    if (anyNone) out.push({ key: 'undated', label: 'Undated', n: none, open: false });
+    return out;
+  }
+  // Counted records of one view by decade of publication, in those columns.
+  function decadeTally(records, year) {
+    return decadeRows([records], year).map(function (r) { return { label: r.label, n: r.n[0], open: r.open }; });
+  }
+  // the catalogues behind the records listed, by the label META.json gives them
+  function sourcesHTML(v) {
+    var by = {}, order = [];
+    v.records.forEach(function (p) {
+      var seen = {};
+      (p.sourceIds || []).forEach(function (e) {
+        if (!e || !e.source || seen[e.source]) return;
+        seen[e.source] = 1;
+        if (!by[e.source]) { by[e.source] = 0; order.push(e.source); }
+        by[e.source]++;
+      });
+    });
+    if (!order.length) return '';
+    order.sort(function (a, b) { return by[b] - by[a] || (a < b ? -1 : 1); });
+    var labels = {};
+    ((META && META.sources_present) || []).forEach(function (s) { if (s && s.source) labels[s.source] = s.label; });
+    var n = v.records.length;
+    return '<p>Catalogues behind the ' + (n === 1 ? 'record' : nf(n) + ' records') + ' listed: ' +
+      order.map(function (k) { return esc(englishLabel(labels[k] || sourceName(k))) + ', ' + nf(by[k]); }).join('; ') +
+      '. A record merged from several catalogues counts under each. Every abstract printed names the database ' +
+      'that wrote it. Licences and required attributions are set out at ' +
+      esc(new URL('credits.html', location.href).href) + '.</p>';
+  }
+  function fillPrint() {
+    var head = document.getElementById('p-print-head'), foot = document.getElementById('p-print-foot');
+    if (!head || !foot) return;
+    var v = VIEW;
+    if (!v) { head.innerHTML = ''; foot.innerHTML = ''; return; }
+    var rows = [['Address', viewUrl()], ['Build', DATA_VERSION || 'not read'], ['Printed', isoDay(new Date())]];
+    head.innerHTML = '<p class="print-eyebrow">Origenality, Explorer dossier</p>' +
+      (v.kind !== 'record' ? '<h1 class="print-title">' + esc(v.title) + '</h1>' : '') +
+      '<dl class="print-meta">' + rows.map(function (r) {
+        return '<dt>' + r[0] + '</dt><dd>' + esc(r[1]) + '</dd>';
+      }).join('') + '</dl>';
+    foot.innerHTML = sourcesHTML(v);
   }
 
   /* A closed panel holds buttons and links. Hiding it with aria-hidden while it
@@ -2081,7 +3114,23 @@ import { createDustField } from './dust-field.js';
   }
   setPanelInert(true);
 
+  /* On a phone the sheet keeps its figure in the fixed head and lets everything
+     that explains it (what it rests on, each term's reach, the tails, the
+     zones) scroll with the list, so the records keep the room. On a wider
+     screen the zones stay under the figure, in the head. */
+  function placeZones() {
+    var top = panel.querySelector('.panel-top');
+    if (!top) return;
+    if (MOBILE) {
+      if (pZones.parentNode !== pBody || pBody.firstChild !== pZones) pBody.insertBefore(pZones, pBody.firstChild);
+    } else if (pZones.parentNode !== top) {
+      top.insertBefore(pZones, top.querySelector('.sep'));
+    }
+  }
+
   function openPanel() {
+    placeZones();
+    fillPrint();
     var was = panel.classList.contains('open');
     if (!was) {
       var from = document.activeElement;
@@ -2092,11 +3141,25 @@ import { createDustField } from './dust-field.js';
     if (veil) veil.setAttribute('aria-hidden', 'false');
     setPanelInert(false);
     if (!was) {
+      panel.classList.toggle('by-pointer', byPointer);
       panel.focus({ preventScroll: true });
       settle();
     }
   }
-  function closePanel() {
+  // a control that redraws the panel from inside it hands the focus to the
+  // figure at its head, rather than letting it drop to the page
+  function focusPanelHead() {
+    if (!panel.classList.contains('open')) return;
+    // no ring round the figure after a click; a key pressed afterwards restores it
+    panel.classList.toggle('by-pointer', byPointer);
+    pDensity.setAttribute('tabindex', '-1');
+    pDensity.focus({ preventScroll: true });
+  }
+  // byReader: the reader closed the panel (the close button, Escape, the veil,
+  // a pull, a tap on the empty map). When the view had added a history step and
+  // closing returns to the address before it, Back is taken instead of writing
+  // that address over the step, which would leave Back with nothing to undo.
+  function closePanel(byReader) {
     var was = panel.classList.contains('open');
     var inside = was && panel.contains(document.activeElement);
     document.body.classList.remove('panel-open');
@@ -2106,6 +3169,8 @@ import { createDustField } from './dust-field.js';
     setPanelInert(true);
     sel = null;
     selPub = null;
+    selAuthor = null;
+    shownAuthor = null;
     panel.classList.remove('one-work');
     if (was) {
       if (inside) {
@@ -2115,6 +3180,19 @@ import { createDustField } from './dust-field.js';
       lastFocus = null;
       settle();
     }
+    VIEW = null;
+    if (byReader === true && stepBack()) return;
+    syncHash(false);
+  }
+  function stepBack() {
+    if (!addressReady || restoring) return false;
+    var st = history.state;
+    if (!st || st.view !== 1 || typeof st.from !== 'string') return false;
+    if (canonical(st.from) !== canonical(addressOf(currentState()))) return false;
+    if (canonical(location.hash) === canonical(st.from)) return false;
+    lastHash = st.from;
+    try { history.back(); } catch (e) { return false; }
+    return true;
   }
   function frameCluster(c) {
     var R = Math.max(radiusOf(c), 10);
@@ -2136,21 +3214,41 @@ import { createDustField } from './dust-field.js';
   }
   function openCluster(c) {
     if (!c) return;
+    userMoved();
     sel = c;
     selPub = null;
+    selAuthor = null;
     renderPanel();
     frameCluster(c);
     invalidate();
+    syncHash(true);
   }
   function openPub(p) {
     if (!p) return;
+    userMoved();
     selPub = p;
     sel = null;
+    selAuthor = null;
     renderPanel();
     invalidate();
+    syncHash(true);
   }
-  document.getElementById('panel-close').addEventListener('click', closePanel);
-  if (veil) veil.addEventListener('click', closePanel);
+  document.getElementById('panel-close').addEventListener('click', function () { closePanel(true); });
+  /* The veil closes the sheet only for a gesture that began on the veil. A tap
+     on the map opens the sheet on pointerup; the browser then sends that tap's
+     compatibility click to the same point, where the veil has just appeared,
+     and the sheet used to close in the frame it opened. */
+  var veilDown = false, byPointer = false;
+  // a panel opened by a tap or a click takes the focus without drawing the
+  // keyboard frame round the whole sheet; a key pressed afterwards restores it
+  addEventListener('pointerdown', function (e) { byPointer = true; veilDown = e.target === veil; }, true);
+  addEventListener('keydown', function () { byPointer = false; panel.classList.remove('by-pointer'); }, true);
+  if (veil) {
+    veil.addEventListener('click', function () {
+      if (veilDown) closePanel(true);
+      veilDown = false;
+    });
+  }
 
   /* on a phone the sheet can be pulled down to close, unless the list itself
      is mid-scroll — that gesture belongs to the records */
@@ -2170,12 +3268,23 @@ import { createDustField } from './dust-field.js';
   panel.addEventListener('touchend', function () {
     if (dragY == null) return;
     panel.style.transform = '';
-    if (dragDy > 72) closePanel();
+    if (dragDy > 72) closePanel(true);
     dragY = null; dragDy = 0;
   });
 
   // one listener for every fold in the list, present and future
   pBody.addEventListener('click', function (ev) {
+    var tool = ev.target.closest
+      ? ev.target.closest('.cite-link, .cite-copy, .cite-export, .cite-print, .export-fmt, .export-copy') : null;
+    if (tool) {
+      var box = tool.closest('.cite');
+      if (tool.classList.contains('cite-export')) toggleExport(tool);
+      else if (tool.classList.contains('cite-print')) printView();
+      else if (tool.classList.contains('export-fmt') || tool.classList.contains('export-copy')) {
+        exportView(tool.getAttribute('data-format'), tool.classList.contains('export-copy'), box);
+      } else copyView(tool.classList.contains('cite-copy'), box);
+      return;
+    }
     var button = ev.target.closest ? ev.target.closest('.abstract-more') : null;
     if (!button) return;
     var text = document.getElementById(button.getAttribute('aria-controls'));
@@ -2201,7 +3310,9 @@ import { createDustField } from './dust-field.js';
   }
 
   /* ------------------------------------------------------------------ pointer */
-  var down = null, panning = false, pinch = null;
+  // touchTap: a touch tap on the field was handled on pointerup, so its
+  // compatibility mouse events and click are cancelled on touchend
+  var down = null, panning = false, pinch = null, touchTap = false;
   cv.addEventListener('pointerdown', function (e) {
     cv.setPointerCapture(e.pointerId);
     down = [e.clientX, e.clientY];
@@ -2226,11 +3337,12 @@ import { createDustField } from './dust-field.js';
   cv.addEventListener('pointerup', function (e) {
     var dist = down ? Math.hypot(e.clientX - down[0], e.clientY - down[1]) : 0;
     if (dist < 5) {
+      touchTap = e.pointerType === 'touch';
       var p = pickPub(e.clientX, e.clientY);
       if (p) openPub(p);
       else {
         var c = pick(e.clientX, e.clientY);
-        if (c) openCluster(c); else closePanel();
+        if (c) openCluster(c); else closePanel(true);
       }
     }
     panning = false; down = null; cv.classList.remove('grabbing');
@@ -2265,7 +3377,11 @@ import { createDustField } from './dust-field.js';
       invalidate();
     }
   }, { passive: false });
-  cv.addEventListener('touchend', function (e) { if (e.touches.length < 2) pinch = null; });
+  cv.addEventListener('touchend', function (e) {
+    if (e.touches.length < 2) pinch = null;
+    if (touchTap && e.cancelable) e.preventDefault();
+    touchTap = false;
+  }, { passive: false });
 
   // A turned phone or a dragged window edge gets its own field: the arrangement
   // is computed again once the movement stops, and the clouds travel to their
@@ -2279,19 +3395,26 @@ import { createDustField } from './dust-field.js';
     });
     CLUSTERS = saved;
     if (!matched) CLUSTERS.forEach(function (c) { c.tx = c.bx; c.ty = c.by; });
-    // the slot each name held on the old screen is forgotten: kept, it seats a
-    // few names in places that made sense at the old width and leaves the
-    // clusters that come after them unnamed. A turned phone gets the same
-    // arrangement it would have got had it loaded that way.
-    Object.keys(BUILT).forEach(function (m) {
-      BUILT[m].clusters.forEach(function (c) { c._sl = null; });
-    });
     startTween(RM ? 1 : 620);
     fitView();
   }
+  // A phone's field shows about thirty characters: the short text keeps one
+  // example of a field, and the whole grammar stays one tap away under the field.
+  var ASK_PLACEHOLDER = {
+    wide: 'Describe your project, or name a field: author:crouzel',
+    narrow: 'A topic, or author:crouzel'
+  };
+  function setAskPlaceholder() {
+    var input = document.getElementById('ask-input');
+    if (input) input.placeholder = MOBILE ? ASK_PLACEHOLDER.narrow : ASK_PLACEHOLDER.wide;
+  }
+  setAskPlaceholder();
+
   var rzTimer = null;
   function onViewportChange() {
     MOBILE = matchMedia('(max-width:760px)').matches;
+    placeZones();
+    setAskPlaceholder();
     var h = document.getElementById('hint');
     if (h) {
       h.textContent = MOBILE
@@ -2304,8 +3427,21 @@ import { createDustField } from './dust-field.js';
   }
   addEventListener('resize', onViewportChange);
   addEventListener('orientationchange', onViewportChange);
+  // Escape folds one layer per press: the four questions or the field grammar
+  // first, then the panel
   addEventListener('keydown', function (e) {
-    if (e.key === 'Escape') { closePanel(); }
+    if (e.key !== 'Escape') return;
+    if (wiz.classList.contains('open')) {
+      var inWiz = wiz.contains(document.activeElement);
+      closeWiz();
+      if (inWiz) document.getElementById('wiz-open').focus();
+      return;
+    }
+    if (advIsOpen()) { setAdvOpen(false); return; }
+    // an open export fold is folded first, and its control keeps the focus
+    var fold = panel.classList.contains('open') ? panel.querySelector('.cite-export[aria-expanded="true"]') : null;
+    if (fold) { toggleExport(fold); fold.focus(); return; }
+    closePanel(true);
   });
 
   // keyboard path across the map: arrows walk the clusters, Enter opens one
@@ -2343,37 +3479,30 @@ import { createDustField } from './dust-field.js';
     var lg = document.getElementById('legend');
     // the same population as the Observatory: core and partial
     var byLang = {};
-    PUBS.forEach(function (p) { if (counts(p)) byLang[p.lang] = (byLang[p.lang] || 0) + 1; });
+    PUBS.forEach(function (p) { if (counts(p)) byLang[p.lkey] = (byLang[p.lkey] || 0) + 1; });
     LANGS.forEach(function (l) {
       var b = document.createElement('button');
       b.type = 'button'; b.className = 'lg';
+      b.dataset.code = l.code;
       b.setAttribute('aria-pressed', 'true');
       b.innerHTML = '<i style="background:' + l.col + '"></i>' + esc(l.label) +
         '<span class="n">' + nf(byLang[l.code] || 0) + '</span>';
       b.addEventListener('click', function () {
-        langOff[l.code] = !langOff[l.code];
-        b.classList.toggle('off', !!langOff[l.code]);
-        b.setAttribute('aria-pressed', langOff[l.code] ? 'false' : 'true');
-        // the state line counts hidden records too, so it has to be recomputed
-        if (matched) applyMatch(); else if (panel.classList.contains('open')) renderPanel();
+        userMoved();
+        setLangOff(l.code, !langOff[l.code]);
+        // the state line counts hidden records too, so it has to be recomputed,
+        // and an open panel is rebuilt from the same answer (sel and selPub kept)
+        if (matched) applyMatch();
+        if (panel.classList.contains('open')) renderPanel();
         invalidate();
+        syncHash(false);
       });
       lg.appendChild(b);
     });
 
     // grouping axis
-    var mt = document.getElementById('mode-theme'), mw = document.getElementById('mode-work');
-    function setMode(mode) {
-      if (mode === MODE) return;
-      useMode(mode, true);
-      mt.setAttribute('aria-pressed', mode === 'theme' ? 'true' : 'false');
-      mw.setAttribute('aria-pressed', mode === 'work' ? 'true' : 'false');
-      kbIndex = -1;
-      closePanel();
-      applyMatch(false);
-    }
-    mt.addEventListener('click', function () { setMode('theme'); });
-    mw.addEventListener('click', function () { setMode('work'); });
+    document.getElementById('mode-theme').addEventListener('click', function () { setMode('theme'); });
+    document.getElementById('mode-work').addEventListener('click', function () { setMode('work'); });
 
     // search
     var input = document.getElementById('ask-input');
@@ -2381,35 +3510,26 @@ import { createDustField } from './dust-field.js';
     var clear = document.getElementById('ask-clear');
     function runSearch() {
       query = input.value;
+      linkBuild = null;
       fieldEl.classList.toggle('filled', !!query.trim());
       applyMatch(true);
     }
     document.getElementById('ask-go').addEventListener('click', runSearch);
-    var advBtn = document.getElementById('adv-open'), adv = document.getElementById('adv');
-    if (advBtn && adv) {
-      advBtn.addEventListener('click', function () {
-        var open = adv.hasAttribute('hidden');
-        if (open) adv.removeAttribute('hidden'); else adv.setAttribute('hidden', '');
-        advBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
-        advBtn.textContent = open ? 'hide the fields' : 'or search by field';
-      });
-    }
+    var advBtn = document.getElementById('adv-open');
+    if (advBtn) advBtn.addEventListener('click', function () { setAdvOpen(!advIsOpen()); });
     input.addEventListener('keydown', function (e) { if (e.key === 'Enter') runSearch(); });
     input.addEventListener('input', function () {
       fieldEl.classList.toggle('filled', !!input.value.trim());
     });
     clear.addEventListener('click', function () {
-      input.value = ''; query = ''; fieldEl.classList.remove('filled');
+      input.value = ''; query = ''; linkBuild = null; CMP = ''; fieldEl.classList.remove('filled');
       applyMatch(false); closePanel();
     });
 
     document.getElementById('reset').addEventListener('click', function () {
-      query = ''; input.value = ''; fieldEl.classList.remove('filled');
+      query = ''; input.value = ''; linkBuild = null; CMP = ''; fieldEl.classList.remove('filled');
       wizAns = { work: [], approach: [], decade: [], lang: [] };
-      Object.keys(langOff).forEach(function (k) { langOff[k] = false; });
-      lg.querySelectorAll('.lg').forEach(function (b) {
-        b.classList.remove('off'); b.setAttribute('aria-pressed', 'true');
-      });
+      LANGS.forEach(function (l) { setLangOff(l.code, false); });
       closeWiz();
       applyMatch(false); closePanel();
     });
@@ -2435,6 +3555,254 @@ import { createDustField } from './dust-field.js';
     OPTS = buildOptions();
     initWizard();
     applyMatch(false);
+    initAddress();
+  }
+
+  function setMode(mode) {
+    if (mode === MODE) return;
+    userMoved();
+    useMode(mode, true);
+    document.getElementById('mode-theme').setAttribute('aria-pressed', mode === 'theme' ? 'true' : 'false');
+    document.getElementById('mode-work').setAttribute('aria-pressed', mode === 'work' ? 'true' : 'false');
+    kbIndex = -1;
+    closePanel();
+    applyMatch(false);
+  }
+  function setLangOff(code, off) {
+    langOff[code] = !!off;
+    var b = document.querySelector('#legend .lg[data-code="' + code + '"]');
+    if (!b) return;
+    b.classList.toggle('off', !!off);
+    b.setAttribute('aria-pressed', off ? 'false' : 'true');
+  }
+
+  /* ------------------------------------------------------------------ addresses
+   * Every view has an address in the fragment, never in the query string, so
+   * nothing reaches the server's routing or logs and a fragment survives the
+   * redirect from a short address:
+   *
+   *   #q=<query>&m=work&c=<cluster id>&r=<record>&a=<author id>&w=<work,...>
+   *    &ap=<approach,...>&d=<decade,...>&l=<language,...>&off=<hidden colour keys>
+   *    &cmp=<compared query>&b=<build>
+   *
+   * q the text searched; m the grouping, written only when it is not theme;
+   * c a cluster by its id (dom:<domain key>, w:<work key>, or a reservoir:
+   * __off, __nothe, __nowork), never by its position in the array; r a record
+   * by its first source identifier, source:id, which survives a rebuild that
+   * rehashes the Origenality ID (a bare catalogue number or an OR ID resolve
+   * too); a an author by the id of its node in graph.json (a:crouzel-henri); w,
+   * ap, d, l the answers to the four questions, by option id; off the languages
+   * switched off in the key; cmp the query the decade strip compares the view
+   * with; b the build the link was made on. A record wins over an author, and an
+   * author over a cluster. Keys
+   * this version does not know are ignored, so a later one may add some.
+   * Opening a cluster or a record adds a step to the history, so Back closes
+   * it; every other change replaces the current address.
+   */
+  var LIST_KEYS = { w: 1, ap: 1, d: 1, l: 1, off: 1 };
+  var addressReady = false, restoring = false, lastHash = '', RECORD_KEYS = null;
+
+  function hashValue(v) {
+    return encodeURIComponent(v).replace(/%3A/gi, ':').replace(/%2C/gi, ',')
+      .replace(/%2F/gi, '/').replace(/%20/g, '+');
+  }
+  function serializeState(s) {
+    var parts = [];
+    function put(key, v) { if (v != null && v !== '') parts.push(key + '=' + hashValue(String(v))); }
+    put('q', s.q);
+    if (s.m && s.m !== 'theme') put('m', s.m);
+    put('c', s.c);
+    put('r', s.r);
+    put('a', s.a);
+    ['w', 'ap', 'd', 'l', 'off'].forEach(function (key) {
+      if (s[key] && s[key].length) put(key, s[key].join(','));
+    });
+    put('cmp', s.cmp);
+    put('b', s.b);
+    return parts.join('&');
+  }
+  function parseHash(h) {
+    var s = { q: '', m: 'theme', c: null, r: null, a: null, w: [], ap: [], d: [], l: [], off: [], cmp: '', b: null };
+    String(h || '').replace(/^#/, '').split('&').forEach(function (part) {
+      if (!part) return;
+      var at = part.indexOf('=');
+      var key = at < 0 ? part : part.slice(0, at);
+      var v = at < 0 ? '' : part.slice(at + 1);
+      try { v = decodeURIComponent(v.replace(/\+/g, ' ')); } catch (e) { return; }
+      if (key === 'q') s.q = v;
+      else if (key === 'cmp') s.cmp = v;
+      else if (key === 'm') s.m = v === 'work' ? 'work' : 'theme';
+      else if (key === 'c' || key === 'r' || key === 'a' || key === 'b') s[key] = v || null;
+      else if (LIST_KEYS[key] === 1) {
+        s[key] = v.split(',').filter(function (x, i, all) { return x && all.indexOf(x) === i; });
+      }
+    });
+    return s;
+  }
+  function viewIsDefault(s) {
+    return !s.q && s.m !== 'work' && !s.c && !s.r && !s.a && !s.w.length && !s.ap.length &&
+      !s.d.length && !s.l.length && !s.off.length && !s.cmp;
+  }
+  // the address of a view: empty for the map at rest, so the plain page keeps
+  // its plain address
+  function addressOf(s) { return viewIsDefault(s) ? '' : serializeState(s); }
+
+  // a record by its first source identifier; an Origenality ID when it has none
+  function recordKey(p) {
+    var e = (p.sourceIds || [])[0];
+    return e && e.source && e.id != null && e.id !== '' ? e.source + ':' + e.id : p.ppn;
+  }
+  function recordKeys(records) {
+    var m = { pair: Object.create(null), id: Object.create(null), ppn: Object.create(null) };
+    records.forEach(function (p) {
+      if (p.ppn) m.ppn[p.ppn] = p;
+      (p.sourceIds || []).forEach(function (e) {
+        if (e.id == null || e.id === '') return;
+        var id = String(e.id);
+        m.pair[e.source + ':' + id] = p;
+        // a catalogue number two records share names neither without its source
+        m.id[id] = (m.id[id] && m.id[id] !== p) ? false : p;
+      });
+    });
+    return m;
+  }
+  function resolveRecord(v, keys) {
+    v = String(v == null ? '' : v).trim();
+    if (!v) return null;
+    if (v.indexOf('p:') === 0) v = v.slice(2);
+    return keys.pair[v] || keys.ppn[v] || keys.id[v] || null;
+  }
+
+  function currentState() {
+    var s = {
+      q: query.trim(), m: MODE, c: null, r: null, a: null,
+      w: wizAns.work.slice(), ap: wizAns.approach.slice(), d: wizAns.decade.slice(), l: wizAns.lang.slice(),
+      off: LANGS.filter(function (l) { return langOff[l.code]; }).map(function (l) { return l.code; }),
+      cmp: CMP, b: DATA_VERSION
+    };
+    if (selPub) s.r = recordKey(selPub);
+    else if (selAuthor) s.a = selAuthor.id;
+    else if (sel) s.c = sel.id;
+    return s;
+  }
+  function canonical(h) {
+    var s = parseHash(h);
+    s.b = null;
+    return addressOf(s);
+  }
+  function syncHash(push) {
+    if (!addressReady || restoring) return;
+    var h = addressOf(currentState());
+    lastHash = h;
+    if (h === location.hash.replace(/^#/, '')) return;
+    var url = h ? '#' + h : location.pathname + location.search;
+    try {
+      // the step remembers the address it was taken from (stepBack)
+      if (push) history.pushState({ view: 1, from: location.hash.replace(/^#/, '') }, '', url);
+      else history.replaceState(history.state, '', url);
+    } catch (e) { /* a frame that refuses history keeps a working page */ }
+  }
+
+  function knownAnswers(kind, ids) {
+    return ids.filter(function (id) {
+      return (OPTS[kind] || []).some(function (o) { return o.id === id; });
+    });
+  }
+  function showMissing(kind, id) {
+    sel = null; selPub = null; selAuthor = null; shownAuthor = null; VIEW = null; STRIP = null;
+    panel.classList.remove('one-work');
+    pSubject.textContent = '';
+    pDensity.innerHTML = '<span class="words">This ' + kind + ' is not in build ' + esc(DATA_VERSION) + '</span>';
+    pAlt.textContent = kind === 'record'
+      ? 'The link names “' + id + '”. A record is found by its catalogue number, by source and ' +
+        'number, or by its Origenality ID, and none of these matches a record of this build.'
+      : 'The link names “' + id + '”, which is not ' + (kind === 'author' ? 'an author' : 'a cluster') + ' of this build.';
+    pZones.innerHTML = '';
+    currentList = []; shownCount = 0;
+    pBody.innerHTML = '';
+    openPanel();
+  }
+  // Replays an address with the functions a reader's clicks call. Returns false
+  // when the address names a record or a cluster this build does not hold.
+  function applyState(s) {
+    var missing = null;
+    restoring = true;
+    try {
+      linkBuild = s.b && s.b !== DATA_VERSION ? s.b : null;
+      var mode = s.m;
+      if (s.c && (s.c.indexOf('w:') === 0 || s.c === NO_WORK)) mode = 'work';
+      else if (s.c && (s.c.indexOf('dom:') === 0 || s.c === NO_THEME)) mode = 'theme';
+      if (mode !== MODE) setMode(mode);
+      LANGS.forEach(function (l) { setLangOff(l.code, s.off.indexOf(l.code) >= 0); });
+      wizAns = {
+        work: knownAnswers('work', s.w), approach: knownAnswers('approach', s.ap),
+        decade: knownAnswers('decade', s.d), lang: knownAnswers('lang', s.l)
+      };
+      if (wiz.classList.contains('open')) paintWiz();
+      query = s.q;
+      document.getElementById('ask-input').value = s.q;
+      document.getElementById('ask-field').classList.toggle('filled', !!s.q.trim());
+      CMP = s.cmp || '';
+      var pub = null, cluster = null, author = null;
+      if (s.r) {
+        pub = resolveRecord(s.r, RECORD_KEYS || (RECORD_KEYS = recordKeys(PUBS)));
+        if (!pub) missing = ['record', s.r];
+      } else if (s.a) {
+        author = authorIndex().byId[s.a] || null;
+        if (!author) missing = ['author', s.a];
+      } else if (s.c) {
+        // a reservoir named in a link is drawn on the map
+        if (TAIL_LABEL[s.c]) folded[s.c] = false;
+        cluster = CLUSTERS.filter(function (c) { return c.id === s.c; })[0] || null;
+        if (!cluster) missing = ['cluster', s.c];
+      }
+      var answered = !!s.q.trim() || QUESTIONS.some(function (q) { return wizAns[q.kind].length > 0; });
+      applyMatch(answered && !pub && !cluster && !author && !missing);
+      if (pub) openPub(pub);
+      else if (author) openAuthor(author);
+      else if (cluster) openCluster(cluster);
+      else if (missing) showMissing(missing[0], missing[1]);
+      else if (!answered) closePanel();
+    } finally {
+      restoring = false;
+    }
+    return !missing;
+  }
+  function onAddress() {
+    var h = location.hash.replace(/^#/, '');
+    // an anchor such as the skip link's #ask-input is not a view
+    if (h && h.indexOf('=') < 0) return;
+    if (canonical(h) === canonical(lastHash)) return;
+    lastHash = h;
+    applyState(parseHash(h));
+  }
+  function initAddress() {
+    var h = location.hash.replace(/^#/, '');
+    addressReady = true;
+    if (h && h.indexOf('=') >= 0) {
+      lastHash = h;
+      // a link that names what this build lacks keeps its address, so the
+      // reader can see what it asked for
+      if (applyState(parseHash(h))) syncHash(false);
+    }
+    addEventListener('popstate', onAddress);
+    addEventListener('hashchange', onAddress);
+  }
+
+  /* ------------------------------------------------------------------ folds */
+  // The four questions and the field grammar share the column under the search
+  // field: opening one closes the other, so the column stays on the screen.
+  function advIsOpen() {
+    var adv = document.getElementById('adv');
+    return !!adv && !adv.hasAttribute('hidden');
+  }
+  function setAdvOpen(on) {
+    var adv = document.getElementById('adv'), btn = document.getElementById('adv-open');
+    if (!adv || !btn) return;
+    if (on && wiz.classList.contains('open')) closeWiz();
+    if (on) adv.removeAttribute('hidden'); else adv.setAttribute('hidden', '');
+    btn.setAttribute('aria-expanded', on ? 'true' : 'false');
+    btn.textContent = on ? 'hide the fields' : 'or search by field';
   }
 
   /* ------------------------------------------------------------------ wizard */
@@ -2453,6 +3821,7 @@ import { createDustField } from './dust-field.js';
     });
   }
   function openWiz() {
+    if (advIsOpen()) setAdvOpen(false);
     wiz.classList.add('open');
     document.body.classList.add('wiz-open');
     setKeyOpen(false);
@@ -2492,6 +3861,7 @@ import { createDustField } from './dust-field.js';
       b.innerHTML = esc(o.label) + '<span class="n">' + nf(o.n) + '</span>';
       b.addEventListener('click', function () {
         var arr = wizAns[q.kind], k = arr.indexOf(o.id);
+        userMoved();
         if (k >= 0) arr.splice(k, 1); else arr.push(o.id);
         b.setAttribute('aria-pressed', arr.indexOf(o.id) >= 0 ? 'true' : 'false');
         applyMatch(false);
@@ -2503,6 +3873,7 @@ import { createDustField } from './dust-field.js';
     none.setAttribute('aria-pressed', wizAns[q.kind].length ? 'false' : 'true');
     none.innerHTML = 'No preference';
     none.addEventListener('click', function () {
+      userMoved();
       wizAns[q.kind] = [];
       paintWiz(); applyMatch(false);
     });

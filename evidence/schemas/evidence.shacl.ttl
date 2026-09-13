@@ -1,0 +1,58 @@
+@prefix sh: <http://www.w3.org/ns/shacl#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix prov: <http://www.w3.org/ns/prov#> .
+@prefix oa: <http://www.w3.org/ns/oa#> .
+@prefix schema: <https://schema.org/> .
+@prefix crminf: <http://www.cidoc-crm.org/crminf/> .
+@prefix norg: <https://origenality.com/ns/> .
+
+norg:ScholarPositionShape
+    a sh:NodeShape ;
+    sh:targetClass norg:ScholarPosition ;
+    sh:class crminf:I4_Proposition_Set ;
+    sh:property [
+        sh:path schema:author ;
+        sh:minCount 1 ;
+        sh:maxCount 1
+    ] ;
+    sh:property [
+        sh:path norg:statement ;
+        sh:datatype xsd:string ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:minLength 20
+    ] ;
+    sh:property [
+        sh:path norg:statementLanguage ;
+        sh:datatype xsd:string ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:pattern "^[a-z]{2,3}$"
+    ] ;
+    sh:property [
+        sh:path prov:wasDerivedFrom ;
+        sh:class norg:ScholarlyDocument ;
+        sh:minCount 1 ;
+        sh:maxCount 1
+    ] ;
+    sh:property [
+        sh:path oa:hasBody ;
+        sh:minCount 1
+    ] .
+
+norg:ScholarlyDocumentShape
+    a sh:NodeShape ;
+    sh:targetClass norg:ScholarlyDocument ;
+    sh:property [
+        sh:path schema:name ;
+        sh:datatype xsd:string ;
+        sh:minCount 1 ;
+        sh:maxCount 1
+    ] ;
+    sh:property [
+        sh:path norg:pdfSha256 ;
+        sh:datatype xsd:string ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:pattern "^[0-9a-f]{64}$"
+    ] .

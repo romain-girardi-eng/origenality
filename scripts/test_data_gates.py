@@ -35,7 +35,10 @@ import remap_tag_ids  # noqa: E402
 import retag_gaps  # noqa: E402
 import tag_notices  # noqa: E402
 import tags_io  # noqa: E402
-from vocabulary_io import load_vocabulary  # noqa: E402
+import build_tag_schema  # noqa: E402
+import build_openalex  # noqa: E402
+import validate_tags  # noqa: E402
+from vocabulary_io import load_vocabulary, resolve, tag_record_schema  # noqa: E402
 
 sys.path.insert(0, str(ROOT / "scripts" / "harvest_p1"))
 import common as harvest_common  # noqa: E402
@@ -1595,6 +1598,899 @@ class RetagGapsTest(unittest.TestCase):
             report = json.loads((base / "gaps.json").read_text(encoding="utf-8"))
             self.assertEqual(report["clusters_without_tag"], 1)
             self.assertEqual(report["notices_without_tag"], 2)
+
+
+# ---------------------------------------------------------------------------
+# Corrections portées depuis le dépôt frère (2026-08-20)
+# ---------------------------------------------------------------------------
+
+class MalformedLineTest(unittest.TestCase):
+    """Une ligne illisible est comptée et rendue, jamais avalée.
+
+    C'était le seul endroit d'un dispositif fondé sur « rien ne disparaît » où
+    quelque chose disparaissait : `iter_lines` sautait la ligne en silence, et
+    un fichier tronqué par une interruption passait pour un fichier propre.
+    """
+
+    def written(self, lines):
+        directory = scratch("malformed")
+        path = directory / "tags.jsonl"
+        path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+        return path
+
+    def test_a_truncated_line_is_counted_and_named(self):
+        path = self.written([
+            json.dumps({"notice_id": "OR1", "themes": ["a"]}),
+            '{"notice_id": "OR2", "themes": ["b"',
+            json.dumps({"notice_id": "OR3", "themes": ["c"]}),
+        ])
+        self.assertEqual(tags_io.malformed_lines(path), [2])
+        self.assertEqual([r["notice_id"] for r in tags_io.read_tags(path)], ["OR1", "OR3"])
+
+    def test_a_json_line_that_is_not_an_object_is_malformed_too(self):
+        """`.get` sur une liste casserait plus loin, là où on ne saurait plus où."""
+        path = self.written([json.dumps({"notice_id": "OR1"}), json.dumps([1, 2]),
+                             json.dumps("texte")])
+        self.assertEqual(tags_io.malformed_lines(path), [2, 3])
+
+    def test_a_clean_file_reports_nothing(self):
+        path = self.written([json.dumps({"notice_id": "OR1"}),
+                             json.dumps({"notice_id": "OR2"})])
+        self.assertEqual(tags_io.malformed_lines(path), [])
+        self.assertEqual(tags_io.compact(path)["malformed"], [])
+
+    def test_compaction_reports_the_broken_line_instead_of_erasing_it(self):
+        path = self.written([
+            json.dumps({"notice_id": "OR1", "v": 1}),
+            '{"notice_id": "OR1", "v"',
+            json.dumps({"notice_id": "OR1", "v": 2}),
+        ])
+        report = tags_io.compact(path)
+        self.assertEqual(report["malformed"], [2])
+        self.assertEqual(report["superseded"], 1)
+
+    def test_the_waves_of_this_repository_carry_none(self):
+        """La correction est sûre parce qu'elle ne change rien d'observable ici."""
+        for path in sorted((ROOT / "semantic" / "waves").glob("*/tags.jsonl")):
+            self.assertEqual(tags_io.malformed_lines(path), [], str(path))
+
+
+class PromptDigestTest(unittest.TestCase):
+    """La reprise ne fait plus confiance à `prompt_version` seul.
+
+    Retoucher la consigne sans bumper la version mélangeait deux règles dans une
+    même vague sans laisser de trace. Le contrôle est ADDITIF : les
+    enregistrements écrits avant que le champ n'existe restent valides.
+    """
+
+    NOTICE = {"source": "ixtheo-k10plus", "source_id": "883455439",
+              "title": "Contra Celsum", "relation": "about"}
+
+    def written(self, **extra):
+        directory = scratch("digest")
+        path = directory / "tags.jsonl"
+        row = {
+            "notice_id": tag_notices.notice_identifier(self.NOTICE),
+            "input_digest": tag_notices.payload_digest(
+                tag_notices.notice_payload(self.NOTICE)),
+            "wave": "w", "prompt_version": "tag-notice-v2.1",
+            "vocabulary_version": "v1",
+        }
+        row.update(extra)
+        path.write_text(json.dumps(row) + "\n", encoding="utf-8")
+        return path
+
+    def test_the_digest_follows_the_rendered_vocabulary_not_the_version_tag(self):
+        vocab = load_vocabulary(ROOT / "semantic" / "vocabulary")
+        first = tag_notices.prompt_digest(tag_notices.system_prompt(vocab))
+        self.assertEqual(first, tag_notices.prompt_digest(tag_notices.system_prompt(vocab)))
+        altered = tag_notices.system_prompt(vocab) + "\nune règle de plus."
+        self.assertNotEqual(first, tag_notices.prompt_digest(altered))
+
+    def test_a_record_written_under_another_prompt_is_not_done(self):
+        path = self.written(prompt_digest="aaaaaaaaaaaaaaaa")
+        done = tag_notices.already_tagged(path, "w", "tag-notice-v2.1", "v1",
+                                          "bbbbbbbbbbbbbbbb")
+        self.assertEqual(done, set())
+
+    def test_the_same_digest_still_counts_as_done(self):
+        path = self.written(prompt_digest="aaaaaaaaaaaaaaaa")
+        done = tag_notices.already_tagged(path, "w", "tag-notice-v2.1", "v1",
+                                          "aaaaaaaaaaaaaaaa")
+        self.assertIn(tag_notices.resume_key(self.NOTICE), done)
+
+    def test_a_legacy_record_without_a_digest_is_not_invalidated(self):
+        """Additif : 21 104 lignes existantes n'en portent pas."""
+        path = self.written()
+        done = tag_notices.already_tagged(path, "w", "tag-notice-v2.1", "v1",
+                                          "bbbbbbbbbbbbbbbb")
+        self.assertIn(tag_notices.resume_key(self.NOTICE), done)
+
+    def test_a_reject_follows_the_same_rule(self):
+        directory = scratch("digest-rejets")
+        path = directory / "rejects.jsonl"
+        base = {"notice_id": tag_notices.notice_identifier(self.NOTICE),
+                "input_digest": tag_notices.payload_digest(
+                    tag_notices.notice_payload(self.NOTICE)),
+                "wave": "w", "prompt_version": "tag-notice-v2.1",
+                "vocabulary_version": "v1", "stage": "validate"}
+        path.write_text(json.dumps(dict(base, prompt_digest="aaaaaaaaaaaaaaaa")) + "\n",
+                        encoding="utf-8")
+        self.assertEqual(
+            tag_notices.already_rejected(path, "w", "tag-notice-v2.1", "v1", "cccccccccccccccc"),
+            set())
+        path.write_text(json.dumps(base) + "\n", encoding="utf-8")
+        self.assertIn(
+            tag_notices.resume_key(self.NOTICE),
+            tag_notices.already_rejected(path, "w", "tag-notice-v2.1", "v1", "cccccccccccccccc"))
+
+    def test_the_field_is_declared_by_the_schema(self):
+        """`additionalProperties: false` : un champ non déclaré invaliderait la ligne."""
+        vocab = load_vocabulary(ROOT / "semantic" / "vocabulary")
+        schema = tag_record_schema(vocab, full=True)
+        self.assertIn("prompt_digest", schema["properties"])
+        self.assertNotIn("prompt_digest", schema["required"])
+
+
+class SchemaGenerationTest(unittest.TestCase):
+    """Une seule fonction rend le schéma du moteur et le schéma publié.
+
+    Les marqueurs `x-enum-source` tenaient les énumérations ensemble ; le reste
+    divergeait, et de fait `uniqueItems` et les bornes de `confidence`
+    n'existaient que du côté publié.
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        cls.vocab = load_vocabulary(ROOT / "semantic" / "vocabulary")
+
+    def test_the_published_file_is_up_to_date(self):
+        self.assertEqual(
+            build_tag_schema.main(["--check", "--out",
+                                   str(ROOT / "semantic" / "vocabulary" / "tag_record.schema.json")]),
+            0)
+
+    def test_the_engine_schema_carries_the_same_constraints_as_the_published_one(self):
+        engine = tag_record_schema(self.vocab)
+        published = resolve(tag_record_schema(self.vocab, full=True), self.vocab)
+        for name in engine["properties"]:
+            self.assertEqual(engine["properties"][name], published["properties"][name], name)
+
+    def test_the_constraints_that_used_to_exist_on_one_side_only(self):
+        engine = tag_record_schema(self.vocab)
+        for axis in ("works", "themes", "approaches"):
+            self.assertTrue(engine["properties"][axis]["uniqueItems"], axis)
+        self.assertEqual(engine["properties"]["confidence"]["minimum"], 0)
+        self.assertEqual(engine["properties"]["confidence"]["maximum"], 1)
+        self.assertEqual(engine["properties"]["justification"]["maxLength"], 300)
+
+    def test_the_enums_come_from_the_vocabulary_and_not_from_the_file(self):
+        engine = tag_record_schema(self.vocab)
+        self.assertEqual(engine["properties"]["themes"]["items"]["enum"], self.vocab.theme_ids)
+        self.assertNotIn("x-enum-source", engine["properties"]["themes"]["items"])
+        published = tag_record_schema(self.vocab, full=True)
+        self.assertIn("x-enum-source", published["properties"]["themes"]["items"])
+
+    def test_a_stale_published_file_is_named_and_fails(self):
+        directory = scratch("schema-perime")
+        vocabulary = directory / "vocabulary"
+        vocabulary.mkdir(parents=True)
+        for name in ("works.json", "themes.json", "approaches.json", "relevance.json"):
+            (vocabulary / name).write_text(
+                (ROOT / "semantic" / "vocabulary" / name).read_text(encoding="utf-8"),
+                encoding="utf-8")
+        stale = tag_record_schema(self.vocab, full=True)
+        stale["properties"]["confidence"].pop("maximum")
+        (vocabulary / "tag_record.schema.json").write_text(
+            json.dumps(stale, ensure_ascii=False, indent=1) + "\n", encoding="utf-8")
+        tags = directory / "tags.jsonl"
+        tags.write_text("", encoding="utf-8")
+        report = directory / "report.json"
+        code = validate_tags.main([str(tags), "--vocabulary", str(vocabulary),
+                                   "--report", str(report)])
+        self.assertEqual(code, 1)
+        self.assertIn("OBSOLÈTE", json.loads(report.read_text(encoding="utf-8"))["schema_state"])
+
+
+class VocabularyStatusTest(unittest.TestCase):
+    """`status` était déclaré et lu par personne : une valeur retirée restait assignable.
+
+    Le contrôle ne change pas la validation. Aujourd'hui toutes les valeurs sont
+    actives et il passe ; il parlera le jour où l'une sera retirée.
+    """
+
+    def test_the_repository_assigns_no_retired_value(self):
+        self.assertEqual(qa_checks.check_vocabulary(), 0)
+
+    def test_a_retired_value_still_assigned_fails_the_check(self):
+        directory = scratch("statut")
+        vocabulary = directory / "vocabulary"
+        vocabulary.mkdir(parents=True)
+        for name in ("works.json", "approaches.json", "relevance.json"):
+            (vocabulary / name).write_text(
+                (ROOT / "semantic" / "vocabulary" / name).read_text(encoding="utf-8"),
+                encoding="utf-8")
+        themes = json.loads(
+            (ROOT / "semantic" / "vocabulary" / "themes.json").read_text(encoding="utf-8"))
+        retired = sorted(themes["themes"])[0]
+        themes["themes"][retired]["status"] = "retired"
+        (vocabulary / "themes.json").write_text(
+            json.dumps(themes, ensure_ascii=False), encoding="utf-8")
+
+        waves = directory / "waves" / "wave"
+        waves.mkdir(parents=True)
+        (waves / "tags.jsonl").write_text(
+            json.dumps({"notice_id": "OR1", "themes": [retired],
+                        "relevance": "core", "works": ["unspecified"],
+                        "approaches": ["exegetical"]}) + "\n", encoding="utf-8")
+
+        self.assertEqual(
+            qa_checks.check_vocabulary(directory / "waves", vocabulary), 1)
+        # la même valeur restée active ne dit rien
+        themes["themes"][retired]["status"] = "active"
+        (vocabulary / "themes.json").write_text(
+            json.dumps(themes, ensure_ascii=False), encoding="utf-8")
+        self.assertEqual(
+            qa_checks.check_vocabulary(directory / "waves", vocabulary), 0)
+
+
+class HarvestStemBoundaryTest(unittest.TestCase):
+    """Les radicaux de la moisson mordent sur les flexions, jamais sur un autre mot.
+
+    Le dépôt frère avait un motif sans borne à droite : « The Reception of Paulo
+    Freire » passait pour une étude de réception paulinienne. Ici la borne
+    manquante d'`ES_ORIGINS` est délibérée — elle sert à attraper « orígenes
+    históricos », « orígenes doctrinales » —, et la poser ferait perdre au filtre
+    de bruit des titres espagnols qu'il attrape aujourd'hui. Ce test fixe les
+    deux sens pour qu'une correction de confort ne les défasse pas.
+    """
+
+    def keeps(self, title, language="es"):
+        return build_openalex.classify(title, "", language, "", [])
+
+    def test_the_spanish_common_noun_is_still_caught_with_its_inflections(self):
+        for title in ("Origenes historicos de Cataluña",
+                      "Los origenes doctrinales del franquismo",
+                      "El origen historico del retorno cooperativo"):
+            self.assertEqual(self.keeps(title)[0], True, title)
+
+    def test_a_patristic_indicator_wins_over_the_spanish_noun(self):
+        self.assertEqual(self.keeps("Orígenes de Alejandría y el Contra Celsum")[0], False)
+
+    def test_the_noun_filter_only_fires_on_spanish_portuguese_catalan(self):
+        self.assertIsNone(self.keeps("Origenes der Christ und Origenes der Platoniker",
+                                     language="de")[0])
+
+    def test_no_patristic_stem_bites_into_an_unrelated_word(self):
+        """« aborígenes » est le faux ami de la racine ; aucun motif ne doit l'attraper."""
+        for title in ("Los aborigenes de la Patagonia", "Aborígenes australianos"):
+            self.assertIsNone(build_openalex.PATRISTIC_TXT.search(build_openalex.fold(title)),
+                              title)
+            self.assertFalse(harvest_common.has_orig_strict(title), title)
+
+
+# --------------------------------------------------------------------------
+# Couche de données reconstruite (audit du 13 septembre 2026)
+# --------------------------------------------------------------------------
+
+TOOLS_DIR = (ROOT / "site" / "build-c" / "tools" if (ROOT / "site" / "build-c" / "tools").is_dir()
+             else ROOT / "site" / "tools")
+
+
+def site_data_dir() -> Path:
+    sys.path.insert(0, str(TOOLS_DIR))
+    from tree_paths import data_dir  # noqa: E402
+    return Path(data_dir(str(ROOT)))
+
+
+def read_json_lines(path: Path) -> list:
+    return [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines()
+            if line.strip()]
+
+
+class SnapshotFieldCoverageTest(unittest.TestCase):
+    """OR-01, OR-07, OR-44, OR-46 : le snapshot d'entrée ne se reconstruit plus sur
+    les arêtes du graphe, qui n'existent qu'au-dessus des seuils (3 et 5) ; une
+    reconstruction qui ferait chuter la couverture d'un champ est refusée."""
+
+    @classmethod
+    def setUpClass(cls):
+        sys.path.insert(0, str(TOOLS_DIR))
+        import build_public_snapshot  # noqa: E402
+        import build_site_data  # noqa: E402
+        cls.snapshot = build_public_snapshot
+        cls.site = build_site_data
+        cls.data = site_data_dir()
+
+    @staticmethod
+    def row(key, **fields):
+        source, identifier = key.split(":", 1)
+        base = {"origenality_id": key, "source": source, "source_id": identifier,
+                "sources": [{"source": source, "source_id": identifier}],
+                "title": "Titel " + identifier, "authors": ["Autor, A"], "year": 1977,
+                "subjects": [], "container": None, "published_snapshot": True}
+        base.update(fields)
+        return base
+
+    def test_a_heading_and_a_container_used_once_survive_the_snapshot_and_the_stats(self):
+        rows = [self.row("ixtheo-k10plus:011209895", container="Regensburger Studien"),
+                self.row("k10plus:1", subjects=["Priester"])]
+        catalogue = {"ixtheo-k10plus:011209895": {
+            "source_id": "011209895", "relation": "about", "subjects": ["Origenes", "Apostel"],
+            "subject_chains": ["Priester"],
+            "container": {"type": "series", "title": "Regensburger Studien zur Theologie"}}}
+        refreshed = self.snapshot.refresh(rows, catalogue, {}, {})
+        self.assertEqual(refreshed[0]["subjects_container_basis"], "catalogue-record")
+        self.assertEqual(refreshed[0]["container"],
+                         {"title": "Regensburger Studien zur Theologie", "type": "series"})
+        self.assertEqual(refreshed[0]["relation"], "about")
+        self.assertEqual(refreshed[1]["subjects_container_basis"], "public-projection")
+        stats = self.site.build_stats(refreshed, 3, 5)
+        self.assertEqual(stats["totals"]["distinct_subjects"], 2)
+        self.assertEqual(stats["totals"]["distinct_containers"], 1)
+        self.assertEqual(stats["top_containers"][0]["type"], "series")
+
+    def test_a_rebuild_without_the_harvest_keeps_what_the_harvest_gave(self):
+        catalogue = {"ixtheo-k10plus:1": {"source_id": "1", "relation": "both",
+                                          "subjects": ["Apostel"],
+                                          "container": {"title": "Adamantius", "type": "host"}}}
+        once = self.snapshot.refresh([self.row("ixtheo-k10plus:1")], catalogue, {}, {})
+        self.assertEqual(self.snapshot.refresh(once, {}, {}, {}), once)
+
+    def test_the_release_graph_gives_back_relation_and_container_type(self):
+        graph = {"nodes": [{"k": "pub", "src": ["k10plus"], "ppn": "7", "rel": "both"},
+                           {"k": "container", "label": "Adamantiana", "ctype": "series"}],
+                 "edges": [{"s": 0, "t": 1, "r": "in"}]}
+        refreshed = self.snapshot.refresh([self.row("k10plus:7", container="Adamantiana")], {},
+                                          self.snapshot.release_projection(graph), {})
+        self.assertEqual(refreshed[0]["relation"], "both")
+        self.assertEqual(refreshed[0]["container"], {"title": "Adamantiana", "type": "series"})
+
+    def test_a_rebuild_that_loses_coverage_is_refused(self):
+        before = {"container": 1439, "subjects": 1975, "distinct_headings": 1548}
+        self.assertEqual(self.snapshot.coverage_drops(before, dict(before)), [])
+        self.assertEqual(len(self.snapshot.coverage_drops(
+            before, {"container": 749, "subjects": 1975, "distinct_headings": 478})), 2)
+
+    def test_the_shipped_snapshot_is_current_and_matches_its_manifest(self):
+        rows = read_json_lines(self.data / "site-records.jsonl")
+        manifest = json.loads((self.data / "BUILD.json").read_text(encoding="utf-8"))
+        self.assertEqual(self.snapshot.coverage(rows), manifest["field_coverage"])
+        # Un clone n'a ni la moisson IxTheo ni la relecture : le contrôle n'y vérifie que
+        # la structure, et doit le dire (C-3). L'arbre de travail contrôle le contenu.
+        harvests = self.snapshot.IXTHEO_RAW.is_file() or self.snapshot.AUTHORITY_RAW.is_file()
+        import contextlib
+        import io
+        buffer = io.StringIO()
+        with contextlib.redirect_stdout(buffer):
+            status = self.snapshot.main(["--check"] if harvests else ["--check", "--structure-only"])
+        self.assertEqual(status, 0, buffer.getvalue())
+        self.assertIn("derived again" if harvests else "structure only", buffer.getvalue())
+
+    def test_the_shipped_totals_are_counted_without_the_graph_thresholds(self):
+        stats = json.loads((self.data / "stats.json").read_text(encoding="utf-8"))
+        graph = json.loads((self.data / "graph.json").read_text(encoding="utf-8"))
+        kinds, totals = graph["counts"]["nodes_by_kind"], stats["totals"]
+        # Signature de la reconstruction par arêtes : autant de sujets et de
+        # contenants distincts que de nœuds du graphe (478 et 61 le 24 août).
+        self.assertGreater(totals["distinct_subjects"], 2 * kinds["subject"])
+        self.assertGreater(totals["distinct_containers"], 2 * kinds["container"])
+        self.assertIn("series", {n.get("ctype") for n in graph["nodes"] if n["k"] == "container"})
+        self.assertTrue(any(n.get("rel") for n in graph["nodes"] if n["k"] == "pub"))
+
+    def test_the_merge_keeps_the_headings_and_containers_of_the_snapshot(self):
+        rows = read_json_lines(self.data / "site-records.jsonl")
+        headings = {self.site.norm_key(heading) for row in rows
+                    for heading in self.site.clean_headings(self.site.record_subjects(row))}
+        containers = {self.site.norm_key(found[0]) for row in rows
+                      for found in [self.site.record_container(row)] if found}
+        totals = json.loads((self.data / "stats.json").read_text(encoding="utf-8"))["totals"]
+        self.assertLessEqual(totals["distinct_subjects"], len(headings))
+        self.assertGreaterEqual(totals["distinct_subjects"], MERGE_COVERAGE_FLOOR * len(headings))
+        self.assertGreaterEqual(totals["distinct_containers"], MERGE_COVERAGE_FLOOR * len(containers))
+
+
+# La fusion garde la valeur de la source prioritaire et range les autres en
+# conflits : quelques vedettes d'un doublon sortent du compte, jamais une part
+# qui se voie.
+MERGE_COVERAGE_FLOOR = 0.95
+
+
+class GeneratedFiguresTest(unittest.TestCase):
+    """OR-36, OR-37, OR-38, OR-45, OR-49, OR-71, OR-72, OR-09, OR-32, OR-39."""
+
+    @classmethod
+    def setUpClass(cls):
+        sys.path.insert(0, str(TOOLS_DIR))
+        import build_summary_figures  # noqa: E402
+        cls.f = build_summary_figures
+        cls.build = Path(build_summary_figures.BUILD)
+        cls.values = build_summary_figures.population(cls.build)
+        cls.corpus = build_summary_figures.corpus_figures(cls.build)
+        cls.meta = json.loads((Path(build_summary_figures.DATA) / "META.json")
+                              .read_text(encoding="utf-8"))
+
+    def test_a_count_of_one_takes_the_singular(self):
+        import re
+        values = dict(self.values, aside=1, mentioned=1, aside_classed=1, aside_untagged=0,
+                      duplicates=1)
+        corpus = dict(self.corpus, multi_source=1, tag_disagreements=1, with_publisher=1,
+                      primary_before_1001=1, primary_set_aside=1, primary_undated=1)
+        f = self.f
+        text = " ".join([f.observatory_lede_block(values), f.observatory_reservoir_block(values),
+                         f.method_bias_block(values), f.method_counted_block(values),
+                         f.method_merge_block(values), f.method_dedup_block(values, corpus),
+                         f.identifier_coverage_block(corpus), f.primary_dates_block(corpus),
+                         f.primary_undated_block(corpus)])
+        for wrong in (r"\b1 records\b", r"\b1 are\b", r"\b1 mention\b", r"\b1 clusters\b",
+                      r"\b1 duplicates\b", r"\b1 name\b", r"\b1 records predate\b",
+                      r"\b1 records carry\b", r"One implausible dates"):
+            self.assertIsNone(re.search(wrong, text), wrong)
+
+    def test_harvested_names_the_catalogue_records_on_every_page(self):
+        import re
+        pattern = re.compile(r"(\d[\d  ]*)\s+(?:catalogue\s+|source\s+)?records\s+harvested"
+                             r"|of\s+the\s+(\d[\d  ]*)\s+harvested|harvest\s+of\s+(\d[\d  ]*)")
+        found = []
+        for page in ("index.html", "observatoire.html", "methode.html", "credits.html"):
+            text = (self.build / page).read_text(encoding="utf-8")
+            for match in pattern.finditer(text):
+                number = next(group for group in match.groups() if group)
+                found.append((page, int(re.sub(r"\D", "", number))))
+        self.assertTrue(found)
+        self.assertEqual({number for _, number in found}, {self.meta["records_harvested_total"]},
+                         found)
+
+    def test_every_source_row_is_generated_and_sums_to_the_harvest(self):
+        import re
+        by_source = self.meta["sources_harvested"]
+        self.assertEqual(sum(by_source.values()), self.meta["records_harvested_total"])
+        for page, skipped in (("methode.html", ()), ("credits.html", ("ixtheo-k10plus",))):
+            text = (self.build / page).read_text(encoding="utf-8")
+            shown = {match.group(1): int(re.sub(r"\D", "", match.group(2))) for match in
+                     re.finditer(r"<!-- FIGURES:source-count-([a-z0-9-]+) -->([\d  ]+)<!--", text)}
+            self.assertEqual(shown, {key: value for key, value in by_source.items()
+                                     if key not in skipped}, page)
+
+    def test_a_summary_is_credited_to_its_own_catalogue_or_to_another_base(self):
+        values = self.f.figures()
+        self.assertEqual(values["written_by_the_catalogue"] + values["written_elsewhere"],
+                         values["with_abstract"])
+        self.assertFalse(set(values["own_labels"]) & set(values["other_labels"]))
+
+    def test_english_pages_put_no_space_before_a_colon(self):
+        import re
+        for page in ("methode.html", "credits.html", "observatoire.html", "index.html",
+                     "welcome.html"):
+            text = (self.build / page).read_text(encoding="utf-8")
+            text = re.sub(r"<script.*?</script>|<style.*?</style>|<!--.*?-->", " ", text,
+                          flags=re.S)
+            text = re.sub(r"<[^>]+>", " ", text)
+            self.assertIsNone(re.search(r"\w\s+:\s", text), page)
+
+    def test_the_published_figure_blocks_are_current(self):
+        result = subprocess.run([sys.executable, str(TOOLS_DIR / "build_summary_figures.py"),
+                                 "--check"], cwd=ROOT, capture_output=True, text=True)
+        self.assertEqual(result.returncode, 0, result.stderr[-800:])
+
+    def test_the_citation_data_is_current(self):
+        """F5 : data/cite.json est ce que build_cite_data.py écrirait du corpus fusionné."""
+        result = subprocess.run([sys.executable, str(TOOLS_DIR / "build_cite_data.py"), "--check"],
+                                cwd=ROOT, capture_output=True, text=True)
+        self.assertEqual(result.returncode, 0, result.stdout[-800:] + result.stderr[-800:])
+
+    def test_llms_names_the_sources_from_the_data_and_keeps_the_section_for_programs(self):
+        text = (ROOT / "llms.txt").read_text(encoding="utf-8")
+        self.assertIn("## For programs", text)
+        self.assertNotIn("one catalogue", text)
+        labels = self.meta["sources_present"]
+        self.assertIn("draws %s source labels" % self.f.number_word(len(labels)), text)
+        for entry in labels:
+            self.assertIn(self.f.english_label(entry["label"]), text)
+
+
+class LanguageCodeTest(unittest.TestCase):
+    """OR-47, OR-48, OR-57 : un seul schéma de codes, un libellé pour chacun."""
+
+    def test_every_code_the_normaliser_returns_has_a_label(self):
+        import build_site_data  # noqa: E402
+        import fields  # noqa: E402
+        codes = set(fields.ISO2_TO_ISO1.values()) | set(fields.LANG_NAMES.values())
+        for code in codes:
+            self.assertIn(code, build_site_data.LANG_LABELS, code)
+            self.assertNotEqual(build_site_data.LANG_LABELS[code][0], code)
+        for key in build_site_data.LANG_LABELS:
+            self.assertFalse(fields.ISO2_TO_ISO1.get(key, key) != key, key)
+
+    def test_armenian_reaches_its_iso_639_1_code(self):
+        import fields  # noqa: E402
+        self.assertEqual(fields.norm_lang("arm"), "hy")
+        self.assertEqual(fields.norm_lang("hye"), "hy")
+
+    def test_the_shipped_layers_carry_no_raw_code(self):
+        sys.path.insert(0, str(TOOLS_DIR))
+        import build_primary_layer  # noqa: E402
+        import fields  # noqa: E402
+        data = site_data_dir()
+        raw_codes = {key for key, value in fields.ISO2_TO_ISO1.items() if key != value}
+        stats = json.loads((data / "stats.json").read_text(encoding="utf-8"))
+        for entry in stats["by_language"]:
+            self.assertNotEqual(entry["label_en"], entry["code"])
+        graph = json.loads((data / "graph.json").read_text(encoding="utf-8"))
+        self.assertFalse({n.get("lang") for n in graph["nodes"] if n["k"] == "pub"} & raw_codes)
+        layer = read_json_lines(data / "primary-layer.jsonl")
+        self.assertFalse({row.get("language") for row in layer} & raw_codes)
+        self.assertEqual(build_primary_layer.main(["--check"]), 0)
+
+
+class MetaProvenanceTest(unittest.TestCase):
+    """OR-08, OR-35, OR-36, OR-51."""
+
+    def test_a_tags_file_outside_the_repository_publishes_no_path(self):
+        import build_site_data  # noqa: E402
+        outside = build_site_data.published_tags_path(
+            "/tmp/origenality-harvest/classify/build/tags_combine.jsonl", str(ROOT))
+        self.assertEqual(outside, "tags_combine.jsonl")
+        inside = build_site_data.published_tags_path(
+            str(ROOT / "site" / "data" / "site-merged" / "tags.jsonl"), str(ROOT))
+        self.assertEqual(inside, "data/site-merged/tags.jsonl")
+
+    def test_the_editions_set_aside_come_from_the_primary_layer(self):
+        data = site_data_dir()
+        meta = json.loads((data / "META.json").read_text(encoding="utf-8"))
+        summary = json.loads((data / "primary-layer-summary.json").read_text(encoding="utf-8"))
+        manifest = json.loads((data / "BUILD.json").read_text(encoding="utf-8"))
+        self.assertGreater(meta["excluded"]["relation_by"], 0)
+        self.assertEqual(meta["excluded"]["relation_by"], summary["records"])
+        self.assertEqual(meta["records_harvested_total"], sum(meta["sources_harvested"].values()))
+        self.assertEqual(meta["records_harvested_total"], manifest["source_records"])
+        self.assertEqual(meta["records"], manifest["work_clusters"])
+        self.assertNotIn("..", meta.get("tags") or "")
+
+
+class PopulationCaptureTest(unittest.TestCase):
+    """Une capture sans la bande des trois ensembles de l'Observatoire ne passe plus en silence."""
+
+    def test_a_capture_without_the_band_of_sets_is_refused(self):
+        import importlib.util
+        # site/build-c/qa dans l'arbre de travail, site/qa dans un clone public
+        path = TOOLS_DIR.parent / "qa" / "check_one_population.py"
+        spec = importlib.util.spec_from_file_location("check_one_population", path)
+        check = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(check)
+        captures = sorted((TOOLS_DIR.parent / "qa").glob("measured_*.json"))
+        measured = json.loads(captures[-1].read_text(encoding="utf-8"))
+        exp = check.expected(*check.load())
+        problems = []
+        check.compare(exp, measured, problems)
+        self.assertEqual(problems, [])
+        measured["observatory_sets"] = []
+        problems = []
+        check.compare(exp, measured, problems)
+        self.assertTrue(any("three sets" in problem for problem in problems), problems)
+
+
+class SitemapDatesTest(unittest.TestCase):
+    """OR-69 : la date d'un document suit son contenu, pas la construction."""
+
+    def test_an_unchanged_document_keeps_its_date_when_the_build_moves(self):
+        import build_seo_assets  # noqa: E402
+        scratch = ROOT / "data" / "_proofs_tmp"
+        scratch.mkdir(parents=True, exist_ok=True)
+        with tempfile.TemporaryDirectory(dir=scratch) as folder:
+            path = Path(folder) / "doc.md"
+            path.write_text("stable", encoding="utf-8")
+            dates: dict = {}
+            date_of = build_seo_assets.content_date
+            self.assertEqual(date_of("/doc.md", path, dates, "2026-08-16"), ("2026-08-16", True))
+            self.assertEqual(date_of("/doc.md", path, dates, "2026-09-13"), ("2026-08-16", False))
+            path.write_text("changed", encoding="utf-8")
+            self.assertEqual(date_of("/doc.md", path, dates, "2026-09-13"), ("2026-09-13", True))
+
+
+class PagesAuditTest(unittest.TestCase):
+    """Audit du 13/09, lot pages : OR-06, OR-10, OR-40, OR-41, OR-73, OR-74, OR-76,
+    OR-77, le JSON-LD de la page de méthode et les croisements de l'Observatoire."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.build = TOOLS_DIR.parent
+        cls.assets = cls.build / "assets"
+        cls.data = site_data_dir()
+
+    def read(self, name):
+        return (self.build / name).read_text(encoding="utf-8")
+
+    @staticmethod
+    def blocks(css, query):
+        """Le contenu des @media dont la condition contient `query`."""
+        out, start = [], 0
+        while True:
+            start = css.find("@media", start)
+            if start < 0:
+                return out
+            brace = css.find("{", start)
+            depth, end = 1, brace + 1
+            while depth:
+                depth += {"{": 1, "}": -1}.get(css[end], 0)
+                end += 1
+            if query in css[start:brace]:
+                out.append(css[brace + 1:end - 1])
+            start = end
+
+    @staticmethod
+    def rgb(colour):
+        return tuple(int(colour[k:k + 2], 16) for k in (1, 3, 5))
+
+    def contrast(self, fg, bg):
+        def luminance(value):
+            channels = [c / 255 for c in (self.rgb(value) if isinstance(value, str) else value)]
+            lin = [c / 12.92 if c <= 0.04045 else ((c + 0.055) / 1.055) ** 2.4 for c in channels]
+            return 0.2126 * lin[0] + 0.7152 * lin[1] + 0.0722 * lin[2]
+        high, low = sorted((luminance(fg), luminance(bg)), reverse=True)
+        return (high + 0.05) / (low + 0.05)
+
+    def test_the_observatory_names_languages_by_the_codes_of_the_data(self):
+        """OR-06 : la page lisait eng/ger quand graph.json porte en/de, tout tombait dans « autre »."""
+        import collections
+        import re
+        script = self.read("assets/observatory.js")
+        legend = re.search(r"var LANGS = \[(.*?)\];", script, re.S).group(1)
+        named = [code for code in re.findall(r"code:\s*'([a-z]+)'", legend) if code != "oth"]
+        graph = json.loads((self.data / "graph.json").read_text(encoding="utf-8"))
+        tags = json.loads((self.assets / "semantic.json").read_text(encoding="utf-8"))["byPpn"]
+        counted = [node for node in graph["nodes"] if node.get("k") == "pub"
+                   and (tags.get(node.get("ppn")) or {}).get("r") in ("core", "partial")]
+        languages = collections.Counter(node.get("lang") for node in counted)
+        for code in named:
+            self.assertGreater(languages.get(code, 0), 0, code)
+        other = sum(number for code, number in languages.items() if code not in named)
+        self.assertLess(other / len(counted), 0.25, other)
+
+    def test_source_counts_on_the_observatory_come_from_meta(self):
+        """OR-10, OR-39 : « one source, IxTheo », puis « Eight source labels » à côté de « Seven catalogues »."""
+        import re
+        script = self.read("assets/observatory.js")
+        for stale in ("IxTheo", "one source", "build of"):
+            self.assertNotIn(stale, script)
+        self.assertIn("meta.sources_present", script)
+        page = re.sub(r"<!-- (FIGURES:[\w-]+) -->.*?<!-- /\1 -->", " ", self.read("observatoire.html"),
+                      flags=re.S)
+        numbers = r"one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|sixteen|\d+"
+        self.assertIsNone(re.search(r"\b(%s)\s+(source labels|catalogues|domains)\b" % numbers, page, re.I))
+
+    def test_the_method_json_ld_agrees_with_the_data(self):
+        """Le JSON-LD disait 1677/2026 quand stats.json commence en 1514."""
+        import re
+        sys.path.insert(0, str(TOOLS_DIR))
+        import build_summary_figures  # noqa: E402
+        page = self.read("methode.html")
+        block = re.search(r'<script type="application/ld\+json">(.*?)</script>', page, re.S).group(1)
+        dataset = next(item for item in json.loads(block)["@graph"] if item.get("@type") == "Dataset")
+        # La couverture est celle des notices comptées : 1514, l'année (fausse) d'une notice
+        # marginale, ouvrait la couverture quand les notices comptées commencent en 1639.
+        totals = json.loads((self.data / "stats.json").read_text(encoding="utf-8"))["counted"]["totals"]
+        meta = json.loads((self.data / "META.json").read_text(encoding="utf-8"))
+        self.assertEqual(dataset["temporalCoverage"], "%s/%s" % (totals["year_min"], totals["year_max"]))
+        self.assertIn("under %s source labels"
+                      % build_summary_figures.number_word(len(meta["sources_present"])),
+                      dataset["description"])
+
+    def test_the_landing_plate_and_canvas_share_one_framing(self):
+        """OR-40, OR-73 : la plaque fixe et le canevas lisaient deux cadrages, choisis par la largeur seule."""
+        script = self.read("assets/landing.js")
+        css = self.read("assets/landing.css")
+        self.assertIn("getPropertyValue('--focus-x')", script)
+        self.assertIn("getPropertyValue('--focus-y')", script)
+        self.assertNotRegex(script, r"focus:\s*narrow\s*\?")
+        portrait = "".join(self.blocks(css, "(max-aspect-ratio:1/1)"))
+        self.assertRegex(portrait, r"--focus-x:\.24;--focus-y:\.34")
+        framing = css[css.index("@supports (height:1svh)"):]
+        # les unités cqh et cqw ont été mesurées à une hauteur nulle dans Chrome
+        self.assertNotRegex(framing, r"\dcq[hw]")
+        self.assertIn("var(--focus-x)", framing)
+        self.assertIn("var(--focus-y)", framing)
+        self.assertIn("@media (min-width:761px) and (min-aspect-ratio:1/1)", css)
+
+    def test_the_landing_requests_three_only_when_motion_is_allowed(self):
+        """OR-74 : l'import statique téléchargeait three.js avant le garde du mouvement réduit."""
+        import re
+        script = self.read("assets/landing.js")
+        self.assertIsNone(re.search(r"^\s*import\s.*\sfrom\s", script, re.M))
+        guard = script.index("|| reduce ||")
+        # l'import porte l'empreinte de stamp_assets.py (?v=…), qui marque aussi
+        # les imports de modules (OR-66)
+        dynamic = re.search(r"import\('\./particle-image\.js(?:\?v=[0-9a-f]+)?'\)", script)
+        self.assertIsNotNone(dynamic)
+        self.assertLess(guard, dynamic.start())
+        welcome = self.read("welcome.html")
+        self.assertNotIn("modulepreload", welcome)
+        self.assertNotIn("three.module", welcome)
+
+    def test_touch_targets_follow_the_pointer_not_the_width(self):
+        """OR-41 : 28 px en tête, 20 px en pied, 24 px sur le tableau à 768 px tactile."""
+        base = "".join(self.blocks(self.read("assets/base.css"), "(pointer:coarse)"))
+        self.assertRegex(base, r"\.nav-wide a\{[^}]*min-height:44px")
+        self.assertRegex(base, r"\.wordmark\{[^}]*min-height:44px")
+        pages = "".join(self.blocks(self.read("assets/pages.css"), "(pointer:coarse)"))
+        self.assertRegex(pages, r"\.foot a\{[^}]*min-height:44px")
+        self.assertRegex(pages, r"\.data-table summary\{[^}]*min-height:44px")
+        observatory = self.read("assets/observatory.css")
+        self.assertRegex(observatory, r'\.cross-tabs \[role="tab"\]\{[^}]*min-height:44px')
+        self.assertRegex("".join(self.blocks(observatory, "(pointer:coarse)")),
+                         r"\.cross-toggle\{[^}]*min-height:44px")
+
+    def test_small_grey_text_holds_four_and_a_half_to_one_on_the_whole_gradient(self):
+        """OR-76 : --stone tombait à 4,45:1 sur --ground-deep, le bas du dégradé des pages."""
+        import re
+        tokens = dict(re.findall(r"--([a-z0-9-]+):(#[0-9A-Fa-f]{6})", self.read("assets/base.css")))
+        for ground in ("ground-deep", "ground", "ground-lift"):
+            for ink in ("stone", "ink-2"):
+                self.assertGreaterEqual(self.contrast(tokens[ink], tokens[ground]), 4.5, (ink, ground))
+        tint = float(re.search(r"--tint-max:([\d.]+)", self.read("assets/observatory.css")).group(1))
+        shaded = tuple(round(d * (1 - tint) + a * tint)
+                       for d, a in zip(self.rgb(tokens["ground-deep"]), self.rgb(tokens["accent"])))
+        self.assertGreaterEqual(self.contrast(tokens["ink"], shaded), 4.5)
+
+    def test_decade_labels_stay_legible_on_a_phone(self):
+        """OR-77 : les années de l'axe tombaient à 9,28 px sous 760 px."""
+        import re
+        phone = "".join(self.blocks(self.read("assets/observatory.css"), "(max-width:760px)"))
+        size = re.search(r"\.obs \.cols \.c \.lb\{font-size:([\d.]+)rem", phone)
+        self.assertIsNotNone(size)
+        self.assertGreaterEqual(float(size.group(1)) * 16, 11)
+        self.assertIn("lb-minor", self.read("assets/observatory.js"))
+
+    def test_the_crossings_agree_with_an_independent_recount_and_the_cli(self):
+        """F7 : la page et le CLI lisent observatory-core.js ; un recomptage Python les contrôle."""
+        import shutil
+        if shutil.which("node") is None:
+            self.skipTest("node absent")
+        result = subprocess.run([sys.executable, str(self.build / "qa" / "check_crossings.py")],
+                                cwd=ROOT, capture_output=True, text=True)
+        self.assertEqual(result.returncode, 0, result.stdout[-1500:])
+
+
+
+class AuditDataRepairTest(unittest.TestCase):
+    """Audit du 13/09 : deux populations nommées dans stats.json, la date de relecture,
+    la phrase de fusion, l'incunable daté par sa notice, les imprimeurs, les formes et
+    les contenants."""
+
+    @classmethod
+    def setUpClass(cls):
+        sys.path.insert(0, str(TOOLS_DIR))
+        import build_public_snapshot  # noqa: E402
+        import build_site_data  # noqa: E402
+        import build_summary_figures  # noqa: E402
+        cls.f = build_summary_figures
+        cls.snapshot = build_public_snapshot
+        cls.site = build_site_data
+        cls.data = Path(site_data_dir())
+        cls.build = Path(build_summary_figures.BUILD)
+        read = lambda path: json.loads(path.read_text(encoding="utf-8"))
+        cls.stats = read(cls.data / "stats.json")
+        cls.meta = read(cls.data / "META.json")
+        cls.graph = read(cls.data / "graph.json")
+        cls.tags = read(cls.build / "assets" / "semantic.json")["byPpn"]
+        cls.rows = [json.loads(line) for line in
+                    (cls.data / "site-records.jsonl").read_text(encoding="utf-8").splitlines()
+                    if line.strip()]
+
+    def pubs(self):
+        return [node for node in self.graph["nodes"] if node.get("k") == "pub"]
+
+    def test_stats_json_carries_the_counted_population_under_its_own_key(self):
+        import collections
+        pubs = self.pubs()
+        counted = [node for node in pubs
+                   if (self.tags.get(node.get("ppn")) or {}).get("r") in ("core", "partial")]
+        self.assertIn("population", self.stats)
+        self.assertEqual(self.stats["totals"]["records"], len(pubs))
+        self.assertEqual(self.stats["counted"]["totals"]["records"], len(counted))
+        languages = collections.Counter(node.get("lang") or "none" for node in counted)
+        for entry in self.stats["counted"]["by_language"]:
+            self.assertEqual(entry["count"], languages[entry["code"]], entry["code"])
+        years = [node["year"] for node in counted if isinstance(node.get("year"), int)]
+        self.assertEqual(self.stats["counted"]["totals"]["year_min"], min(years))
+
+    def test_meta_publishes_the_day_the_headings_were_read_again(self):
+        dates = [row["subjects_container_fetched"] for row in self.rows
+                 if row.get("subjects_container_basis") == "catalogue-record-refetched"]
+        self.assertEqual(self.meta["refetched"], max(dates))
+        self.assertEqual(self.meta["refetched_records"], len(dates))
+        scratch_root = ROOT / "data" / "_proofs_tmp" / "tests"
+        scratch_root.mkdir(parents=True, exist_ok=True)
+        folder = Path(tempfile.mkdtemp(dir=str(scratch_root)))
+        path = folder / "site-records.jsonl"
+        path.write_text("".join(json.dumps(row) + "\n" for row in [
+            {"subjects_container_basis": "catalogue-record-refetched", "subjects_container_fetched": "2026-09-12"},
+            {"subjects_container_basis": "catalogue-record-refetched", "subjects_container_fetched": "2026-09-13"},
+            {"subjects_container_basis": "catalogue-record"}]), encoding="utf-8")
+        found = self.site.refetch_provenance(str(path))
+        self.assertEqual((found["refetched"], found["refetched_records"]), ("2026-09-13", 2))
+        path.write_text(json.dumps({"subjects_container_basis": "catalogue-record"}) + "\n", encoding="utf-8")
+        self.assertEqual(self.site.refetch_provenance(str(path)), {})
+        self.assertEqual(self.site.refetch_provenance(str(folder / "absent.jsonl")), {})
+
+    def test_the_second_reading_is_dated_wherever_the_harvest_is(self):
+        english = self.f.english_date(self.meta["refetched"])
+        for path in (self.build / "methode.html", self.build / "credits.html", ROOT / "README.md",
+                     ROOT / "llms.txt"):
+            self.assertIn("were read again from their own catalogues on " + english,
+                          path.read_text(encoding="utf-8"), path.name)
+        self.assertIn("relues dans leur catalogue le " + self.f.french_date(self.meta["refetched"]),
+                      (self.data / "README.md").read_text(encoding="utf-8"))
+        credits = (self.build / "credits.html").read_text(encoding="utf-8")
+        self.assertIn(self.f.english_date(self.meta["harvested"]) + ".</td>", credits)
+
+    def test_the_merge_sentence_gives_both_counts(self):
+        clusters = [json.loads(line) for line in (self.data / "site-merged" / "corpus.jsonl")
+                    .read_text(encoding="utf-8").splitlines() if line.strip()]
+        several = sum(1 for cluster in clusters if len(cluster.get("sources") or []) > 1)
+        across = sum(1 for cluster in clusters
+                     if len({entry.get("source") for entry in cluster["sources"]}) > 1)
+        page = " ".join((self.build / "methode.html").read_text(encoding="utf-8").split())
+        self.assertIn("%s clusters merge several records, and %s of those join records from more "
+                      "than one source label" % (self.f.spaced(several), self.f.spaced(across)), page)
+        self.assertNotIn("multi-source clusters", page)
+
+    def test_the_incunable_is_dated_by_its_catalogue_record(self):
+        row = next(row for row in self.rows if row["origenality_id"] == "sudoc:145827976")
+        self.assertEqual(row["year"], 1489)
+        self.assertEqual(row["curated_correction"]["basis"], "https://www.sudoc.fr/145827976")
+        node = next(node for node in self.pubs()
+                    if any(entry["id"] == "145827976" for entry in node["source_ids"]))
+        self.assertEqual(node["year"], 1489)
+
+    def test_no_printer_or_former_owner_is_an_author(self):
+        authors = {node["label"] for node in self.graph["nodes"] if node.get("k") == "author"}
+        for name in ("Silber, Eucario", "Augustus Frederick", "Hall, Henry", "Tournes, Samuel de",
+                     "Luchtmans, Samuel", "Hovius, Henri", "Chantelauze, Régis de"):
+            self.assertNotIn(name, authors)
+        for row in self.rows:
+            dropped = {entry["name"] for entry in row.get("authors_not_credited") or []}
+            self.assertFalse(dropped & set(row.get("authors") or []), row["origenality_id"])
+
+    def test_no_form_heading_counts_as_a_subject(self):
+        forms = {"Thèses et écrits académiques", "Actes de congrès", "Ouvrages avant 1800"}
+        for row in self.rows:
+            if row.get("source") in ("sudoc", "bnf"):
+                self.assertFalse(forms & set(row.get("subjects") or []), row["origenality_id"])
+
+    def test_container_titles_carry_no_editor_and_cleaning_them_again_changes_nothing(self):
+        known = set()
+        for row in self.rows:
+            container = row.get("container")
+            if isinstance(container, dict):
+                known.add(container["title"].casefold())
+            if row.get("container_as_catalogued"):
+                known.add(row["container_as_catalogued"].casefold())
+        for row in self.rows:
+            container = row.get("container")
+            if not isinstance(container, dict):
+                continue
+            title = container["title"]
+            self.assertEqual(self.snapshot.clean_container_title(title, frozenset(known)), title)
+            self.assertFalse(title.startswith("In:"), title)
+            _, statement = self.snapshot.split_responsibility(title)
+            if statement is not None:
+                self.assertIn(self.snapshot.responsibility_kind(statement), (None, "corporate"), title)
+
+    def test_llms_describes_stats_json_by_population(self):
+        text = (ROOT / "llms.txt").read_text(encoding="utf-8")
+        self.assertNotIn("the counts the Observatory draws", text)
+        line = next(line for line in text.splitlines() if "stats.json" in line)
+        self.assertIn("`counted`", line)
+
+    def test_record_links_follow_the_corrected_templates(self):
+        policy = check_release.load_policy(ROOT / "DATA_POLICY.md")["attribution"]
+        self.assertEqual(policy["gnomon-gbd"]["url_template"], "https://www.gbd.digital/gbd/Record/{id}")
+        self.assertEqual(policy["b3kat"]["url_template"], "https://www.gateway-bayern.de/{id}")
+        for node in self.pubs():
+            for entry in node["source_ids"]:
+                if entry["source"] == "b3kat":
+                    self.assertTrue(entry["url"].startswith("https://www.gateway-bayern.de/"), entry)
 
 
 if __name__ == "__main__":

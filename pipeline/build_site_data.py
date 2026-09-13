@@ -35,13 +35,14 @@ import os
 import re
 import sys
 import unicodedata
+import urllib.parse
 from collections import Counter, defaultdict
+from datetime import date
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from fields import norm_year  # noqa: E402
+from fields import NON_AUTHORIAL_MARC21, norm_lang, norm_type, norm_year  # noqa: E402
 
 BASE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-DEFAULT_INPUT = os.path.join(BASE, "data", "raw", "ixtheo", "records.jsonl")
 def _site_data_dir(base: str) -> str:
     """La couche de données que les pages lisent : `site/data/` dans l'arbre de
     travail, `data/` dans l'arbre public — le générateur écrit là où le front va
@@ -59,9 +60,23 @@ def _site_data_dir(base: str) -> str:
 
 
 DEFAULT_OUTDIR = _site_data_dir(BASE)
+PUBLIC_CORPUS = os.path.join(DEFAULT_OUTDIR, "site-merged", "corpus.jsonl")
+PUBLIC_TAGS = os.path.join(DEFAULT_OUTDIR, "site-merged", "tags.jsonl")
+DEFAULT_INPUT = (PUBLIC_CORPUS if os.path.isfile(PUBLIC_CORPUS) else
+                 os.path.join(BASE, "data", "raw", "ixtheo", "records.jsonl"))
+DEFAULT_TAGS = PUBLIC_TAGS if os.path.isfile(PUBLIC_TAGS) else None
+DEFAULT_SOURCE_LABEL = ("Origenality public work clusters" if DEFAULT_TAGS else None)
+DEFAULT_SCOPE = ("deduplicated scholarship records about Origen of Alexandria"
+                 if DEFAULT_TAGS else None)
+DEFAULT_ENRICH = ("" if DEFAULT_TAGS else
+                  os.path.join(BASE, "data", "derived", "abstracts_enrichment.jsonl"))
 OVERVIEW_OUT = os.path.join(BASE, "data", "derived", "sources_overview.json")
 
 HARVEST_DATE = "2026-08-15"
+# Date de construction écrite dans graph, stats et abstracts. La date de moisson
+# reste dans META.harvested ; les confondre faisait lire « Figures generated
+# 2026-08-15 » sous une construction du 24 août (audit du 13/09, OR-07).
+GENERATED = date.today().isoformat()
 SOURCE_LABEL = "Index Theologicus / K10plus (CC0)"
 SCOPE = "publications about Origen of Alexandria (GND 118590235)"
 
@@ -72,11 +87,15 @@ DECADE_START = 1900
 TOP_SUBJECTS = 30
 TOP_CONTAINERS = 20
 TOP_LANGS_SERIES = 6
+# La population que comptent les chiffres publiés (semantic/README.md, § 2).
+COUNTED_RELEVANCE = ("core", "partial")
 
 # Rôles MARC $4 écartés des nœuds « auteur » : ce ne sont pas des contributeurs
-# intellectuels de la publication (éditeur commercial, imprimeur, institution
-# de soutenance, organisme de normalisation).
-ROLES_EXCLUDED = {"pbl", "prt", "dgg", "isb", "wpr"}
+# intellectuels de la publication (éditeur commercial, imprimeur, ancien
+# possesseur, institution de soutenance…). La liste est celle de
+# `pipeline/fields.py`, que le snapshot public applique aussi aux notices dont
+# les auteurs ne sont que des noms.
+ROLES_EXCLUDED = set(NON_AUTHORIAL_MARC21)
 
 # Origène lui-même : sujet de tout le corpus, et auteur des volumes `both`
 # (édition + études). Il ferait un moyeu trivial relié à tout le graphe.
@@ -87,27 +106,52 @@ ORIGEN_FORMS = {
     "origene alessandrino", "origenes alexandrinus",
 }
 
+# Clés : les codes que `fields.norm_lang` rend, c'est-à-dire ISO 639-1, et
+# ISO 639-2/3 là où aucun code 639-1 n'existe (grc, syr, frm, mul, und, zxx,
+# war). Un code sans libellé fait échouer la construction (`lang_entry`) : un
+# libellé qui recopie le code brut passait inaperçu (audit du 13/09, OR-47).
 LANG_LABELS = {
-    "eng": ("English", "anglais"),
-    "ger": ("German", "allemand"),
-    "ita": ("Italian", "italien"),
-    "fre": ("French", "français"),
-    "spa": ("Spanish", "espagnol"),
-    "lat": ("Latin", "latin"),
+    "en": ("English", "anglais"),
+    "de": ("German", "allemand"),
+    "it": ("Italian", "italien"),
+    "fr": ("French", "français"),
+    "es": ("Spanish", "espagnol"),
+    "la": ("Latin", "latin"),
     "grc": ("Ancient Greek", "grec ancien"),
-    "gre": ("Greek", "grec"),
-    "dut": ("Dutch", "néerlandais"),
-    "dan": ("Danish", "danois"),
-    "pol": ("Polish", "polonais"),
-    "hun": ("Hungarian", "hongrois"),
-    "por": ("Portuguese", "portugais"),
-    "nor": ("Norwegian", "norvégien"),
-    "hrv": ("Croatian", "croate"),
-    "swe": ("Swedish", "suédois"),
-    "rus": ("Russian", "russe"),
-    "cat": ("Catalan", "catalan"),
-    "rum": ("Romanian", "roumain"),
-    "heb": ("Hebrew", "hébreu"),
+    "el": ("Greek", "grec"),
+    "nl": ("Dutch", "néerlandais"),
+    "da": ("Danish", "danois"),
+    "pl": ("Polish", "polonais"),
+    "hu": ("Hungarian", "hongrois"),
+    "pt": ("Portuguese", "portugais"),
+    "no": ("Norwegian", "norvégien"),
+    "hr": ("Croatian", "croate"),
+    "sv": ("Swedish", "suédois"),
+    "ru": ("Russian", "russe"),
+    "ca": ("Catalan", "catalan"),
+    "ro": ("Romanian", "roumain"),
+    "he": ("Hebrew", "hébreu"),
+    "cs": ("Czech", "tchèque"),
+    "ja": ("Japanese", "japonais"),
+    "ko": ("Korean", "coréen"),
+    "ar": ("Arabic", "arabe"),
+    "hy": ("Armenian", "arménien"),
+    "syr": ("Syriac", "syriaque"),
+    "tr": ("Turkish", "turc"),
+    "zh": ("Chinese", "chinois"),
+    "uk": ("Ukrainian", "ukrainien"),
+    "fi": ("Finnish", "finnois"),
+    "sk": ("Slovak", "slovaque"),
+    "sl": ("Slovenian", "slovène"),
+    "bg": ("Bulgarian", "bulgare"),
+    "ga": ("Irish", "irlandais"),
+    "eu": ("Basque", "basque"),
+    "gl": ("Galician", "galicien"),
+    "ml": ("Malayalam", "malayalam"),
+    "id": ("Indonesian", "indonésien"),
+    "war": ("Waray", "waray"),
+    "frm": ("Middle French", "moyen français"),
+    "mul": ("Multiple languages", "multilingue"),
     "und": ("Undetermined", "indéterminée"),
     "zxx": ("No linguistic content", "sans contenu linguistique"),
     "": ("Not coded", "non codée"),
@@ -207,6 +251,8 @@ def is_publication(record: dict, relevance: str | None = None,
     if relation is not None and relation not in ("about", "both"):
         return False
     if federated:
+        if record.get("published_snapshot") is True:
+            return relevance in ("core", "partial", "marginal", "none")
         return relevance in PUBLISHED_RELEVANCE
     return True
 
@@ -367,12 +413,15 @@ def record_year(record: dict):
 
 
 def record_format(record: dict) -> str:
+    kind = norm_type(record)
+    if kind and kind != "?":
+        return kind
     return record.get("format") or record.get("type") or "Unknown"
 
 
 def record_lang(record: dict) -> str:
-    lang = record.get("language")
-    return lang if isinstance(lang, str) and lang.strip() else ""
+    code = norm_lang(record.get("language"))
+    return "" if code == "?" else code
 
 
 def record_id(record: dict) -> str:
@@ -413,11 +462,43 @@ def record_url(record: dict):
     return None
 
 
+def source_record_links(record: dict, attribution: dict) -> list[dict]:
+    """All catalogue records represented by a merged work cluster."""
+    known: dict[tuple[str, str], str] = {}
+    provenance = record.get("provenance") or {}
+    selected = provenance.get("url")
+    if isinstance(selected, dict) and record.get("url"):
+        known[(str(selected.get("source")), str(selected.get("source_id")))] = record["url"]
+    for conflict in (record.get("conflicts") or {}).get("url") or []:
+        if isinstance(conflict, dict) and isinstance(conflict.get("value"), str):
+            known[(str(conflict.get("source")), str(conflict.get("source_id")))] = conflict["value"]
+
+    links = []
+    for entry in record.get("sources") or []:
+        if not isinstance(entry, dict) or not entry.get("source") or entry.get("source_id") is None:
+            continue
+        source, identifier = str(entry["source"]), str(entry["source_id"])
+        template = (attribution.get(source) or {}).get("url_template")
+        # Un identifiant de source renvoie à la notice de SA base, sous le gabarit de
+        # DATA_POLICY.md : le lien retenu de la grappe (un DOI parfois) ne le remplace
+        # plus, et un DOI mort laissait une notice DNB sans lien vers sa base (13/09).
+        if source == "bnf":
+            ark = identifier if identifier.startswith("ark:/") else "ark:/12148/" + identifier
+            url = "https://catalogue.bnf.fr/" + ark
+        elif isinstance(template, str) and "{id}" in template and template.strip() != "{id}":
+            url = template.replace("{id}", urllib.parse.quote(identifier, safe="/:@"))
+        else:
+            url = known.get((source, identifier)) or entry.get("url")
+        links.append({"source": source, "id": identifier, "url": url})
+    return sorted(links, key=lambda item: (item["source"], item["id"]))
+
+
 # --------------------------------------------------------------------------
 # graphe
 # --------------------------------------------------------------------------
 
-def build_graph(pubs: list[dict], min_subject: int, min_container: int) -> dict:
+def build_graph(pubs: list[dict], min_subject: int, min_container: int,
+                attribution: dict | None = None) -> dict:
     ambiguous = author_ambiguity(pubs)
     # 1er passage : compter pour appliquer les seuils
     subject_counts: Counter = Counter()
@@ -503,9 +584,18 @@ def build_graph(pubs: list[dict], min_subject: int, min_container: int) -> dict:
             "lang": record_lang(record),
             "type": record_format(record),
             "rel": record.get("relation"),
-            "ppn": record.get("source_id"),
+            # Public identity is the namespaced record/cluster key. Raw
+            # catalogue identifiers remain in source_ids for links, lookups
+            # and backwards-compatible record resolution.
+            "ppn": raw_id,
             "deg": 0,
         }
+        source_ids = source_record_links(record, attribution or {})
+        if not source_ids and record.get("source") and record.get("source_id") is not None:
+            source_ids.append({"source": record["source"], "id": str(record["source_id"]),
+                               "url": record_url(record)})
+        if source_ids:
+            node["source_ids"] = sorted(source_ids, key=lambda item: (item["source"], item["id"]))
         sources = record_sources(record)
         if sources:
             node["src"] = sources
@@ -572,7 +662,7 @@ def build_graph(pubs: list[dict], min_subject: int, min_container: int) -> dict:
             add_edge(position, index[container_ids[container_key]], "in")
 
     return {
-        "generated": HARVEST_DATE,
+        "generated": GENERATED,
         "legend": {
             "k": {"pub": "publication", "author": "auteur",
                   "subject": "sujet", "container": "revue ou collection"},
@@ -597,8 +687,14 @@ def build_graph(pubs: list[dict], min_subject: int, min_container: int) -> dict:
 # statistiques
 # --------------------------------------------------------------------------
 
+def lang_label(code: str) -> tuple[str, str]:
+    if code not in LANG_LABELS:
+        sys.exit(f"REFUS : code de langue « {code} » sans libellé dans LANG_LABELS.")
+    return LANG_LABELS[code]
+
+
 def lang_entry(code: str, count: int) -> dict:
-    label_en, label_fr = LANG_LABELS.get(code, (code, code))
+    label_en, label_fr = lang_label(code)
     return {"code": code or "none", "label_en": label_en,
             "label_fr": label_fr, "count": count}
 
@@ -664,7 +760,7 @@ def build_stats(pubs: list[dict], min_subject: int, min_container: int) -> dict:
     last_decade = (YEAR_MAX_SERIES // 10) * 10
 
     return {
-        "generated": HARVEST_DATE,
+        "generated": GENERATED,
         "totals": {
             "records": len(pubs),
             "distinct_authors": len(authors),
@@ -676,6 +772,8 @@ def build_stats(pubs: list[dict], min_subject: int, min_container: int) -> dict:
             "records_before_series_start": year_before_series,
             "records_with_doi": sum(1 for r in pubs if r.get("doi")),
             "records_with_isbn": sum(1 for r in pubs if r.get("isbn")),
+            "records_with_publisher": sum(1 for r in pubs
+                                          if (r.get("publisher") or "").strip()),
         },
         "by_year": {
             "range": [YEAR_MIN_SERIES, YEAR_MAX_SERIES],
@@ -683,8 +781,8 @@ def build_stats(pubs: list[dict], min_subject: int, min_container: int) -> dict:
             "total": [by_year.get(y, 0) for y in years],
             "by_language": [
                 {"code": code,
-                 "label_en": LANG_LABELS.get(code, (code, code))[0],
-                 "label_fr": LANG_LABELS.get(code, (code, code))[1],
+                 "label_en": lang_label(code)[0],
+                 "label_fr": lang_label(code)[1],
                  "counts": [by_lang_year[code].get(y, 0) for y in years]}
                 for code in top_langs
             ],
@@ -775,6 +873,7 @@ def build_abstracts(pubs: list[dict], enrich_path: str | None, policy: dict) -> 
     withdrawn = {str(name) for name in policy.get("withdrawn") or []}
     by_key: dict[str, dict] = {}
     own = 0
+    joined = 0
     removed = 0
     # Le fichier d'enrichissement couvre toute la moisson ; le site n'en publie
     # que le périmètre retenu. Sans ce garde, des résumés d'éditions d'Origène
@@ -795,6 +894,10 @@ def build_abstracts(pubs: list[dict], enrich_path: str | None, policy: dict) -> 
         if not key:
             continue
         entry = {"t": " ".join(text.split()), "s": source}
+        if record.get("abstract_join"):
+            entry["j"] = record["abstract_join"]
+        if record.get("abstract_kind"):
+            entry["k"] = record["abstract_kind"]
         # Le lien du crédit mène à la notice QUI A ÉCRIT le résumé, jamais à
         # l'adresse générique de la grappe : celle-ci peut venir d'une tout
         # autre base, et le lecteur qui clique sous un résumé OpenAlex arrivait
@@ -806,9 +909,13 @@ def build_abstracts(pubs: list[dict], enrich_path: str | None, policy: dict) -> 
         if link:
             entry["u"] = link
         by_key[key] = entry
-        own += 1
+        if record.get("abstract_join"):
+            joined += 1
+        else:
+            own += 1
 
-    joined = 0
+    # `joined` may already include summaries carried by a replayable public
+    # snapshot. The enrichment file only adds to it.
     if enrich_path and os.path.isfile(enrich_path):
         with open(enrich_path, encoding="utf-8") as handle:
             for line in handle:
@@ -834,7 +941,7 @@ def build_abstracts(pubs: list[dict], enrich_path: str | None, policy: dict) -> 
                 joined += 1
 
     return {
-        "generated": HARVEST_DATE,
+        "generated": GENERATED,
         "regime": policy.get("regime"),
         "contact": policy.get("contact"),
         "sources": {key: {"label": val["label"]} for key, val in attribution.items()},
@@ -847,6 +954,57 @@ def build_abstracts(pubs: list[dict], enrich_path: str | None, policy: dict) -> 
         },
         "withdrawn_sources": sorted(withdrawn),
         "byPpn": by_key,
+    }
+
+
+def published_tags_path(tags: str | None, base: str) -> str | None:
+    """Le chemin du fichier de tags tel que META le publie.
+
+    Relatif au dépôt, en géométrie publique, quand le fichier est dans le dépôt ;
+    son seul nom sinon. `os.path.relpath` d'un fichier de /tmp donnait
+    « ../../../../tmp/… » et publiait la machine de construction (OR-51).
+    """
+    if not tags:
+        return None
+    real_tags, real_base = os.path.realpath(tags), os.path.realpath(base)
+    if os.path.commonpath([real_tags, real_base]) != real_base:
+        return os.path.basename(real_tags)
+    relative = os.path.relpath(real_tags, real_base).replace(os.sep, "/")
+    return relative.replace("site/data/", "data/", 1)
+
+
+def refetch_provenance(snapshot_path: str) -> dict:
+    """La date à laquelle les vedettes et les contenants ont été relus.
+
+    Le 13 septembre 2026, les notices des sept flux d'autorité ont été demandées
+    de nouveau à leur catalogue (`scripts/hydrate_authority_records.py`) : leurs
+    vedettes et leurs contenants datent de ce jour-là, pas de la moisson. Chaque
+    ligne du snapshot qui en vient porte `subjects_container_fetched`, la date du
+    `fetched_at` de sa notice dans `data/raw/authority/records.jsonl` ; la clé
+    publiée est la plus récente de ces dates, recalculée à chaque construction,
+    jamais tapée. Sans snapshot, ou sans ligne relue, rien n'est écrit.
+    """
+    if not os.path.isfile(snapshot_path):
+        return {}
+    dates: Counter = Counter()
+    with open(snapshot_path, encoding="utf-8") as handle:
+        for line in handle:
+            if not line.strip():
+                continue
+            row = json.loads(line)
+            value = row.get("subjects_container_fetched")
+            if (row.get("subjects_container_basis") == "catalogue-record-refetched"
+                    and isinstance(value, str) and re.fullmatch(r"\d{4}-\d{2}-\d{2}", value)):
+                dates[value] += 1
+    if not dates:
+        return {}
+    return {
+        "refetched": max(dates),
+        "refetched_records": sum(dates.values()),
+        "refetched_basis": ("subject headings and containers of these source records were read "
+                            "again from their own catalogues (data/site-records.jsonl, "
+                            "subjects_container_basis catalogue-record-refetched); the date is "
+                            "the latest fetched_at of those records"),
     }
 
 
@@ -900,25 +1058,27 @@ def build_overview(raw_dir: str, out_path: str) -> None:
 
 
 def main() -> None:
+    global GENERATED
     parser = argparse.ArgumentParser(description=__doc__,
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--input", default=DEFAULT_INPUT)
     parser.add_argument("--out-dir", default=DEFAULT_OUTDIR)
     parser.add_argument("--min-subject", type=int, default=3)
     parser.add_argument("--min-container", type=int, default=5)
-    parser.add_argument("--source-label", default=None,
+    parser.add_argument("--source-label", default=DEFAULT_SOURCE_LABEL,
                         help="obligatoire sur un corpus fédéré")
-    parser.add_argument("--scope", default=None,
+    parser.add_argument("--scope", default=DEFAULT_SCOPE,
                         help="obligatoire sur un corpus fédéré")
     parser.add_argument("--license", default=None,
                         help="licence des métadonnées publiées ; sur un corpus "
                              "fédéré, à défaut, aucune licence unique n'est affirmée")
     parser.add_argument("--harvested", default=HARVEST_DATE)
-    parser.add_argument("--enrich", default=os.path.join(BASE, "data", "derived",
-                                                         "abstracts_enrichment.jsonl"),
+    parser.add_argument("--generated", default=GENERATED,
+                        help="date de construction (AAAA-MM-JJ) ; par défaut aujourd'hui")
+    parser.add_argument("--enrich", default=DEFAULT_ENRICH,
                         help="résumés joints depuis le corpus fédéré ; ignoré s'il n'existe pas")
     parser.add_argument("--policy", default=os.path.join(BASE, "DATA_POLICY.md"))
-    parser.add_argument("--tags", default=None,
+    parser.add_argument("--tags", default=DEFAULT_TAGS,
                         help="tags sémantiques (JSONL) ; obligatoire sur un "
                              "corpus fédéré : la pertinence commande l'entrée")
     parser.add_argument("--dry-run", action="store_true",
@@ -927,11 +1087,17 @@ def main() -> None:
                         help="produit data/derived/sources_overview.json et sort")
     args = parser.parse_args()
 
+    GENERATED = args.generated
+
     if args.overview:
         build_overview(os.path.join(BASE, "data", "raw"), OVERVIEW_OUT)
         return
 
     records = load_records(args.input)
+    public_snapshot = bool(records) and all(r.get("published_snapshot") is True for r in records)
+    merge_report_path = os.path.join(os.path.dirname(args.input), "merge_report.json")
+    merge_report = (json.load(open(merge_report_path, encoding="utf-8"))
+                    if public_snapshot and os.path.isfile(merge_report_path) else {})
 
     # Un corpus fédéré porte `sources` (liste des bases d'origine du groupe
     # fusionné). Les valeurs par défaut de ce script décrivent IxTheo/K10plus
@@ -984,15 +1150,66 @@ def main() -> None:
         print(f"{len(records)} notices lues, {len(pubs)} retenues "
               f"(relation about/both) depuis {os.path.relpath(args.input, BASE)}")
 
-    graph = build_graph(pubs, args.min_subject, args.min_container)
+    graph = build_graph(pubs, args.min_subject, args.min_container, attribution)
     stats = build_stats(pubs, args.min_subject, args.min_container)
+    if federated and relevance:
+        # Deux populations dans un fichier, chacune nommée. Les séries du premier
+        # niveau comptaient seules les 2 490 grappes gardées, et l'Observatoire,
+        # qui imprime la population comptée, disait d'autres nombres que le
+        # fichier décrit comme « ce que l'Observatoire dessine » (audit du 13/09).
+        counted_pubs = [r for r in pubs if relevance.get(record_id(r)) in COUNTED_RELEVANCE]
+        counted_stats = build_stats(counted_pubs, args.min_subject, args.min_container)
+        for key in ("generated", "graph_thresholds"):
+            counted_stats.pop(key, None)
+        rest = {key: value for key, value in stats.items() if key != "generated"}
+        stats = {
+            "generated": stats["generated"],
+            "population": {
+                "top_level": ("kept: every work cluster on the map, relevance %s, %d records; "
+                              "the series below this key count all of them"
+                              % (" + ".join(PUBLISHED_RELEVANCE), len(pubs))),
+                "counted": ("counted: relevance %s only, %d records; the population every "
+                            "published figure counts, under the key `counted`"
+                            % (" + ".join(COUNTED_RELEVANCE), len(counted_pubs))),
+            },
+            **rest,
+            "counted": counted_stats,
+        }
     abstracts = build_abstracts(pubs, args.enrich, policy)
+    source_counts = Counter(name for r in pubs for name in record_sources(r))
+    if source_label == DEFAULT_SOURCE_LABEL and DEFAULT_SOURCE_LABEL:
+        source_label = "%s (%d source labels)" % (source_label, len(source_counts))
+    excluded = {
+        "relation_by": sum(1 for r in records if r.get("relation") == "by"),
+        "reason": "éditions des œuvres d'Origène : sources primaires, hors littérature secondaire",
+    }
+    if public_snapshot:
+        # Le snapshot ne contient plus aucune édition : elles forment la couche
+        # primaire, publiée à part. Recompter `relation == "by"` sur le snapshot
+        # rendait 0 à côté d'un motif (OR-08, OR-35) ; le chiffre vient donc du
+        # résumé de cette couche, et son absence arrête la construction.
+        primary = os.path.join(args.out_dir, "primary-layer-summary.json")
+        if not os.path.isfile(primary):
+            sys.exit("REFUS : snapshot public sans primary-layer-summary.json : "
+                     "le nombre d'éditions mises à part serait inventé.")
+        with open(primary, encoding="utf-8") as handle:
+            excluded["relation_by"] = json.load(handle)["records"]
+        excluded["source"] = "data/primary-layer.jsonl"
+        excluded["basis"] = ("editions, translations and manuscript witnesses of Origen's own "
+                             "works returned by the same authority harvest, published as their "
+                             "own layer and not included in records_harvested_total")
+    tags_path = published_tags_path(args.tags, BASE)
+    refetch = refetch_provenance(os.path.join(args.out_dir, "site-records.jsonl"))
     meta = {
         "source": source_label,
         "harvested": args.harvested,
+        **refetch,
+        "generated": GENERATED,
         "records": len(pubs),
         "scope": scope,
-        "records_harvested_total": len(records),
+        "records_harvested_total": merge_report.get("input_records", len(records)),
+        "records_harvested_basis": ("source catalogue records about Origen, before work-level "
+                                    "merging" if merge_report else "records read from the input"),
         "federated": federated,
         # Chaque base présente est nommée avec SON libellé et SA licence, lus
         # dans DATA_POLICY.md. Un corpus fédéré n'a pas de licence unique :
@@ -1005,12 +1222,12 @@ def main() -> None:
              "license": attribution.get(name, {}).get(
                  "license", "conditions propres à la source, non déclarées ici"),
              "record_url_pattern": attribution.get(name, {}).get("url_template")}
-            for name, count in Counter(name for r in pubs
-                                       for name in record_sources(r)).most_common()],
-        "excluded": {
-            "relation_by": sum(1 for r in records if r.get("relation") == "by"),
-            "reason": "éditions des œuvres d'Origène : sources primaires, hors littérature secondaire",
-        },
+            for name, count in source_counts.most_common()],
+        "sources_present_basis": ("work clusters holding at least one record of the source; a "
+                                  "cluster merged from several sources counts under each"
+                                  if merge_report else "records of the source"),
+        "sources_harvested": (merge_report.get("per_source") or None),
+        "excluded": excluded,
         "fields_published": ["title", "authors", "year", "language", "container",
                              "publisher", "doi", "isbn", "subjects", "format", "relation"],
         "summaries": {
@@ -1027,7 +1244,21 @@ def main() -> None:
         # `sources_present`.
         "record_url_pattern": (None if federated else ixtheo_pattern(attribution)),
         "relevance_published": list(PUBLISHED_RELEVANCE) if federated else None,
-        "tags": os.path.relpath(args.tags, BASE) if args.tags else None,
+        "tags": tags_path,
+        "build_manifest": ("data/BUILD.json" if public_snapshot else None),
+        "input_status": ("deduplicated-public-snapshot" if merge_report else
+                         "reconstructed-public-input-snapshot" if public_snapshot
+                         else "source-harvest"),
+        "deduplication": {
+            "working_corpus": "work-level merge",
+            "public_authority_snapshot": ("work-level merged across source feeds"
+                                          if merge_report else
+                                          "not yet work-level deduplicated across source feeds"
+                                          if public_snapshot else None),
+            "source_records": merge_report.get("input_records"),
+            "work_clusters": merge_report.get("merged_clusters"),
+            "duplicates_collapsed": merge_report.get("dedup_removed"),
+        },
     }
 
     if args.dry_run:

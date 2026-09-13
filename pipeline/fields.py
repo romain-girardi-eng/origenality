@@ -14,6 +14,66 @@ other (type présent mais non reconnu), "?" (aucun champ de type).
 import unicodedata
 
 # --------------------------------------------------------------------------
+# rôles des personnes nommées par une notice
+# --------------------------------------------------------------------------
+# Une notice de catalogue nomme aussi ceux qui ont imprimé, vendu, relié, gravé,
+# possédé, reçu ou soutenu le livre. Ce ne sont pas des auteurs : les verser
+# dans les auteurs faisait de l'imprimeur Eucario Silber et du duc de Sussex,
+# ancien possesseur, deux nœuds d'auteur et deux noms de l'export BibTeX (audit
+# du 13 septembre). Une seule liste, lue par le snapshot public
+# (`site/build-c/tools/build_public_snapshot.py`) et par le graphe
+# (`pipeline/build_site_data.py`). Tout rôle absent de ces tables est gardé :
+# auteur, directeur de publication, traducteur, préfacier d'édition critique,
+# collaborateur, dédicataire d'un volume d'hommage (`hnr`), et toute personne
+# dont la notice ne code pas le rôle.
+
+# MARC21, `$4` des zones 100, 110, 111, 700, 710, 711.
+NON_AUTHORIAL_MARC21 = {
+    "bnd": "binder", "bsl": "bookseller", "dgg": "degree granting institution",
+    "dnr": "donor", "dst": "distributor", "dte": "dedicatee", "egr": "engraver",
+    "fmo": "former owner", "fnd": "funder", "isb": "issuing body", "own": "owner",
+    "pbl": "publisher", "prt": "printer", "rcp": "addressee", "sll": "seller",
+    "spn": "sponsor", "wpr": "writer of preface",
+}
+# UNIMARC, `$4` des zones 700 à 712.
+NON_AUTHORIAL_UNIMARC = {
+    "110": "binder", "120": "binding designer", "160": "bookseller",
+    "280": "dedicatee", "295": "degree grantor", "310": "distributor",
+    "320": "donor", "350": "engraver", "390": "former owner", "400": "funder",
+    "475": "issuing body", "530": "metal-engraver", "610": "printer",
+    "620": "printer of plates", "650": "publisher", "660": "recipient of letters",
+    "723": "sponsor", "753": "vendor", "760": "wood-engraver",
+}
+# Mentions en clair (`$e`) des notices MARC21 qui ne portent pas de code.
+NON_AUTHORIAL_TERMS = {
+    "binder", "bookseller", "buchhändler", "buchhändlerin", "degree granting institution",
+    "distributor", "drucker", "druckerin", "engraver", "former owner", "imprimeur",
+    "imprimeur-libraire", "issuing body", "printer", "publisher", "sponsoring body",
+    "verlag", "vorbesitz", "vorbesitzer", "vorbesitzerin",
+}
+
+
+def relator_code(value) -> str:
+    """Un code de rôle nu : `prt`, `610`, ou le dernier segment d'une URI
+    id.loc.gov (`http://id.loc.gov/vocabulary/relators/prt`) ; une mention en
+    clair est rendue en minuscules, sans ponctuation finale."""
+    text = str(value or "").strip()
+    if "/" in text:
+        text = text.rstrip("/").rsplit("/", 1)[-1]
+    return text.strip(" .,;:").casefold()
+
+
+def non_authorial(roles) -> bool:
+    """Vrai quand une personne a au moins un rôle et que tous ses rôles sont
+    non auctoriaux. Un rôle vide ou inconnu la garde parmi les auteurs."""
+    codes = [relator_code(role) for role in roles or []]
+    if not codes:
+        return False
+    known = set(NON_AUTHORIAL_MARC21) | set(NON_AUTHORIAL_UNIMARC) | NON_AUTHORIAL_TERMS
+    return all(code in known for code in codes)
+
+
+# --------------------------------------------------------------------------
 # années
 # --------------------------------------------------------------------------
 
@@ -72,6 +132,7 @@ ISO2_TO_ISO1 = {
     "chi": "zh", "zho": "zh", "ukr": "uk", "fin": "fi", "slo": "sk",
     "slk": "sk", "slv": "sl", "bul": "bg", "gle": "ga", "baq": "eu",
     "eus": "eu", "glg": "gl", "mal": "ml", "ind": "id", "war": "war",
+    "arm": "hy", "hye": "hy",
     "grc": "grc", "syr": "syr", "frm": "frm", "und": "und", "zxx": "zxx",
     "mul": "mul",
 }

@@ -36,6 +36,7 @@ import json
 import os
 import sys
 from collections import defaultdict
+from datetime import date
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
@@ -44,6 +45,7 @@ from tree_paths import data_dir, repository_root  # noqa: E402
 ROOT = repository_root(HERE)
 GRAPH = os.path.join(data_dir(ROOT), 'graph.json')
 CITATIONS = os.path.join(ROOT, 'data', 'derived', 'citations.jsonl')
+CITATION_SNAPSHOT = os.path.join(data_dir(ROOT), 'citation-counts.json')
 OUT = os.path.normpath(os.path.join(HERE, '..', 'assets', 'weights.json'))
 
 MIN_COHORT = 8          # below this a cohort is too thin to rank inside
@@ -70,7 +72,14 @@ def load_citations():
     by_ppn, by_doi = {}, {}
     dropped = {'ppn': 0, 'doi': 0}
     if not os.path.exists(CITATIONS):
-        sys.stderr.write('citations.jsonl not found at %s\n' % CITATIONS)
+        if not os.path.exists(CITATION_SNAPSHOT):
+            sys.stderr.write('neither citations.jsonl nor citation-counts.json is present\n')
+            return by_ppn, by_doi, dropped
+        snapshot = json.load(open(CITATION_SNAPSHOT, encoding='utf-8'))
+        by_ppn = {str(key): int(value) for key, value in
+                  (snapshot.get('by_ppn') or {}).items()}
+        sys.stderr.write('citation counts read from the public identifier snapshot: %d\n'
+                         % len(by_ppn))
         return by_ppn, by_doi, dropped
     with open(CITATIONS, encoding='utf-8') as fh:
         for line in fh:
@@ -153,8 +162,12 @@ def main():
     for _, n in pubs:
         ppn = n.get('ppn')
         doi = norm_doi(n.get('doi'))
-        if ppn in by_ppn:
-            cites[ppn] = by_ppn[ppn]; joined_on['ppn'] += 1
+        source_ppns = [entry.get('id') for entry in n.get('source_ids') or []
+                       if entry.get('source') == 'ixtheo-k10plus']
+        measured_ppn = next((identifier for identifier in source_ppns
+                             if identifier in by_ppn), None)
+        if measured_ppn is not None:
+            cites[ppn] = by_ppn[measured_ppn]; joined_on['ppn'] += 1
         elif doi and doi in by_doi:
             cites[ppn] = by_doi[doi]; joined_on['doi'] += 1
     sys.stderr.write('citation figures joined: %s, total %d of %d publications '
@@ -201,17 +214,15 @@ def main():
                     'c': c, 'p': round(pct, 4), 'ch': cohort}
 
     payload = {
-        'generated': '2026-08-16',
+        'generated': date.today().isoformat(),
         'method': ('weight = mean of two percentiles in [0,1]: the OpenAlex cited_by_count '
                    'percentile inside the cohort of same decade, document type and language '
                    '(widened when a cohort holds fewer than %d works), and the percentile of a '
                    'PageRank run on graph.json. A work with no citation datum keeps the '
                    'structural percentile alone and is marked nc.' % MIN_COHORT),
-        'citation_source': 'cited_by_count as measured in data/derived/citations.jsonl, '
-                           'joined on the ixtheo-k10plus source identifier (the PPN), then on '
-                           'the DOI. No title join: a graph node carries neither author nor '
-                           'document type, so two works of the same name — a book and its '
-                           'review — cannot be told apart at this level.',
+        'citation_source': ('cited_by_count from data/derived/citations.jsonl when the working '
+                            'table is present, otherwise data/citation-counts.json; joined on '
+                            'the ixtheo-k10plus PPN, then on the DOI. No title join.'),
         'joined_on': joined_on,
         'covered': sum(1 for v in out.values() if 'c' in v),
         'total': len(out),

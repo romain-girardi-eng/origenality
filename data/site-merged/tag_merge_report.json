@@ -1,0 +1,250 @@
+{
+  "clusters_with_tag_disagreement": 21,
+  "disagreements": [
+    {
+      "cluster": "OR5e2e2c210d86",
+      "relevance": {
+        "ixtheo-k10plus:1092115978": "core",
+        "k10plus:037833979": "marginal"
+      },
+      "source_tags": [
+        "ixtheo-k10plus:1092115978",
+        "k10plus:037833979"
+      ]
+    },
+    {
+      "cluster": "ORe56fe8b9b502",
+      "relevance": {
+        "ixtheo-k10plus:1170182305": "core",
+        "k10plus:352834137": "core"
+      },
+      "source_tags": [
+        "ixtheo-k10plus:1170182305",
+        "k10plus:352834137"
+      ]
+    },
+    {
+      "cluster": "ORd2ec77993bdb",
+      "relevance": {
+        "ixtheo-k10plus:1186363908": "core",
+        "k10plus:1186363711": "core",
+        "k10plus:1186364068": "core"
+      },
+      "source_tags": [
+        "ixtheo-k10plus:1186363908",
+        "k10plus:1186363711",
+        "k10plus:1186364068"
+      ]
+    },
+    {
+      "cluster": "ORf8d1e522e427",
+      "relevance": {
+        "dnb:1321906943": "core",
+        "ixtheo-k10plus:182054026X": "core"
+      },
+      "source_tags": [
+        "dnb:1321906943",
+        "ixtheo-k10plus:182054026X"
+      ]
+    },
+    {
+      "cluster": "ORe11511accf49",
+      "relevance": {
+        "b3kat:BV003571296": "core",
+        "sudoc:007714890": "core"
+      },
+      "source_tags": [
+        "b3kat:BV003571296",
+        "sudoc:007714890"
+      ]
+    },
+    {
+      "cluster": "OR1e82857a7ff7",
+      "relevance": {
+        "b3kat:BV007717924": "core",
+        "sudoc:068412436": "marginal"
+      },
+      "source_tags": [
+        "b3kat:BV007717924",
+        "sudoc:068412436"
+      ]
+    },
+    {
+      "cluster": "ORb50411f32385",
+      "relevance": {
+        "dnb:1052046517": "partial",
+        "sudoc:116141700": "partial"
+      },
+      "source_tags": [
+        "dnb:1052046517",
+        "sudoc:116141700"
+      ]
+    },
+    {
+      "cluster": "ORb0492d611ab6",
+      "relevance": {
+        "bnf:ark:/12148/cb34865141m": "partial",
+        "k10plus:164338550X": "partial"
+      },
+      "source_tags": [
+        "bnf:ark:/12148/cb34865141m",
+        "k10plus:164338550X"
+      ]
+    },
+    {
+      "cluster": "OR6cc471d9d757",
+      "relevance": {
+        "bnf:ark:/12148/cb35623809j": "core",
+        "k10plus:1110058977": "partial"
+      },
+      "source_tags": [
+        "bnf:ark:/12148/cb35623809j",
+        "k10plus:1110058977"
+      ]
+    },
+    {
+      "cluster": "ORd2d43fe46e50",
+      "relevance": {
+        "dnb:1235721779": "partial",
+        "k10plus:1690330104": "marginal"
+      },
+      "source_tags": [
+        "dnb:1235721779",
+        "k10plus:1690330104"
+      ]
+    },
+    {
+      "cluster": "OR7aea1b4b9e67",
+      "relevance": {
+        "dnb:1254163697": "core",
+        "k10plus:1838852441": "core"
+      },
+      "source_tags": [
+        "k10plus:1838852441",
+        "dnb:1254163697"
+      ]
+    },
+    {
+      "cluster": "OR270868a07393",
+      "relevance": {
+        "dnb:1264053061": "core",
+        "k10plus:1819813770": "core"
+      },
+      "source_tags": [
+        "dnb:1264053061",
+        "k10plus:1819813770"
+      ]
+    },
+    {
+      "cluster": "ORd045f1778de0",
+      "relevance": {
+        "dnb:949213152": "core",
+        "k10plus:1130575608": "marginal"
+      },
+      "source_tags": [
+        "dnb:949213152",
+        "k10plus:1130575608"
+      ]
+    },
+    {
+      "cluster": "OR8de58b9e4b50",
+      "relevance": {
+        "gnomon-gbd:BV050113437": "core",
+        "gnomon-gbd:BV050113439": "core"
+      },
+      "source_tags": [
+        "gnomon-gbd:BV050113437",
+        "gnomon-gbd:BV050113439"
+      ]
+    },
+    {
+      "cluster": "OR4aaf1d72048f",
+      "relevance": {
+        "gnomon-gbd:BV046575607": "core",
+        "gnomon-gbd:BV046575984": "partial",
+        "gnomon-gbd:BV046575990": "core"
+      },
+      "source_tags": [
+        "gnomon-gbd:BV046575607",
+        "gnomon-gbd:BV046575990",
+        "gnomon-gbd:BV046575984"
+      ]
+    },
+    {
+      "cluster": "ORd8d7366ec560",
+      "relevance": {
+        "gnomon-gbd:BV049690350": "core",
+        "gnomon-gbd:BV049690365": "core"
+      },
+      "source_tags": [
+        "gnomon-gbd:BV049690365",
+        "gnomon-gbd:BV049690350"
+      ]
+    },
+    {
+      "cluster": "ORe807969fed36",
+      "relevance": {
+        "b3kat:BV007174792": "marginal",
+        "b3kat:BV022442487": "marginal"
+      },
+      "source_tags": [
+        "b3kat:BV007174792",
+        "b3kat:BV022442487"
+      ]
+    },
+    {
+      "cluster": "OR477bc213a3d9",
+      "relevance": {
+        "b3kat:BV045433897": "core",
+        "k10plus:896367193": "core"
+      },
+      "source_tags": [
+        "b3kat:BV045433897",
+        "k10plus:896367193"
+      ]
+    },
+    {
+      "cluster": "ORa720356f0938",
+      "relevance": {
+        "k10plus:1603298738": "core",
+        "k10plus:836662040": "core"
+      },
+      "source_tags": [
+        "k10plus:1603298738",
+        "k10plus:836662040"
+      ]
+    },
+    {
+      "cluster": "OR92dab53c1733",
+      "relevance": {
+        "k10plus:1818103583": "marginal",
+        "k10plus:1818103664": "marginal"
+      },
+      "source_tags": [
+        "k10plus:1818103583",
+        "k10plus:1818103664"
+      ]
+    },
+    {
+      "cluster": "OR1611787e1085",
+      "relevance": {
+        "k10plus:483001104": "core",
+        "k10plus:483001198": "core"
+      },
+      "source_tags": [
+        "k10plus:483001104",
+        "k10plus:483001198"
+      ]
+    }
+  ],
+  "distribution": {
+    "core": 1572,
+    "marginal": 280,
+    "none": 1,
+    "partial": 637
+  },
+  "selection_rule": "highest relevance class; ties are deterministic. Any disagreement sets needs_review and remains listed in this report.",
+  "source_records": 2582,
+  "tagged_clusters": 2490,
+  "work_clusters": 2490
+}

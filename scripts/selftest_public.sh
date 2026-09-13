@@ -9,13 +9,19 @@
 #
 # Ce contrôle refait donc le geste du tiers : il clone le dépôt DANS un
 # répertoire jetable (ignoré par git), y lance la suite de tests, y recompte
-# tous les chiffres publiés, y sert les pages et vérifie que les quatre
-# répondent avec leur donnée. Il s'arrête au premier échec et sort non nul.
+# tous les chiffres publiés, confronte ce que les pages nomment à ce que les
+# données portent, y sert les pages et vérifie qu'elles répondent avec leur
+# donnée. Il s'arrête au premier échec et sort non nul. Il rejoue le dernier
+# COMMIT : un changement non commité n'y entre pas.
 #
 #     bash scripts/selftest_public.sh
 #     bash scripts/selftest_public.sh --keep      # garder le clone pour inspecter
 #
 set -euo pipefail
+
+# Les contrôles importent les modules du dépôt : aucun bytecode ne doit rester
+# dans le clone, ni dans un arbre qu'on déploierait ensuite.
+export PYTHONDONTWRITEBYTECODE=1
 
 ROOT=$(cd "$(dirname "$0")/.." && pwd)
 cd "$ROOT"
@@ -44,16 +50,65 @@ cd "$CLONE"
 
 # La géométrie diffère d'un arbre à l'autre : `site/build-c/` dans le dépôt de
 # travail, `site/` une fois publié. On prend celle qui existe.
-if [ -d site/build-c ]; then BUILD=site/build-c; else BUILD=site; fi
+if [ -d site/build-c ]; then BUILD=site/build-c; DATA=site/data; else BUILD=site; DATA=data; fi
 [ -f "$BUILD/index.html" ] || fail "aucun répertoire de pages"
 
-step "suite de tests"
+step "suites de tests"
+# Chaque suite Python passe par `python3 -m unittest discover` sur son dossier :
+# la même commande tourne dans les deux géométries, depuis la racine du clone,
+# sans dépendre de la façon dont un fichier de test se lance lui-même. Les
+# suites sont celles qui existent dans le clone, pas une liste écrite ici : un
+# test ajouté est rejoué sans qu'on touche à ce script.
+#
 # Seul le verdict est repris : la sortie des tests porte les chemins des
 # répertoires temporaires du système, et une preuve archivée n'a pas à les
 # contenir.
-python3 scripts/test_data_gates.py > "$WORK/tests.txt" 2>&1 \
-    || { grep -E "^(FAILED|ERROR)" "$WORK/tests.txt" >&2; fail "scripts/test_data_gates.py"; }
-grep -E "^(Ran |OK)" "$WORK/tests.txt"
+: > "$WORK/tests.txt"
+suite() {
+    label=$1
+    shift
+    if "$@" > "$WORK/suite.txt" 2>&1; then
+        cat "$WORK/suite.txt" >> "$WORK/tests.txt"
+        verdict=$(grep -E '^Ran [0-9]+ tests?' "$WORK/suite.txt" | tail -1 || true)
+        printf '  %-36s %s\n' "$label" "${verdict:-sortie 0}"
+    else
+        cat "$WORK/suite.txt" >> "$WORK/tests.txt"
+        grep -E "^(FAIL|ERROR|FAILED)" "$WORK/suite.txt" >&2 || tail -40 "$WORK/suite.txt" >&2
+        fail "$label"
+    fi
+}
+# Un contrôle d'une ligne : sa dernière ligne de sortie, ou toute sa sortie s'il échoue.
+gate() {
+    label=$1
+    shift
+    "$@" > "$WORK/gate.txt" 2>&1 || { cat "$WORK/gate.txt" >&2; fail "$label"; }
+    printf '  %-36s %s\n' "$label" "$(tail -1 "$WORK/gate.txt")"
+}
+suites=0
+for test_file in scripts/test_*.py; do
+    [ -f "$test_file" ] || continue
+    name=$(basename "$test_file")
+    # test_publish_export.py relit l'arbre public voisin et importe la passe
+    # d'export : il ne sort pas du dépôt de travail et n'a rien à lire dans un
+    # clone.
+    [ "$name" = "test_publish_export.py" ] && continue
+    suite "$test_file" python3 -m unittest discover -s scripts -p "$name"
+    suites=$((suites + 1))
+done
+[ "$suites" -gt 0 ] || fail "aucune suite de tests sous scripts/"
+if [ -d evidence/tests ]; then
+    suite "evidence/tests" python3 -m unittest discover -s evidence/tests -p 'test_*.py'
+elif ls evidence/*.py >/dev/null 2>&1; then
+    fail "evidence/ est livré sans evidence/tests"
+fi
+# node est requis : sans lui, les tests du moteur de recherche et des exports, la
+# comparaison au CLI et la relecture des liens de l'Observatoire ne tournent pas,
+# et le selftest passait quand même (audit du 13/09, C-8).
+command -v node >/dev/null 2>&1 || fail "node absent : tests node, CLI et liens non contrôlables"
+for test_file in scripts/test_*.mjs; do
+    [ -f "$test_file" ] || continue
+    suite "$test_file" node "$test_file"
+done
 
 step "chiffres publiés recomptés depuis les données livrées"
 python3 "$BUILD/tools/build_summary_figures.py" --check > /dev/null \
@@ -63,6 +118,34 @@ printf 'tous les blocs générés sont à jour\n'
 step "une population par écran"
 python3 "$BUILD/qa/check_one_population.py" | tail -1 \
     || fail "$BUILD/qa/check_one_population.py"
+python3 "$BUILD/tools/backfill_record_urls.py" --check > /dev/null \
+    || fail "$BUILD/tools/backfill_record_urls.py --check"
+python3 "$BUILD/tools/build_manifest.py" --check > /dev/null \
+    || fail "$BUILD/tools/build_manifest.py --check"
+
+# Les fichiers livrés que des outils écrivent, relus contre leur générateur, sans
+# rien lire d'ignoré par git. Un clone n'a ni la moisson IxTheo ni la moisson de
+# relecture : le contrôle du snapshot n'y vérifie que la structure des lignes,
+# l'unicité de leurs clés et les corrections, et il le dit (--structure-only) ;
+# le contenu des lignes se contrôle dans l'arbre de travail. Puis les croisements
+# de l'Observatoire recomptés et confrontés au CLI, et les liens de notice de la
+# publication précédente : le commit le plus récent du clone dont le graphe
+# diffère, lu dans l'historique (un clone sans historique échoue).
+step "données reconstruites (structure), croisements, liens de notice"
+gate "build_public_snapshot.py --check --structure-only (structure, not content)" \
+    python3 "$BUILD/tools/build_public_snapshot.py" --check --structure-only
+gate "build_primary_layer.py --check" python3 "$BUILD/tools/build_primary_layer.py" --check
+gate "build_cite_data.py --check" python3 "$BUILD/tools/build_cite_data.py" --check
+gate "check_crossings.py" python3 "$BUILD/qa/check_crossings.py"
+gate "check_source_id_continuity.py" python3 "$BUILD/qa/check_source_id_continuity.py"
+
+# Ce que les pages nomment contre ce que les données portent (OR-04), les pages
+# sous la politique du site et la 404 (OR-33, OR-42), les empreintes des
+# feuilles, des scripts et des imports de modules (OR-66).
+step "langues, poids, pages servies, empreintes"
+gate "qa_checks.py site-codes" python3 scripts/qa_checks.py site-codes
+gate "qa_checks.py served-pages" python3 scripts/qa_checks.py served-pages
+gate "stamp_assets.py --check" python3 scripts/stamp_assets.py --check
 
 step "les quatre pages servies, avec leur couche de données"
 PORT=$(python3 -c 'import socket; s = socket.socket(); s.bind(("127.0.0.1", 0)); print(s.getsockname()[1]); s.close()')
@@ -72,7 +155,22 @@ SERVER=$!
 # au milieu d'une sortie qu'on archive comme preuve.
 disown "$SERVER" 2>/dev/null || true
 trap 'kill $SERVER 2>/dev/null || true' EXIT
-sleep 3
+# Le serveur est attendu, pas deviné : sur une machine où l'interpréteur démarre
+# lentement, il a mis plus de vingt secondes à écouter, et une attente fixe de
+# trois secondes faisait échouer l'étape sans que rien ne soit en défaut.
+python3 - "$PORT" <<'PY' || fail "le serveur local ne répond pas après 90 s"
+import sys, time, urllib.request
+port = sys.argv[1]
+deadline = time.monotonic() + 90
+while True:
+    try:
+        with urllib.request.urlopen("http://127.0.0.1:%s/" % port, timeout=2):
+            break
+    except Exception:  # noqa: BLE001 — pas encore à l'écoute
+        if time.monotonic() > deadline:
+            sys.exit(1)
+        time.sleep(0.5)
+PY
 for page in index.html observatoire.html methode.html credits.html; do
     code=$(python3 - "$PORT" "$BUILD/$page" <<'PY'
 import sys, urllib.request
@@ -89,7 +187,7 @@ PY
         *) fail "$page non servie ($code)" ;;
     esac
 done
-for asset in data/graph.json "$BUILD/assets/semantic.json"; do
+for asset in "$DATA/graph.json" "$DATA/evidence.json" "$BUILD/assets/semantic.json"; do
     code=$(python3 - "$PORT" "$asset" <<'PY'
 import sys, urllib.request
 port, path = sys.argv[1], sys.argv[2]
@@ -105,17 +203,18 @@ PY
         *) fail "$asset non servi ($code)" ;;
     esac
 done
+# Une prise de position que evidence.json publie : le CLI doit la retrouver, pas
+# seulement sortir en 0 sur une liste vide.
+claims=$(node cli/origenality.mjs claims Scarponi --local . --limit 1 \
+    | python3 -c 'import json, sys; print(json.load(sys.stdin)["matched"])') \
+    || fail "cli/origenality.mjs claims"
+[ "${claims:-0}" -gt 0 ] || fail "cli/origenality.mjs claims Scarponi : aucune prise de position"
+printf '  %-20s %s\n' "claims Scarponi" "$claims"
 kill $SERVER 2>/dev/null || true
 
 step "la recherche du CLI et celle de la page répondent pareil"
-if command -v node >/dev/null 2>&1; then
-    (cd "$WORK/clone" && python3 scripts/check_search_parity.py --local) \
-        || fail "le CLI et les règles de la recherche divergent"
-    (cd "$WORK/clone" && python3 scripts/stamp_assets.py --check >/dev/null) \
-        || fail "une page référence un asset dont l'empreinte est périmée"
-else
-    printf '  node absent : parité de la recherche non contrôlée\n'
-fi
+(cd "$WORK/clone" && python3 scripts/check_search_parity.py --local) \
+    || fail "le CLI et les règles de la recherche divergent"
 
 if [ "$KEEP" = "0" ]; then
     cd "$ROOT"

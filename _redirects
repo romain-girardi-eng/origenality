@@ -1,24 +1,33 @@
-# Cloudflare Pages — les adresses courtes.
+# Cloudflare Pages : les adresses courtes.
 #
 # Le dépôt est publié tel quel : les pages vivent sous /site/, la couche de
 # données sous /data/, et les chemins qu'elles se donnent entre elles sont
 # relatifs. Une réécriture 200 depuis la racine servirait donc index.html sous
 # l'adresse « / », où « assets/base.css » se résoudrait en « /assets/base.css » :
-# 404 sur la feuille, la police et le script. C'est une redirection, pas une
-# réécriture, tant que les pages n'ont pas de chemins absolus.
+# 404 sur la feuille, la police et le script. Ce sont donc des redirections.
+#
+# Elles sont permanentes (301). La géométrie /site/ est arrêtée, les balises
+# canoniques et le plan du site la donnent, et le WebSite du JSON-LD garde
+# https://origenality.com/ comme adresse du site : une racine qui redirige en
+# permanence vers la page d'accueil canonique est la forme que les moteurs
+# attendent. Un 301 reste en cache chez le navigateur : le jour où les pages
+# passeraient à la racine, ces adresses devraient rester servies (réécriture
+# 200 vers la nouvelle page), jamais redevenir des 302.
 #
 # Pages retire de lui-même l'extension .html : /site/methode.html répond 308
-# vers /site/methode. Les lignes ci-dessous visent donc l'adresse sans extension,
-# celle que Pages sert en 200, pour éviter un saut inutile.
-# Les balises canoniques et le plan du site donnent, elles, l'adresse sans
-# extension, celle que Pages sert en 200.
+# vers /site/methode. Les lignes ci-dessous visent donc l'adresse sans
+# extension, celle que Pages sert en 200, pour éviter un saut inutile.
+#
+# Une adresse inconnue ne passe par aucune ligne d'ici : le 404.html posé à la
+# racine du déploiement lui répond, avec le statut 404. Sans ce fichier, Pages
+# servait index.html en 200 pour n'importe quel chemin, /data/*.json compris.
 
-/                 /site/welcome         302
+/                 /site/welcome         301
 
-/explorer     /site/               302
-/observatory  /site/observatoire   302
-/method       /site/methode        302
-/credits      /site/credits        302
+/explorer     /site/               301
+/observatory  /site/observatoire   301
+/method       /site/methode        301
+/credits      /site/credits        301
 
 # Les deux fichiers que les agents cherchent parfois sous /site/.
 /site/llms.txt    /llms.txt            301

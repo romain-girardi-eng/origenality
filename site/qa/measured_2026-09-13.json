@@ -1,0 +1,484 @@
+{
+ "explorer_scope": "2 209 records counted · 280 mentioned only · 1 held aside · 8 source labels, August 2026",
+ "explorer_held": "Every count here counts the 2 209 records where Origen is the subject,\n      or holds a section of. The 280 that only mention him and the 1 held outside the\n      count stay in the index, answer a search, and enter no figure, here and in the Observatory alike.",
+ "explorer_legend": [
+  [
+   "English",
+   "715"
+  ],
+  [
+   "German",
+   "575"
+  ],
+  [
+   "Italian",
+   "301"
+  ],
+  [
+   "French",
+   "321"
+  ],
+  [
+   "Spanish",
+   "64"
+  ],
+  [
+   "Other or none",
+   "233"
+  ]
+ ],
+ "wizard": {
+  "work": {
+   "note": "Works named in the tagged notices. A study that names no work is not excluded: it answers the other questions. Each number counts the works where Origen is the subject or holds a section of the argument. 68 further works are mentioned only and are listed below the count.",
+   "chips": [
+    [
+     "Commentarii in Iohannem",
+     "100"
+    ],
+    [
+     "Contra Celsum",
+     "88"
+    ],
+    [
+     "Hexapla",
+     "74"
+    ],
+    [
+     "De principiis",
+     "71"
+    ],
+    [
+     "Commentarii in Epistulam ad Romanos",
+     "57"
+    ],
+    [
+     "Commentarius in Canticum canticorum",
+     "56"
+    ],
+    [
+     "Commentarium in Matthaeum (incl. Commentariorum series)",
+     "35"
+    ],
+    [
+     "De oratione",
+     "34"
+    ],
+    [
+     "Fragments and catenae",
+     "29"
+    ],
+    [
+     "Homiliae in Psalmos",
+     "29"
+    ],
+    [
+     "Homiliae in Genesim",
+     "19"
+    ],
+    [
+     "Homiliae in Leviticum",
+     "17"
+    ],
+    [
+     "Commentarii et Excerpta in Psalmos",
+     "16"
+    ],
+    [
+     "Commentarii in Genesim (fragmenta)",
+     "16"
+    ],
+    [
+     "De pascha",
+     "15"
+    ],
+    [
+     "Homiliae in Canticum canticorum",
+     "15"
+    ],
+    [
+     "Homiliae in Ieremiam",
+     "13"
+    ],
+    [
+     "Homiliae in Lucam",
+     "12"
+    ],
+    [
+     "Homiliae in Numeros",
+     "11"
+    ],
+    [
+     "Homiliae in Iesu Nave",
+     "10"
+    ],
+    [
+     "Other commentaries and scholia",
+     "10"
+    ],
+    [
+     "Other homilies",
+     "9"
+    ],
+    [
+     "Dialogus cum Heraclide",
+     "8"
+    ],
+    [
+     "Exhortatio ad martyrium",
+     "8"
+    ],
+    [
+     "Philocalia",
+     "8"
+    ],
+    [
+     "Homiliae in Exodum",
+     "7"
+    ],
+    [
+     "Epistulae",
+     "6"
+    ],
+    [
+     "Homiliae in Regnorum I (Samuel)",
+     "5"
+    ],
+    [
+     "Homiliae in Isaiam",
+     "4"
+    ],
+    [
+     "Dubia and spuria",
+     "2"
+    ],
+    [
+     "Homiliae in Ezechielem",
+     "2"
+    ]
+   ]
+  },
+  "approach": {
+   "note": "The ten angles of the vocabulary. A publication often carries two. Each number counts the works where Origen is the subject or holds a section of the argument. 280 further works are mentioned only and are listed below the count.",
+   "chips": [
+    [
+     "Doctrinal and systematic",
+     "801"
+    ],
+    [
+     "Exegetical",
+     "639"
+    ],
+    [
+     "Comparative and philosophical",
+     "601"
+    ],
+    [
+     "Historical and contextual",
+     "476"
+    ],
+    [
+     "Reception history",
+     "396"
+    ],
+    [
+     "Survey, reference or collective volume",
+     "282"
+    ],
+    [
+     "Philological and text-critical",
+     "275"
+    ],
+    [
+     "Edition or translation",
+     "88"
+    ],
+    [
+     "Review or notice",
+     "73"
+    ],
+    [
+     "Methodological and digital",
+     "22"
+    ]
+   ]
+  },
+  "decade": {
+   "note": "Year of publication, by decade. Each number counts the works where Origen is the subject or holds a section of the argument. 265 further works are mentioned only and are listed below the count.",
+   "chips": [
+    [
+     "Before 1950",
+     "129"
+    ],
+    [
+     "1950s",
+     "56"
+    ],
+    [
+     "1960s",
+     "69"
+    ],
+    [
+     "1970s",
+     "120"
+    ],
+    [
+     "1980s",
+     "303"
+    ],
+    [
+     "1990s",
+     "459"
+    ],
+    [
+     "2000s",
+     "459"
+    ],
+    [
+     "2010s",
+     "328"
+    ],
+    [
+     "2020s",
+     "199"
+    ]
+   ]
+  },
+  "lang": {
+   "note": "Language of publication as coded in the catalogue. Each number counts the works where Origen is the subject or holds a section of the argument. 280 further works are mentioned only and are listed below the count.",
+   "chips": [
+    [
+     "English",
+     "715"
+    ],
+    [
+     "German",
+     "575"
+    ],
+    [
+     "Italian",
+     "301"
+    ],
+    [
+     "French",
+     "321"
+    ],
+    [
+     "Spanish",
+     "64"
+    ],
+    [
+     "Other or none",
+     "233"
+    ]
+   ]
+  }
+ },
+ "observatory_stamp": "Harvest of 2026-08-15 · 2 209 counted records of 2 490 kept · 8 source labels",
+ "observatory_sets": [
+  [
+   "2 209",
+   "2 209Counted in the densityOrigen is the subject, or is treated substantially among others"
+  ],
+  [
+   "280",
+   "280Origen mentioned onlykept in the index, outside every count of density"
+  ],
+  [
+   "1",
+   "1Held outside the countharvest noise, held in its own reservoir on the map"
+  ]
+ ],
+ "observatory_lang": [
+  [
+   "English",
+   "715"
+  ],
+  [
+   "German",
+   "575"
+  ],
+  [
+   "French",
+   "321"
+  ],
+  [
+   "Italian",
+   "301"
+  ],
+  [
+   "Other or none",
+   "233"
+  ],
+  [
+   "Spanish",
+   "64"
+  ]
+ ],
+ "observatory_fmt": [
+  [
+   "article",
+   "1 029"
+  ],
+  [
+   "book",
+   "816"
+  ],
+  [
+   "chapter",
+   "286"
+  ],
+  [
+   "review",
+   "73"
+  ],
+  [
+   "other",
+   "5"
+  ]
+ ],
+ "observatory_decades": [
+  [
+   "1900s",
+   "0",
+   "4",
+   "0",
+   "3",
+   "0",
+   "4",
+   "11"
+  ],
+  [
+   "1910s",
+   "2",
+   "5",
+   "0",
+   "0",
+   "0",
+   "3",
+   "10"
+  ],
+  [
+   "1920s",
+   "2",
+   "3",
+   "0",
+   "8",
+   "0",
+   "1",
+   "14"
+  ],
+  [
+   "1930s",
+   "3",
+   "9",
+   "0",
+   "4",
+   "0",
+   "3",
+   "19"
+  ],
+  [
+   "1940s",
+   "4",
+   "2",
+   "2",
+   "2",
+   "1",
+   "2",
+   "13"
+  ],
+  [
+   "1950s",
+   "9",
+   "17",
+   "1",
+   "18",
+   "1",
+   "10",
+   "56"
+  ],
+  [
+   "1960s",
+   "13",
+   "24",
+   "3",
+   "16",
+   "1",
+   "12",
+   "69"
+  ],
+  [
+   "1970s",
+   "21",
+   "35",
+   "13",
+   "32",
+   "4",
+   "15",
+   "120"
+  ],
+  [
+   "1980s",
+   "91",
+   "69",
+   "47",
+   "68",
+   "3",
+   "25",
+   "303"
+  ],
+  [
+   "1990s",
+   "143",
+   "140",
+   "65",
+   "63",
+   "18",
+   "30",
+   "459"
+  ],
+  [
+   "2000s",
+   "160",
+   "119",
+   "94",
+   "30",
+   "20",
+   "36",
+   "459"
+  ],
+  [
+   "2010s",
+   "153",
+   "75",
+   "45",
+   "26",
+   "12",
+   "17",
+   "328"
+  ],
+  [
+   "2020s",
+   "106",
+   "51",
+   "16",
+   "19",
+   "3",
+   "4",
+   "199"
+  ]
+ ],
+ "observatory_decade_head": [
+  "Decade",
+  "English",
+  "German",
+  "Italian",
+  "French",
+  "Spanish",
+  "Other or none",
+  "All"
+ ],
+ "observatory_review": "365 records of the 2 490 the wave classed are flagged for review: the classifier answered below its confidence floor, read metadata too thin to decide, hesitated between two adjacent classes and took the lower one, or returned a value that had to be repaired when it was checked against the vocabulary. They fall where a thin record falls: 1 are classed as not about Origen, 172 as mentioned only, and 192 are inside the counted population. 0 of the whole set carry a repair. They are counted where they stand, and marked in the Explorer.",
+ "observatory_timenote": "Decades from 1900 to the 2020s, on the 2 209 counted records. 87 of them carry no year and 62 are earlier than 1900; the last column stops in mid-2026. 280 records mention Origen only, and 1 are held outside the count as not about him or without a class: 281 in all, outside this figure and every other one here.",
+ "_measured": "2026-09-13 05:39, http://127.0.0.1:8036/site/build-c/, 1440x900 at DPR 2, headless render"
+}

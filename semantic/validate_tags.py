@@ -3,10 +3,12 @@
 
 Le schéma se dit strict (`additionalProperties: false`) ; il fallait pouvoir le
 vérifier autrement qu'en le lisant. Ce module valide chaque ligne de
-`tags.jsonl` contre `vocabulary/tag_record.schema.json`, énumérations des quatre
-axes résolues depuis les fichiers de vocabulaire — la même résolution que celle
-envoyée au moteur, pour qu'un contrôle a posteriori porte sur le même schéma
-que le contrôle a priori.
+`tags.jsonl` contre le schéma que `vocabulary_io.tag_record_schema(vocab,
+full=True)` RECONSTRUIT depuis les fichiers d'axes — la fonction même qui
+fabrique le schéma envoyé au moteur, pour qu'un contrôle a posteriori porte sur
+le schéma du contrôle a priori. `vocabulary/tag_record.schema.json` est comparé
+au passage : s'il est obsolète, le rapport le dit et le contrôle échoue, plutôt
+que de valider contre un fichier que personne n'a régénéré.
 
 Le validateur ne couvre que les mots-clés que le schéma emploie : type,
 required, additionalProperties, properties, items, enum, minItems, maxItems,
@@ -27,8 +29,8 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from tags_io import read_tags, superseded_count  # noqa: E402
-from vocabulary_io import load_vocabulary  # noqa: E402
+from tags_io import malformed_lines, read_tags, superseded_count  # noqa: E402
+from vocabulary_io import load_vocabulary, resolve, tag_record_schema  # noqa: E402
 
 TYPES = {
     "object": dict,
@@ -38,30 +40,6 @@ TYPES = {
     "number": (int, float),
     "integer": int,
 }
-
-
-def resolve(schema: dict, vocab) -> dict:
-    """Injecte les énumérations des axes là où le schéma les annonce par
-    `x-enum-source`, comme le fait le schéma envoyé au moteur."""
-    enums = {
-        "vocabulary/relevance.json#/relevance": vocab.relevance_ids,
-        "vocabulary/works.json#/works": vocab.work_ids,
-        "vocabulary/themes.json#/themes": vocab.theme_ids,
-        "vocabulary/approaches.json#/approaches": vocab.approach_ids,
-    }
-
-    def walk(node):
-        if isinstance(node, dict):
-            node = {k: walk(v) for k, v in node.items()}
-            source = node.pop("x-enum-source", None)
-            if source and source in enums:
-                node["enum"] = list(enums[source])
-            return node
-        if isinstance(node, list):
-            return [walk(v) for v in node]
-        return node
-
-    return walk(schema)
 
 
 def check(value, schema, path, errors):
@@ -131,19 +109,42 @@ def main(argv):
         description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("tags", type=Path)
     parser.add_argument("--schema", type=Path,
-                        default=here / "vocabulary" / "tag_record.schema.json")
+                        help="valider contre CE fichier plutôt que contre le schéma "
+                             "reconstruit depuis le vocabulaire")
     parser.add_argument("--vocabulary", type=Path, default=here / "vocabulary")
     parser.add_argument("--report", type=Path)
     parser.add_argument("--max-shown", type=int, default=12)
     arguments = parser.parse_args(argv)
 
     vocab = load_vocabulary(arguments.vocabulary)
-    schema = resolve(json.loads(arguments.schema.read_text(encoding="utf-8")), vocab)
+    # Le schéma de référence est RECONSTRUIT, pas lu : un fichier publié qu'on
+    # aurait oublié de régénérer validerait des lignes contre un contrat périmé.
+    # Le fichier est comparé au reconstruit et son état est dit dans le rapport.
+    derived = tag_record_schema(vocab, full=True)
+    published = arguments.vocabulary / "tag_record.schema.json"
+    if arguments.schema:
+        schema = json.loads(arguments.schema.read_text(encoding="utf-8"))
+        schema_state = "fourni"
+        schema_path = arguments.schema
+    else:
+        schema = derived
+        schema_path = published
+        if not published.exists():
+            schema_state = "absent du dépôt"
+        else:
+            current = json.loads(published.read_text(encoding="utf-8"))
+            schema_state = ("à jour" if current == derived
+                            else "OBSOLÈTE (régénérer avec build_tag_schema.py)")
+    schema = resolve(schema, vocab)
 
     # Le contrôle porte sur ce que l'aval publiera, c'est-à-dire la DERNIÈRE
     # ligne de chaque notice ; les lignes qu'un retag a rendues caduques sont
     # comptées à part, jamais validées ni comptées comme fautes.
     superseded = superseded_count(arguments.tags)
+    # Une ligne illisible n'est ni valide ni invalide : elle n'a pas été lue.
+    # La taire ferait passer un fichier tronqué pour un fichier propre, le
+    # décompte des lignes valides ne portant que sur ce qui a pu être relu.
+    broken = malformed_lines(arguments.tags)
     records = read_tags(arguments.tags)
     lines = 0
     invalid = 0
@@ -165,11 +166,12 @@ def main(argv):
         "tags": str(arguments.tags),
         # Chemin relatif à la racine : une sortie de contrôle archivée ne doit
         # pas exposer l'arborescence de la machine qui l'a produite.
-        "schema": relative_to_root(arguments.schema),
-        "schema_version": json.loads(
-            arguments.schema.read_text(encoding="utf-8")).get("version"),
+        "schema": relative_to_root(schema_path),
+        "schema_state": schema_state,
+        "schema_version": schema.get("version"),
         "lines": lines,
         "superseded_lines": superseded,
+        "malformed_lines": broken,
         "invalid": invalid,
         "reasons": dict(reasons.most_common(20)),
         "examples": shown,
@@ -183,7 +185,7 @@ def main(argv):
     for example in shown:
         print(f"  record {example['record']} ({example['notice_id']}): "
               f"{'; '.join(example['errors'][:3])}")
-    return 1 if invalid else 0
+    return 1 if (invalid or broken or schema_state.startswith("OBSOLÈTE")) else 0
 
 
 if __name__ == "__main__":

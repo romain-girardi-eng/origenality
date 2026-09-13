@@ -148,6 +148,33 @@ figcaption{font-size:.8rem;color:var(--stone);line-height:1.5;margin:.7rem 0 0}
   }
   .tbl{font-size:.8rem}
   .tbl th,.tbl td{padding:.7rem .65rem}
+}
+/* a phone, and any coarse pointer at any width (OR-41) */
+@media (max-width:760px), (pointer:coarse){
   .data-table summary{min-height:44px}
   .foot a{padding:.45rem 0;min-height:44px;display:inline-flex;align-items:center}
+}
+
+/* ------------------------------------------------------------------ print
+   Observatory, Method and Credits on paper: the masthead set once at the head
+   of the first page rather than fixed over every page, no skip link, no menu,
+   ink on white, and no break inside a row, a register line or a figure (U-7). */
+@media print{
+  @page{margin:16mm 15mm 18mm}
+  html,body{background:#fff!important}
+  body{padding-top:0;color:#1a1814}
+  .skip,.nav,.bar .scope,.cross-skip{display:none!important}
+  .bar{position:static;height:auto;padding:0 0 3mm;margin:0 0 5mm;background:none;
+    -webkit-backdrop-filter:none;backdrop-filter:none;border-bottom:.6pt solid #1a1814}
+  .page{max-width:none;padding:0}
+  p,li,.sub,.stamp,figcaption,.tbl td,.tbl-cap,.reg-n,.set-n,.brow .vv,.foot,.note,.prose p,.prose li,
+  .cross td,.cross th,.cross-notes li,.cross-list li{color:#1a1814}
+  a{color:inherit;border-bottom:0;text-decoration:underline}
+  .card,.obs .card{background:none;box-shadow:none}
+  .tbl-wrap,.cross-wrap{overflow:visible;border:0;background:none}
+  .cross-wrap.overflows .cross th[scope="row"],.cross-wrap.overflows .cross thead th:first-child{position:static;box-shadow:none}
+  thead{display:table-header-group}
+  tr,.reg-row,.brow,.set,figure,.note,.cols{break-inside:avoid;page-break-inside:avoid}
+  .tbl,.reg{break-inside:avoid}
+  h2,h3{break-after:avoid;page-break-after:avoid}
 }

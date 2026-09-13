@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Origenality: a bibliographic map of Origen studies</title>
 <!-- FIGURES:population-meta -->
-<meta name="description" content="A map of the scholarship on Origen of Alexandria: 2 294 counted works out of a harvest of 2 582, grouped by theme or by work of Origen, coloured by language of publication.">
+<meta name="description" content="A map of the scholarship on Origen of Alexandria: 2 209 counted records out of 2 490 work clusters, grouped by theme or by work of Origen, coloured by language of publication.">
 <!-- /FIGURES:population-meta -->
 <meta name="author" content="Romain Girardi">
 <meta name="theme-color" content="#EFE9DA">
@@ -28,8 +28,8 @@
 <link rel="icon" href="assets/marks/favicon.svg" type="image/svg+xml">
 <link rel="preload" href="assets/fonts/EBGaramond-VF.subset.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="assets/fonts/literata-var.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="assets/base.css?v=36c84679">
-<link rel="stylesheet" href="assets/explorer.css?v=dc9c363e">
+<link rel="stylesheet" href="assets/base.css?v=8ebdf6df">
+<link rel="stylesheet" href="assets/explorer.css?v=b7813f18">
 <script type="application/ld+json">
 {
   "@context": "https://schema.org",
@@ -90,7 +90,7 @@
 <header class="bar">
   <a class="wordmark" href="welcome.html"><svg class="mk" viewBox="0 0 100 100" width="13" height="13" aria-hidden="true"><g stroke="currentColor" stroke-width="11" fill="none"><path d="M50 14 L50 86"/><path d="M14 50 L86 50"/></g><g fill="currentColor"><circle cx="27" cy="27" r="8"/><circle cx="73" cy="27" r="8"/><circle cx="27" cy="73" r="8"/><circle cx="73" cy="73" r="8"/></g></svg><span>Origenality</span></a>
 <!-- FIGURES:population-scope -->
-  <p class="scope"><b>2 294</b> works counted &middot; 287 mentioned only &middot; 1 held aside &middot; IxTheo, August 2026</p>
+  <p class="scope"><b>2 209</b> records counted &middot; 280 mentioned only &middot; 1 held aside &middot; 8 source labels, August 2026</p>
 <!-- /FIGURES:population-scope -->
   <nav class="nav" aria-label="Pages">
     <div class="nav-wide">
@@ -133,7 +133,7 @@
     <dl>
       <dt><code>author:crouzel</code></dt><dd>the author</dd>
       <dt><code>year:1971</code> <code>year:1971-1990</code> <code>year:&gt;2000</code></dt><dd>a year, a range, a bound</dd>
-      <dt><code>lang:fre</code> <code>type:book</code></dt><dd>language, kind of document</dd>
+      <dt><code>lang:fr</code> <code>type:book</code></dt><dd>language, kind of document</dd>
       <dt><code>work:cels</code> <code>theme:exegesis</code></dt><dd>a work of Origen, a theme</dd>
       <dt><code>in:adamantius</code></dt><dd>the journal or volume it sits in</dd>
       <dt><code>&quot;free will&quot;</code></dt><dd>those words, in that order</dd>
@@ -182,8 +182,8 @@
     <span class="lbl" id="held-label">Held aside</span>
     <div class="held-chips" id="held-chips" role="group" aria-labelledby="held-label"></div>
 <!-- FIGURES:population-held -->
-    <span class="held-note">Every count here counts the 2 294 works Origen is the subject of,
-      or holds a section of. The 287 that only mention him and the 1 held outside the
+    <span class="held-note">Every count here counts the 2 209 records where Origen is the subject,
+      or holds a section of. The 280 that only mention him and the 1 held outside the
       count stay in the index, answer a search, and enter no figure, here and in the Observatory alike.</span>
 <!-- /FIGURES:population-held -->
   </div>
@@ -200,6 +200,7 @@
 
 <aside class="panel" id="panel" aria-label="Neighbourhood" tabindex="-1" inert>
   <div class="panel-handle" aria-hidden="true"></div>
+  <div class="print-head" id="p-print-head"></div>
   <div class="panel-top">
     <button id="panel-close" type="button" aria-label="Close the neighbourhood panel">&times;</button>
     <p class="subject" id="p-subject"></p>
@@ -209,12 +210,17 @@
     <div class="sep"></div>
   </div>
   <div class="panel-body" id="p-body"></div>
+  <p class="sr" id="strip-live" aria-live="polite"></p>
+  <div class="print-foot" id="p-print-foot"></div>
 </aside>
+<p class="print-empty">To print a dossier, open a cluster, a record or a search on the map first.</p>
 
 <script src="assets/chrome.js?v=ca20f9fc"></script>
 <!-- the search semantics, shared with the CLI: a classic script, so it is
      evaluated before the deferred module that uses it -->
-<script src="assets/search-core.js?v=23dfdf38"></script>
-<script type="module" src="assets/explorer.js?v=e87fde33"></script>
+<script src="assets/search-core.js?v=e0a6485d"></script>
+<!-- records as references (BibTeX, RIS, CSL-JSON, COinS), shared with the tests -->
+<script src="assets/cite.js?v=4db20f22"></script>
+<script type="module" src="assets/explorer.js?v=2016881a"></script>
 </body>
 </html>

@@ -26,8 +26,8 @@
 <link rel="icon" href="assets/marks/favicon.svg" type="image/svg+xml">
 <link rel="preload" href="assets/fonts/EBGaramond-VF.subset.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="assets/fonts/literata-var.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="assets/base.css?v=36c84679">
-<link rel="stylesheet" href="assets/pages.css?v=d6bceddd">
+<link rel="stylesheet" href="assets/base.css?v=8ebdf6df">
+<link rel="stylesheet" href="assets/pages.css?v=d556f899">
 <link rel="stylesheet" href="assets/folio.css?v=d63b64c8">
 <script type="application/ld+json">
 {
@@ -122,14 +122,18 @@
     <p>At the closing round table of Origeniana XIV, in Boston on 14 August 2026, a
       participant asked the question the field asks itself: how does one say anything new
       about Origen, given the mass of what has been written and the impossibility of reading
-      it all. Origenality is one answer, proposed publicly that afternoon — map the ground
+      it all. Origenality is one answer, proposed publicly that afternoon: map the ground
       already covered, so that the uncovered ground can be seen. It is a doctoral side
-      project, kept deliberately modest in scope: metadata, not full text.</p>
+      project whose public map remains bibliographic. A separate evidence layer now anchors
+      selected scholar positions to legally acquired full text; protected long excerpts remain
+      in the restricted research store.</p>
   </section>
 
   <section>
-    <h2>The source behind this version</h2>
-    <p class="sub">Everything on the map today comes from one catalogue.</p>
+    <h2>Sources behind this version</h2>
+    <p class="sub"><!-- FIGURES:population-sources-sub -->The map carries eight source labels. The 2 582 catalogue records are
+      merged into 2 490 work clusters before any density is counted.
+      The subject headings and containers of 1 173 of them, from seven of the source labels, were read again from their own catalogues on 13 September 2026.<!-- /FIGURES:population-sources-sub --></p>
     <div class="tbl-wrap">
       <table class="tbl">
         <thead><tr><th>Source</th><th>What it gives</th><th>Licence</th></tr></thead>
@@ -139,24 +143,39 @@
               Universitätsbibliothek Tübingen, with
               <a href="https://kxp.k10plus.de" rel="noopener">K10plus</a></td>
 <!-- FIGURES:population-source -->
-            <td>the 2 582 records mapped here: titles, authors, years, languages, containers,
-              subject headings, identifiers. Harvested through the authority record for Origen
+            <td>1 409 records: titles, authors, years, languages, containers,
+              subject headings and identifiers. Harvested through the authority record for Origen
               (<a href="https://d-nb.info/gnd/118590235" rel="noopener">GND 118590235</a>) on
               15 August 2026.</td>
 <!-- /FIGURES:population-source -->
             <td>Metadata under CC0 1.0. Summaries carried by the catalogue are shown with this
               credit and a link to the record.</td>
           </tr>
+          <tr><td><a href="https://www.gbd.digital" rel="noopener">Gnomon Bibliographische
+            Datenbank</a></td><td><!-- FIGURES:source-count-gnomon-gbd -->354<!-- /FIGURES:source-count-gnomon-gbd --> records, served in MARC through B3Kat.</td>
+            <td>GBD terms; transport metadata served by B3Kat.</td></tr>
+          <tr><td><a href="https://opac.k10plus.de" rel="noopener">K10plus</a></td>
+            <td><!-- FIGURES:source-count-k10plus -->350<!-- /FIGURES:source-count-k10plus --> records beyond the IxTheo slice.</td><td>CC0 1.0.</td></tr>
+          <tr><td><a href="https://www.sudoc.fr" rel="noopener">Sudoc (ABES)</a></td>
+            <td><!-- FIGURES:source-count-sudoc -->212<!-- /FIGURES:source-count-sudoc --> records.</td><td>Licence Ouverte where ABES is the producer; source licence
+              retained for derived records.</td></tr>
+          <tr><td><a href="https://www.gateway-bayern.de" rel="noopener">B3Kat</a></td>
+            <td><!-- FIGURES:source-count-b3kat -->130<!-- /FIGURES:source-count-b3kat --> records.</td><td>CC0 1.0.</td></tr>
+          <tr><td><a href="https://www.dnb.de" rel="noopener">Deutsche Nationalbibliothek</a></td>
+            <td><!-- FIGURES:source-count-dnb -->51<!-- /FIGURES:source-count-dnb --> records.</td><td>CC0 1.0.</td></tr>
+          <tr><td><a href="https://www.loc.gov" rel="noopener">Library of Congress</a></td>
+            <td><!-- FIGURES:source-count-loc -->50<!-- /FIGURES:source-count-loc --> records.</td><td>CC0 1.0 / US Government work.</td></tr>
+          <tr><td><a href="https://catalogue.bnf.fr" rel="noopener">Bibliothèque nationale de France</a></td>
+            <td><!-- FIGURES:source-count-bnf -->26<!-- /FIGURES:source-count-bnf --> records.</td><td>Licence Ouverte.</td></tr>
         </tbody>
       </table>
     </div>
   </section>
 
   <section>
-    <h2>Harvested, and credited where they are read</h2>
-    <p class="sub">No record of theirs is mapped or counted yet, while their relevance filtering
-      is settled. Where one of them summarises a publication IxTheo also catalogues, that
-      summary appears on the record with the credit below and a link back to its notice.</p>
+    <h2>Enrichment sources, not counted as new records</h2>
+    <p class="sub">These sources add identifiers, citation figures or summaries to records
+      already on the map. Their prose is credited at the point of display.</p>
     <div class="tbl-wrap">
       <table class="tbl">
         <thead><tr><th>Source</th><th>Role</th><th>Licence or terms</th></tr></thead>
@@ -167,7 +186,7 @@
             <td>DOI skeleton</td><td>Open metadata policy</td></tr>
           <tr><td><a href="https://www.semanticscholar.org" rel="noopener">Semantic Scholar</a></td>
             <td>summaries and open-access enrichment</td>
-            <td>ODC-BY 1.0 — <strong>attribution required, and carried on every record that
+            <td>ODC-BY 1.0: <strong>attribution required, and carried on every record that
               shows one of its summaries</strong></td></tr>
           <tr><td><a href="https://isidore.science" rel="noopener">Isidore</a> (Huma-Num)</td>
             <td>French-language scholarship, aggregating Persée, OpenEdition and HAL</td>
@@ -178,10 +197,10 @@
             <td>Spanish-language scholarship</td><td>Terms of Dialnet, Universidad de La Rioja</td></tr>
           <tr><td><a href="https://opac.sbn.it" rel="noopener">SBN</a> (ICCU)</td>
             <td>Italian monographs</td><td>Terms of ICCU</td></tr>
-          <tr><td>Adamantius — repertorio bibliografico (GIROTA)</td>
+          <tr><td>Adamantius, repertorio bibliografico (GIROTA)</td>
             <td>the current Origen bibliography since 1994, the section headings that shaped
-              the theme vocabulary, and the analytical notes shown on 77 records</td>
-            <td>Morcelliana / GIROTA — written to on 15 August 2026; credited on every record,
+              the theme vocabulary, and the analytical notes shown on <!-- FIGURES:girota-notes -->76<!-- /FIGURES:girota-notes --> records</td>
+            <td>Morcelliana / GIROTA, written to on 15 August 2026; credited on every record,
               removed on request</td></tr>
           <tr><td>BIBP, Université Laval</td>
             <td>patristic notices with weighted descriptors and analytical summaries</td>
@@ -197,10 +216,11 @@
       down when they ask.</p>
 <!-- FIGURES:summary-provenance -->
     <p>Every summary displayed in the Explorer names the database that wrote it and links to
-      the record there. 381 of the 1 632 mapped records carry one.
-      166 were written by IxTheo itself and 215 by
-      another database that describes the same publication: OpenAlex, GIROTA / Adamantius, ISIDORE (Huma-Num), Crossref, Semantic Scholar. A summary written for
-      this project, where one exists, says so instead of naming a database.</p>
+      the record there. 367 of the 2 490 mapped records carry one.
+      187 were written by a catalogue the record was harvested from: Index Theologicus (IxTheo / K10plus); K10plus (GBV / BSZ); Sudoc, Agence bibliographique de l'Enseignement supérieur (ABES); B3Kat (Bibliotheksverbund Bayern / KOBV); Library of Congress; Bibliothèque nationale de France; and Gnomon Bibliographische Datenbank (Universität Eichstätt).
+      The other 180 come from a database that describes the same publication:
+      OpenAlex; GIROTA / Adamantius; ISIDORE (Huma-Num); Crossref; and Semantic Scholar. A summary written for this project, where one exists, says so instead of
+      naming a database.</p>
 <!-- /FIGURES:summary-provenance -->
     <p><strong>How to have summaries removed.</strong> Write to
       <a href="mailto:romain.girardi@univ-cotedazur.fr">romain.girardi@univ-cotedazur.fr</a>,
@@ -233,15 +253,15 @@
     <h2>Typefaces and code</h2>
     <ul>
       <li><strong>EB Garamond</strong>, by Georg Duffner and Octavio Pardo, and
-        <strong>Literata</strong>, by TypeTogether — both under the SIL Open Font Licence 1.1.
+        <strong>Literata</strong>, by TypeTogether, both under the SIL Open Font Licence 1.1.
         Their licences travel with the files, in <code>assets/fonts/</code>.</li>
       <li>The map, the charts and the packing are written for this site in plain HTML, CSS and
         JavaScript. No page makes a request to any host other than the one serving it.</li>
       <li><strong>three.js</strong> (MIT), kept under <code>assets/vendor/</code>, draws the
         landing field and the explorer dust. The landing shader is adapted from
         Particle Image (React Bits Pro), licensed for this project and rewritten
-        here in plain JavaScript. The explorer grains run the particle shaders
-        from the personal graph at romain.pragma-cloud.com.</li>
+        here in plain JavaScript. The explorer grains adapt the particle shaders
+        from an earlier personal graph.</li>
       <li>The landing portrait is an evocation of Origen of Alexandria, not a likeness.
         No ancient portrait of him survives to copy.</li>
     </ul>

@@ -28,8 +28,9 @@ semantic/
 │   ├── themes.json        16 domaines, 61 feuilles, libellés en/de/fr/it
 │   ├── approaches.json    10 angles ou méthodes
 │   ├── relevance.json     4 valeurs : core, partial, marginal, none
-│   └── tag_record.schema.json   la forme d'un enregistrement de sortie
+│   └── tag_record.schema.json   la forme d'un enregistrement de sortie (ENGENDRÉ)
 ├── vocabulary_io.py       chargeur unique + fabrique du schéma strict
+├── build_tag_schema.py    écrit tag_record.schema.json ; --check dit s'il est périmé
 ├── llm_adapter.py         adaptateur neutre (endpoint lu dans l'environnement)
 ├── tag_notices.py         l'outil de tagging
 ├── retag_gaps.py          les notices affichées qu'aucune vague n'a taguées
@@ -176,9 +177,12 @@ notice dont la fiche a changé depuis, elle, repart.
 
 Ce qui est garanti :
 
-- **Schéma strict, énumérations fermées.** Le schéma envoyé au modèle est
-  fabriqué à partir des quatre fichiers de vocabulaire par
-  `vocabulary_io.tag_record_schema()` ; il ne peut pas diverger d'eux. Une
+- **Schéma strict, énumérations fermées.** Le schéma envoyé au modèle et le
+  schéma publié sortent de la MÊME fonction,
+  `vocabulary_io.tag_record_schema(vocab, full=…)`, appliquée aux quatre
+  fichiers de vocabulaire ; ils ne peuvent diverger ni d'eux ni l'un de l'autre.
+  `build_tag_schema.py` écrit le fichier publié, que `validate_tags.py`
+  reconstruit au contrôle et déclare périmé le cas échéant. Une
   valeur hors vocabulaire qui passerait quand même est écartée à la validation,
   la réparation est consignée dans `repairs` et l'enregistrement passe en
   `needs_review`.
@@ -187,7 +191,10 @@ Ce qui est garanti :
   visent les mêmes objets.
 - **Reprise sur une clé complète.** Au démarrage, la vague déjà écrite est
   relue, et une notice n'est sautée que si son identifiant, la version du
-  prompt, celle du vocabulaire ET l'empreinte de la fiche soumise
+  prompt, l'empreinte de la consigne réellement envoyée (`prompt_digest`, pour
+  qu'une retouche non bumpée ne passe pas pour la même règle ; absente des
+  lignes écrites avant le champ, son absence n'invalide rien), celle du
+  vocabulaire ET l'empreinte de la fiche soumise
   (`input_digest`) coïncident avec ce qui a déjà été produit. Corriger un
   titre, verser un résumé, changer de prompt : la notice repart, et le run
   l'annonce en clair. Un rejet est comparé aux mêmes versions, de sorte qu'un

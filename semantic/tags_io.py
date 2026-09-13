@@ -20,17 +20,35 @@ from pathlib import Path
 from typing import Any, Iterator
 
 
-def iter_lines(path) -> Iterator[tuple[int, dict[str, Any]]]:
-    """(numéro de ligne, enregistrement) — les lignes illisibles sont sautées."""
+def iter_lines(path, malformed: list[int] | None = None) -> Iterator[tuple[int, dict[str, Any]]]:
+    """(numéro de ligne, enregistrement).
+
+    Les lignes illisibles sont sautées — un fichier écrit en ajout peut avoir
+    été coupé au milieu d'une ligne —, mais leur numéro est versé dans
+    `malformed` quand l'appelant en fournit une liste. Les sauter en silence
+    était le seul endroit d'un dispositif fondé sur « rien ne disparaît » où
+    quelque chose disparaissait sans laisser de trace.
+
+    Une ligne qui n'est pas un objet JSON est comptée avec elles : l'aval
+    l'interrogerait par `.get`, ce qui casserait la lecture plus loin, à un
+    endroit où l'on ne saurait plus quelle ligne l'a provoquée.
+    """
     with Path(path).open(encoding="utf-8") as handle:
         for number, line in enumerate(handle, 1):
             line = line.strip()
             if not line:
                 continue
             try:
-                yield number, json.loads(line)
+                record = json.loads(line)
             except ValueError:
+                if malformed is not None:
+                    malformed.append(number)
                 continue
+            if not isinstance(record, dict):
+                if malformed is not None:
+                    malformed.append(number)
+                continue
+            yield number, record
 
 
 def read_tags(path, keep_unidentified: bool = True) -> list[dict[str, Any]]:
@@ -71,7 +89,15 @@ def superseded_count(path) -> int:
     return total - len(seen)
 
 
-def compact(path, history_path=None) -> dict[str, int]:
+def malformed_lines(path) -> list[int]:
+    """Numéros des lignes illisibles du fichier. Rien ne disparaît sans être compté."""
+    numbers: list[int] = []
+    for _number, _record in iter_lines(path, malformed=numbers):
+        pass
+    return numbers
+
+
+def compact(path, history_path=None) -> dict[str, Any]:
     """Réécrit le fichier avec une ligne par notice, l'historique à côté.
 
     Appelé en fin de vague. L'historique n'est pas un doublon décoratif : c'est
@@ -81,15 +107,21 @@ def compact(path, history_path=None) -> dict[str, int]:
     Il ne reçoit que les lignes périmées : compaction après compaction, il se lit
     comme un journal des corrections, sans que l'état courant y soit recopié à
     chaque passe.
+
+    Une ligne illisible n'est jamais réécrite — elle est déjà perdue comme
+    donnée — mais elle est comptée et son numéro rendu, faute de quoi la
+    compaction serait le moment où un fichier tronqué se nettoierait tout seul.
     """
     path = Path(path)
     if not path.exists():
-        return {"lines_in": 0, "lines_out": 0, "superseded": 0}
+        return {"lines_in": 0, "lines_out": 0, "superseded": 0, "malformed": []}
+    broken = malformed_lines(path)
     lines_in = sum(1 for _number, _record in iter_lines(path))
     records = read_tags(path)
     superseded = lines_in - len(records)
     if superseded <= 0:
-        return {"lines_in": lines_in, "lines_out": lines_in, "superseded": 0}
+        return {"lines_in": lines_in, "lines_out": lines_in, "superseded": 0,
+                "malformed": broken}
 
     # L'historique ne reçoit QUE les lignes périmées. Y verser le fichier entier
     # — ce que faisait la version précédente — produisait A, B, B, C après deux
@@ -116,4 +148,4 @@ def compact(path, history_path=None) -> dict[str, int]:
             handle.write(json.dumps(record, ensure_ascii=False) + "\n")
     temporary.replace(path)
     return {"lines_in": lines_in, "lines_out": len(records),
-            "superseded": superseded, "history": str(history)}
+            "superseded": superseded, "malformed": broken, "history": str(history)}

@@ -13,6 +13,7 @@ data/_proofs_tmp/
 # Moissons brutes et corpus fusionné : régénérés par les moissonneurs.
 data/raw/
 data/merged/
+data/evidence/private/
 
 # États de reprise, sessions, secrets.
 **/s2_bulk_state.json
@@ -20,6 +21,7 @@ data/merged/
 *_secrets.json
 .env
 .env.*
+.wrangler/
 
 # Copies de conflit d'iCloud sur un dossier synchronisé.
 * [0-9].*
@@ -27,4 +29,3 @@ data/merged/
 
 # Clone de contrôle creusé par scripts/selftest_public.sh.
 _selftest/
-.wrangler/

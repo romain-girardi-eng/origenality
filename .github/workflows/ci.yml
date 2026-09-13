@@ -1,0 +1,34 @@
+name: verify
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  public-tree:
+    runs-on: ubuntu-latest
+    env:
+      # The checks import the pipeline modules; no bytecode is left in the tree.
+      PYTHONDONTWRITEBYTECODE: "1"
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Full history: the record-link continuity check reads the graph of
+          # the previous release from the most recent commit whose graph differs
+          # from the current one, and fails when no earlier graph can be read.
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Replay the public contract
+        run: bash scripts/selftest_public.sh
+      - name: Check search and CLI parity
+        run: python3 scripts/check_search_parity.py --local
+      - name: Check search-engine assets
+        run: python3 scripts/build_seo_assets.py --check

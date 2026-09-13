@@ -25,8 +25,8 @@ listed five times, and no way of seeing what the pile leaves out.
 Origenality federates the open bibliographic sources on Origen, deduplicates
 them into one record per work, classifies each record by theme, by work of Origen
 and by approach, and renders the result as a map you can read at a glance and
-query in plain language. The measure it gives is a density — how many studies
-already sit in a given neighbourhood — not a verdict on originality. An empty
+query in plain language. The measure it gives is a density (how many studies
+already sit in a given neighbourhood), not a verdict on originality. An empty
 region may be a gap worth filling or a dead end others have already walked away
 from; the map says which regions are empty, and that is all it says.
 
@@ -46,9 +46,10 @@ in and the classification pushed out. Every published figure counts the first tw
 classes and nothing else.
 <!-- /FIGURES:classification -->
 
-**Site (v0).** The explorer published so far draws the IxTheo/K10plus harvest
-alone: <!-- FIGURES:population-root -->**1 632 records, of which 1 402 are counted**, 225 mentioned only, 5 held outside the count.<!-- /FIGURES:population-root -->
-It is static — no request leaves the page — and it carries an observatory
+**Site (v0).** The explorer joins eight authority-feed labels. Its 2 582 source
+records are merged into 2 490 work clusters (92 duplicates collapsed):
+<!-- FIGURES:population-root -->**2 490 records, of which 2 209 are counted**, 280 mentioned only, 1 held outside the count.<!-- /FIGURES:population-root -->
+It is static (no request leaves the page), and it carries an observatory
 of the field by decade, language, format, theme and work of Origen.
 
 **Citation weight.** Citation counts are measured for 14 772 of the 42 210
@@ -71,11 +72,11 @@ excluded from a search or a count because it has no citation data.
 - **Subscription indexes are absent** (they cannot be harvested and would not be
   redistributable), so the coverage of pre-1980 and of some national traditions
   is thinner than the counts suggest.
-- **One harvest, one date.** The figures above describe the August 2026 harvest.
-  There is no incremental update yet.
-- The federated corpus is not what the published site draws: v0 shows the
-  catalogue harvest only, while the classification and the citation work run on
-  all ten sources.
+- **One harvest, one date.** <!-- FIGURES:harvest-dates -->The figures above describe the August 2026 harvest. The subject headings and containers of 1 173 of the 2 582 source records of the public site, from seven of the source labels, were read again from their own catalogues on 13 September 2026.
+  There is no incremental update yet.<!-- /FIGURES:harvest-dates -->
+- The public site is a deduplicated authority-record snapshot under eight source
+  labels. The larger working corpus uses ten broader harvests and remains a
+  separate population; figures never move between the two without being rebuilt.
 
 ## Reproducing it
 
@@ -89,13 +90,13 @@ python3 scripts/test_data_gates.py                    # the test suite
 python3 site/tools/build_summary_figures.py --check   # every published figure recounted
 python3 site/qa/check_one_population.py               # one population on every screen
 python3 scripts/build_seo_assets.py --check           # sitemap and llms.txt still current
-python3 -m http.server 8020                           # then open /site/index.html
+python3 -m http.server 8020                           # then open /site/welcome.html
 bash scripts/selftest_public.sh                       # all of the above, in a throwaway clone
 ```
 
 What needs a harvest first, because the raw harvests and the merged corpus are
-not in this repository — they are large, and several sources ask that their
-dumps not be redistributed:
+not in this repository (they are large, and several sources ask that their
+dumps not be redistributed):
 
 ```bash
 python3 scripts/harvest_openalex.py                       # one harvester per source, in scripts/
@@ -108,12 +109,63 @@ python3 scripts/qa_checks.py all                          # the standing checks 
 The harvesters are rate-limited and resumable, and running them rebuilds the
 corpus from the sources themselves.
 
+Before a release, two checks read what no test can: whether the record links still
+open a record on each source's own service, and whether every summary in the dump
+resolves to its attribution. The first sends a few requests per source, at most one
+per second per host, and is left out of the continuous integration for that reason.
+
+```bash
+python3 scripts/check_record_links.py --sample 5          # record links, per source (network)
+python3 scripts/check_release.py <dump.jsonl>             # attribution of every summary
+```
+
 `docs/methodology.md` describes the federation, the deduplication rules, the
 classification and the density measure. `docs/sources.md` lists the sources with
 their licences. `docs/seo-geo.md` says what the site declares to search engines
 and to AI crawlers, and how to check it after a deployment.
-`api-spec/openapi.yaml` is the contract the site consumes; the implementation
-that serves it is separate from this repository.
+`api-spec/openapi.yaml` describes the JSON the command line prints, command by
+command. No HTTP service implements it: the pages read the data files directly.
+
+## Asking it from a program
+
+The map answers one question, whether this ground has been worked and how
+thickly, and the command line answers it the same way the website does, because both run
+`site/assets/search-core.js`.
+
+```bash
+node cli/origenality.mjs gap "Origen and Roman law"     # is this ground taken?
+node cli/origenality.mjs search "Contre Celse"          # aliases reach their work
+node cli/origenality.mjs density work cels              # how thick, by decade
+node cli/origenality.mjs coverage                       # what it cannot answer
+node cli/origenality.mjs claims Scarponi                # source-anchored positions
+```
+
+No checkout is needed: the data is fetched from origenality.com and cached for
+twelve hours. Add `--local .` to read this tree instead, `--json` for a
+machine, `--lang`, `--since`, `--until` to narrow.
+
+A free-text query returns a neighbourhood; naming a field returns a
+publication. The same grammar answers in the browser and here:
+
+```
+author:crouzel   year:1971-1990   lang:fr    type:book
+work:cels        theme:exegesis   in:adamantius
+"free will"      -rufinus
+```
+
+These are conditions, not scores: they are conjunctive and never widened, so
+`year:1971` does not mean thereabouts.
+
+`claims` reads the separate evidence projection. A claim carries its scholar,
+scope, printed page, page hash and text position. Verbatim text is present only
+when its release basis has been checked; otherwise the public quote is withheld
+while the complete source anchor remains in the private research layer.
+
+Two figures come back, never one. `counted_in_density` are the records judged to
+be about Origen; `listed` includes those that merely mention him. And when
+`widened` is true the query was relaxed to fewer terms, and the answer to the
+question asked is `carrying_all_terms`, which is often 0 where `listed` is in
+the hundreds. `scripts/check_search_parity.py` keeps the two front ends honest.
 
 ## Citing it
 
@@ -142,7 +194,7 @@ say what is wrong with it.
 
 ## Licence
 
-Code: MIT (`LICENSE`). Data: see `DATA_POLICY.md` — they are published under
+Code: MIT (`LICENSE`). Data: see `DATA_POLICY.md`. They are published under
 attribution and takedown on request, and the licence of each source is stated
 in `ATTRIBUTION.md`. The metadata come from ten databases under distinct
 regimes, so no single licence is asserted over the whole, and `CITATION.cff`

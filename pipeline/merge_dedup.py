@@ -190,6 +190,10 @@ def text_volume_signature(record) -> tuple:
     numbers = set()
     for field in VOLUME_TEXT_FIELDS:
         value = record.get(field)
+        # Un contenant arrive en chaîne ou en objet {title, type} : la tomaison
+        # d'un titre de collection bloque aussi bien dans les deux formes.
+        if isinstance(value, dict):
+            value = value.get("title")
         if isinstance(value, str) and value:
             numbers.update(volume_signature(value))
     return tuple(sorted(numbers))
@@ -638,13 +642,19 @@ def main(argv=None):
         help="désactive le troisième lien d'identité. Sert à rejouer l'état "
              "d'avant l'itération 5 et à mesurer ce que l'ISBN a recollé ; "
              "n'a pas d'autre usage.")
+    parser.add_argument(
+        "--input-jsonl", action="append", default=[],
+        help="fichier JSONL d'entrée ; répétable. Lorsqu'il est fourni, ne lit "
+             "pas data/raw/*/records.jsonl.")
     arguments = parser.parse_args(argv)
     out_dir = arguments.out_dir
 
     os.makedirs(out_dir, exist_ok=True)
     all_records = []
     per_source = defaultdict(int)
-    for path in sorted(glob.glob(os.path.join(RAW, "*", "records.jsonl"))):
+    input_paths = arguments.input_jsonl or sorted(
+        glob.glob(os.path.join(RAW, "*", "records.jsonl")))
+    for path in input_paths:
         with open(path) as f:
             for line in f:
                 line = line.strip()

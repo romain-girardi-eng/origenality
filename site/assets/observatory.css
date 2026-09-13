@@ -138,9 +138,95 @@
   .obs .cols .plot{height:200px}
   .obs .cols{gap:.22rem}
   .obs .cols .c .vv{display:none}
-  .obs .cols .c .lb{font-size:.58rem}
+  /* 11 px or more on a phone, one label in two so they do not collide (OR-77) */
+  .obs .cols .c .lb{font-size:.7rem;overflow:visible}
+  .obs .cols .c .lb-minor{visibility:hidden}
+}
+
+/* ------------------------------------------------------------------ crossings
+   Three registers of counts, set like the rest of the folio. The shade behind a
+   count follows its size and leads the eye along a row; the number stays in ink,
+   which holds 4.5:1 on the darkest shade (checked in scripts/test_data_gates.py). */
+.obs{--tint-max:.24}
+.cross-tabs{display:flex;flex-wrap:wrap;gap:0 1.7rem;margin:0 0 1.5rem;border-bottom:1px solid var(--rule)}
+.cross-tabs [role="tab"]{
+  -webkit-appearance:none;appearance:none;background:none;border:0;border-radius:0;
+  border-bottom:2px solid transparent;margin:0 0 -1px;padding:.4rem 0;min-height:44px;cursor:pointer;
+  font-family:var(--serif);font-size:1.14rem;font-weight:500;letter-spacing:-.005em;color:var(--ink-2);
+  transition:color .18s, border-color .18s;
+}
+.cross-tabs [role="tab"][aria-selected="true"]{color:var(--ink);border-bottom-color:var(--accent)}
+@media (hover:hover){ .cross-tabs [role="tab"]:hover{color:var(--accent)} }
+.cross-panel[hidden],.cross-leaves[hidden]{display:none}
+.obs .cross-panel .tbl-cap{max-width:44rem;font-size:.84rem;margin:0 0 .6rem}
+.cross-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;overscroll-behavior-x:contain;margin:0 0 .4rem}
+.cross{border-collapse:collapse;width:100%;font-size:.84rem;font-variant-numeric:tabular-nums}
+.cross th,.cross td{padding:.45rem .45rem;border-bottom:1px solid var(--rule-soft);vertical-align:baseline}
+.cross thead th{
+  font-family:var(--serif);font-weight:500;font-size:.86rem;line-height:1.2;color:var(--ink);
+  text-align:right;vertical-align:bottom;border-bottom:1px solid var(--ink);padding-top:.2rem;
+}
+.cross thead th:first-child{text-align:left}
+.cross th[scope="row"]{
+  text-align:left;font-weight:400;color:var(--ink);min-width:11rem;max-width:16rem;line-height:1.3;
+}
+/* the first column holds still only when the table is wider than its box
+   (observatory.js sets .overflows), so a table that fits carries no band */
+.cross-wrap.overflows .cross th[scope="row"],
+.cross-wrap.overflows .cross thead th:first-child{
+  position:sticky;left:0;z-index:1;background:var(--ground);box-shadow:1px 0 0 var(--rule);
+}
+.cross-wrap.overflows .cross thead th:first-child{z-index:2}
+.cross td{text-align:right;color:var(--ink);white-space:nowrap}
+.cross td[style]{background:rgb(160 54 32 / calc(var(--t) * var(--tint-max)))}
+.cross td.zero{color:var(--stone)}
+.cross td.cross-tot{color:var(--ink-2);border-right:1px solid var(--rule-soft)}
+.cross .cross-leaf th[scope="row"]{padding-left:1.75rem;color:var(--ink-2);font-size:.8rem}
+.cross .cross-leaf td{font-size:.8rem}
+.cross tfoot th,.cross tfoot td{border-top:1px solid var(--ink);border-bottom:0;color:var(--ink-2)}
+.cross-toggle{
+  -webkit-appearance:none;appearance:none;background:none;border:0;padding:.1rem 0;margin:0;cursor:pointer;
+  font:inherit;color:inherit;text-align:left;display:inline-flex;align-items:baseline;gap:.5rem;
+}
+.cross-toggle::before{content:"+";color:var(--stone);display:inline-block;width:.6em;flex:0 0 auto}
+.cross-toggle[aria-expanded="true"]::before{content:"–"}
+@media (hover:hover){ .cross-toggle:hover{color:var(--accent)} }
+.cross-dv{display:block}
+.cross-ds,.cross-sh{display:block;font-size:.72rem;line-height:1.25}
+.cross-ds{color:var(--stone)}
+.cross-sh{color:var(--ink)}
+.cross-base{display:block;margin-top:.15rem;font-family:var(--text);font-size:.72rem;font-weight:400;color:var(--stone)}
+.obs .cross-h{font-size:1.2rem;margin:2.2rem 0 .45rem}
+.cross-notes,.cross-list{list-style:none;padding:0;max-width:44rem}
+.cross-notes{margin:1.1rem 0 0;border-top:1px solid var(--rule)}
+.cross-notes li{margin:0;padding:.65rem 0;border-bottom:1px solid var(--rule-soft);font-size:.86rem;line-height:1.55;color:var(--ink-2)}
+.cross-list{margin:.4rem 0 0}
+.cross-list li{margin:0;padding:.55rem 0;border-bottom:1px solid var(--rule-soft);font-size:.92rem;line-height:1.5;color:var(--ink-2)}
+.cross-list strong{font-weight:500;color:var(--ink)}
+/* a table of linked counts is one key press to pass: the link shows when it
+   has the focus, and lands on the notes under the table (U-5) */
+.cross-skip{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.cross-skip:focus{position:static;width:auto;height:auto;overflow:visible;clip:auto;white-space:normal;
+  display:inline-flex;align-items:center;min-height:44px;margin:0 0 .35rem;font-size:.86rem}
+.cross-notes:focus{outline:none}
+.cross-notes:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+/* a count opens the Explorer view that lists the same records */
+.cross td a{color:inherit;text-decoration:none;border-bottom:1px solid rgb(160 54 32 / .34)}
+@media (hover:hover){ .cross td a:hover{color:var(--accent);border-bottom-color:var(--accent)} }
+.cross td a:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:1px}
+@media (pointer:coarse){ .cross-toggle{min-height:44px;align-items:center} }
+@media (pointer:coarse){
+  .cross td a{display:inline-flex;align-items:center;justify-content:flex-end;min-height:44px;min-width:44px;vertical-align:middle;
+    border-bottom:0;text-decoration:underline;text-decoration-color:rgb(160 54 32 / .34);text-decoration-thickness:1px;text-underline-offset:.22em}
+}
+@media (max-width:760px){
+  .cross-tabs{gap:0 1.15rem}
+  .cross-tabs [role="tab"]{font-size:1.02rem}
+  .cross th[scope="row"]{min-width:9.5rem;max-width:11rem}
+  .cross .cross-leaf th[scope="row"]{padding-left:1rem}
 }
 
 @media (prefers-reduced-motion:reduce){
   .obs .brow .fl,.obs .cols .c .st{transition:none}
+  .cross-tabs [role="tab"]{transition:none}
 }

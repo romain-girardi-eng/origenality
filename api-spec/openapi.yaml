@@ -1,25 +1,45 @@
 openapi: 3.1.0
 info:
-  title: Origenality API
-  version: "0.1.0"
-  summary: Read access to the Origenality bibliographic map.
+  title: Origenality CLI JSON contract
+  version: "0.3.0"
+  summary: The JSON that the origenality command line prints.
   description: |
-    The contract the Origenality front end consumes. It is deliberately small and
-    deliberately neutral: four read operations over a bibliographic corpus, with
-    no assumption about what implements them. Any server that honours these four
-    responses can serve the site.
+    This document describes the JSON printed by `node cli/origenality.mjs <command> --json`.
+    `gap`, `record`, `vocabulary`, `density`, `author`, `crossings`, `stats`, `coverage`, `primary` and
+    `claims` print JSON with or without the flag; `search` prints a sentence unless `--json` is given.
 
-    Three conventions hold across every response.
+    No HTTP service implements it. origenality.com is a static site: its pages read
+    `data/*.json` and `site/assets/semantic.json` directly, and there is no API path to call.
+    The OpenAPI schema vocabulary is used here only to state the shape of each output, so the
+    document declares no server and no path. The extension `x-origenality-commands` maps
+    each command to the schema of what it prints on success and on refusal.
 
-    Counts. A figure counts records classed `core` or `partial` and nothing else.
-    Records classed `marginal` are returned by searches and listed under counts;
-    they are never added to one. Records classed `none` are not published.
+    Every figure is computed by `site/assets/search-core.js`, the file the Explorer runs,
+    on the index `buildIndex` in that file builds from the published data.
 
-    Attribution. A summary is always returned with the database that wrote it and
-    a link to the record it wrote it for. A summary without both is not returned.
+    Conventions that hold across every output:
 
-    Density. The `density` of a neighbourhood is the number of distinct records
-    it carries, inside the citable perimeter. It is a headcount, not a score.
+    Counts. A figure counts the records classed `core` or `partial`. Records classed
+    `marginal` or `none` are indexed, searchable and listed; they enter no count. This is why
+    a search reports `listed` and `counted_in_density` side by side.
+
+    Density. `counted_in_density` under a heading is the number of distinct records filed
+    under it, in the citable perimeter. It is a count, never a judgement of originality;
+    `semantic/DENSITY.md` is the definition.
+
+    Attribution. An abstract is returned with `abstract_source`, the key of the database that
+    wrote it (as listed in `ATTRIBUTION.md`), and every record carries `url`, the link to its
+    catalogue record.
+
+    Exit status. 0 when the command answered; 1 on a failure (network, unreadable data, a
+    record ID that matches nothing); 2 on a usage error (unknown command or option, a missing
+    or invalid option value, `--since` later than `--until`, an unknown vocabulary kind or
+    key) or on a query the engine refused to evaluate. On a refusal the reason is printed on
+    stderr, and also on stdout as JSON (`QueryRefusal`, `DensityRefusal`) for `search --json`,
+    `gap` and `density`.
+    An argument a command does not take (`coverage extra`) and an option given without a
+    command (`--json` alone) are usage errors: status 2. `--help`, or no argument at all,
+    prints the usage with status 0.
   license:
     name: MIT
     identifier: MIT
@@ -27,299 +47,790 @@ info:
     name: Romain Girardi
     email: romain.girardi@univ-cotedazur.fr
 
-servers:
-  - url: /api/v1
-    description: Path-relative; the deployment decides the host.
-
-paths:
-  /search:
-    get:
-      operationId: search
-      summary: Records matching a free-text query, with their facets.
-      parameters:
-        - name: q
-          in: query
-          required: true
-          schema: { type: string, minLength: 1 }
-          description: Free text. Matched against title, authors, subjects and summary.
-        - name: relevance
-          in: query
-          schema:
-            type: array
-            items: { $ref: "#/components/schemas/Relevance" }
-          description: Classes to return. Default `core` and `partial`; adding
-            `marginal` returns them without counting them.
-        - name: lang
-          in: query
-          schema: { type: string, description: "ISO 639-2/B code" }
-        - name: from
-          in: query
-          schema: { type: integer }
-        - name: to
-          in: query
-          schema: { type: integer }
-        - name: limit
-          in: query
-          schema: { type: integer, default: 50, maximum: 500 }
-        - name: offset
-          in: query
-          schema: { type: integer, default: 0 }
-      responses:
-        "200":
-          description: Matching records.
-          content:
-            application/json:
-              schema:
-                type: object
-                required: [counted, mentioned, records]
-                properties:
-                  counted:
-                    type: integer
-                    description: Records classed core or partial that match.
-                  mentioned:
-                    type: integer
-                    description: Records classed marginal that match. Never added to `counted`.
-                  records:
-                    type: array
-                    items: { $ref: "#/components/schemas/Record" }
-        "400": { $ref: "#/components/responses/BadRequest" }
-
-  /neighborhood:
-    get:
-      operationId: neighborhood
-      summary: The region of the map a query falls in, and what is adjacent to it.
-      parameters:
-        - name: q
-          in: query
-          required: true
-          schema: { type: string, minLength: 1 }
-        - name: max_nodes
-          in: query
-          schema: { type: integer, default: 8 }
-      responses:
-        "200":
-          description: |
-            The selected nodes, the density they carry, and the adjacent regions.
-            A query matching nothing returns an empty selection and a density of
-            zero — never the largest nodes of the index.
-          content:
-            application/json:
-              schema:
-                type: object
-                required: [density, notices_indexed, nodes, adjacent]
-                properties:
-                  density:
-                    type: integer
-                    description: Distinct citable records carried by the selected nodes.
-                  notices_indexed:
-                    type: integer
-                    description: Denominator — records in the citable index.
-                  matched:
-                    type: boolean
-                    description: False when no query term appears anywhere.
-                  nodes:
-                    type: array
-                    items: { $ref: "#/components/schemas/Node" }
-                  adjacent:
-                    type: array
-                    items: { $ref: "#/components/schemas/Node" }
-                  parameters:
-                    $ref: "#/components/schemas/DensityParameters"
-        "400": { $ref: "#/components/responses/BadRequest" }
-
-  /answer:
-    post:
-      operationId: answer
-      summary: A prose answer to a research question, with its sources.
-      description: |
-        Every claim in `text` is supported by an entry in `sources`, and an answer
-        that has no sources returns an empty `text`. The endpoint states what it
-        found; it does not state what it did not find.
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required: [question]
-              properties:
-                question: { type: string, minLength: 1 }
-                lang:
-                  type: string
-                  description: Language of the answer. Default `en`.
-      responses:
-        "200":
-          description: The answer and the records it rests on.
-          content:
-            application/json:
-              schema:
-                type: object
-                required: [text, sources, density]
-                properties:
-                  text: { type: string }
-                  sources:
-                    type: array
-                    items: { $ref: "#/components/schemas/Record" }
-                  density: { type: integer }
-        "400": { $ref: "#/components/responses/BadRequest" }
-        "503": { $ref: "#/components/responses/Unavailable" }
-
-  /stats:
-    get:
-      operationId: stats
-      summary: Aggregate series of the field, by decade, language, format, theme and work.
-      parameters:
-        - name: axis
-          in: query
-          schema:
-            type: string
-            enum: [decade, language, format, theme, work]
-      responses:
-        "200":
-          description: |
-            Series computed over the counted population, with the population
-            stated alongside so that no figure is read against the wrong total.
-          content:
-            application/json:
-              schema:
-                type: object
-                required: [population, series]
-                properties:
-                  population:
-                    type: object
-                    required: [counted, mentioned, held_aside]
-                    properties:
-                      counted: { type: integer }
-                      mentioned: { type: integer }
-                      held_aside: { type: integer }
-                  harvested: { type: string, format: date }
-                  series:
-                    type: array
-                    items:
-                      type: object
-                      required: [key, label, count]
-                      properties:
-                        key: { type: string }
-                        label: { type: string }
-                        count: { type: integer }
+x-origenality-commands:
+  search:
+    invocation: "node cli/origenality.mjs search <query> --json [--limit N] [--lang CODES] [--since YEAR] [--until YEAR] [--local PATH] [--refresh]"
+    success: "#/components/schemas/SearchVerdict"
+    refusal: "#/components/schemas/QueryRefusal"
+  gap:
+    invocation: "node cli/origenality.mjs gap <query> [same options as search]"
+    success: "#/components/schemas/GapVerdict"
+    refusal: "#/components/schemas/QueryRefusal"
+  record:
+    invocation: "node cli/origenality.mjs record <id> [--local PATH] [--refresh]"
+    success: "#/components/schemas/RecordDetail"
+  vocabulary:
+    invocation: "node cli/origenality.mjs vocabulary [themes|works|approaches|domains] [--lang CODES] [--since YEAR] [--until YEAR]"
+    success: "#/components/schemas/Vocabulary"
+  density:
+    invocation: "node cli/origenality.mjs density <theme|work|approach|domain> <key> [--limit N] [--lang CODES] [--since YEAR] [--until YEAR]"
+    success: "#/components/schemas/DensityVerdict"
+    refusal: "#/components/schemas/DensityRefusal"
+  author:
+    invocation: "node cli/origenality.mjs author <id|name> [--limit N] [--local PATH] [--refresh]"
+    success: "#/components/schemas/AuthorView"
+    refusal: "#/components/schemas/AuthorRefusal"
+  coverage:
+    invocation: "node cli/origenality.mjs coverage"
+    success: "#/components/schemas/Coverage"
+  stats:
+    invocation: "node cli/origenality.mjs stats"
+    success: "#/components/schemas/Stats"
+  primary:
+    invocation: "node cli/origenality.mjs primary"
+    success: "#/components/schemas/PrimaryLayer"
+  claims:
+    invocation: "node cli/origenality.mjs claims [query] [--limit N]"
+    success: "#/components/schemas/Claims"
+  crossings:
+    invocation: "node cli/origenality.mjs crossings <theme-decade|work-domain|domain-lang> [--local PATH] [--refresh]"
+    success: "#/components/schemas/Crossings"
 
 components:
-  responses:
-    BadRequest:
-      description: The request was not understood; the message says which parameter.
-      content:
-        application/json:
-          schema: { $ref: "#/components/schemas/Error" }
-    Unavailable:
-      description: The service that composes answers is not available.
-      content:
-        application/json:
-          schema: { $ref: "#/components/schemas/Error" }
-
   schemas:
     Relevance:
       type: string
-      enum: [core, partial, marginal]
+      enum: [core, partial, marginal, none]
       description: |
-        `core` — the record is about Origen. `partial` — he holds a section of
-        the argument. `marginal` — he is mentioned. Only the first two are counted.
+        `core`: the record is about Origen. `partial`: he holds a section of the argument.
+        `marginal`: he is mentioned. `none`: the record is not about him (homonyms, thin
+        metadata). Only `core` and `partial` are counted.
+
+    SourceId:
+      type: object
+      required: [source, id]
+      properties:
+        source: { type: string, description: "Database key, as in ATTRIBUTION.md." }
+        id: { type: string, description: "The record's identifier in that database." }
+        url: { type: string, format: uri, description: "The record in that database." }
 
     Record:
       type: object
-      required: [id, title, relevance]
+      description: One work cluster, as listed in `results`, `shelf_only` and density `results`.
+      required: [id, source_ids, title, year, lang, type, authors, themes, works, counts_in_density, terms_matched]
       properties:
-        id:
-          type: string
-          description: Stable cluster identifier.
+        id: { type: string, description: "Stable Origenality cluster identifier." }
+        source_ids:
+          type: array
+          items: { $ref: "#/components/schemas/SourceId" }
         title: { type: string }
+        year: { type: ["integer", "null"] }
+        lang:
+          type: string
+          description: |
+            The language code stored in data/graph.json: the ISO 639-1 code where the build maps
+            one, otherwise a three-letter ISO 639-2/3 code (for example grc, syr, und, zxx, mul);
+            an empty string when the record has none.
+        type: { type: string, description: "Document type as harvested (article, book, chapter, review, other)." }
         authors:
           type: array
           items: { type: string }
-        year: { type: integer, nullable: true }
-        lang: { type: string, description: "ISO 639-2/B code" }
-        type:
-          type: string
-          description: article, book, chapter, review, dissertation, other.
-        container: { type: string, description: Journal, series or collective volume. }
-        publisher: { type: string }
-        doi: { type: string }
-        isbn: { type: string }
-        url: { type: string, format: uri }
-        relevance: { $ref: "#/components/schemas/Relevance" }
+        container: { type: string, description: "Journal, series or collective volume; absent when none." }
         themes:
           type: array
-          items: { type: string }
+          items: { type: string, description: "Theme key from `vocabulary themes`." }
         works:
           type: array
-          items: { type: string, description: Work of Origen, by vocabulary key. }
-        approaches:
+          items: { type: string, description: "Work key from `vocabulary works`; the tagging sentinel 'unspecified' is never listed." }
+        counts_in_density: { type: boolean, description: "True for records classed core or partial." }
+        url: { type: string, format: uri, description: "Link to the catalogue record; absent when none." }
+        doi: { type: string, description: "Absent when none." }
+        abstract: { type: string, maxLength: 600, description: "The first 600 characters of the abstract; absent when none." }
+        abstract_source: { type: string, description: "Key of the database that wrote the abstract." }
+        terms_matched:
+          type: integer
+          description: Number of query terms the record carries; 1 for a field-only query, 0 for a record reached only through a heading.
+
+    RecordDetail:
+      description: Printed by `record <id>`. The abstract is complete.
+      allOf:
+        - $ref: "#/components/schemas/Record"
+        - type: object
+          required: [subjects, domains, approaches, relevance]
+          properties:
+            abstract: { type: string, description: "The full abstract; absent when none." }
+            subjects:
+              type: array
+              items: { type: string }
+            domains:
+              type: array
+              items: { type: string }
+            approaches:
+              type: array
+              items: { type: string }
+            relevance: { $ref: "#/components/schemas/Relevance" }
+
+    Restriction:
+      type: object
+      description: The options that restricted the population read, echoed back. Absent when none was given.
+      properties:
+        lang:
           type: array
           items: { type: string }
-        cited_by_count: { type: integer, nullable: true }
-        cohort_rank:
-          type: number
-          nullable: true
-          description: |
-            Percentile inside a cohort of the same decade, type and language.
-            Null when no count was measured — which penalises nothing.
-        sources:
+          description: The languages given with --lang, resolved to their codes.
+        since: { type: integer }
+        until: { type: integer }
+
+    SearchVerdict:
+      type: object
+      description: |
+        Printed by `search <query> --json`. The query grammar (author:, year:, lang:, type:,
+        work:, theme:, domain:, approach:, in:, "phrase", -term) is described by the CLI's
+        `--help`. Free text is matched at word starts against title, authors, every subject
+        heading of the record, its journal or volume, year, language label, theme labels and
+        abstract (`searched_fields`); vocabulary headings and their aliases form a separate
+        channel (`filed_under_heading`). graph.json keeps a subject heading only when three
+        records share it and a container only when five do, so the CLI reads every heading
+        and container of a record from data/cite.json, as the Explorer does once that file
+        has loaded.
+      required: [query_terms, dropped_terms, terms_absent_from_corpus, terms_absent_under_filters,
+                 searched_fields, per_term, per_term_counted, carrying_all_terms, carrying_all_terms_counted, widened,
+                 listed, counted_in_density, corpus_density_total, reliability, results, shelf_only]
+      properties:
+        query_terms:
           type: array
-          description: The databases this cluster was built from.
+          items: { type: string }
+          description: The searchable terms, normalised (lower case, accents removed, ß to ss, apostrophes as word breaks).
+        dropped_terms:
+          type: array
+          items: { type: string }
+          description: Words left out as shorter than three letters or as stopwords.
+        terms_absent_from_corpus:
+          type: array
+          items: { type: string }
+          description: Terms found in none of the fields `searched_fields` names, in any record of the whole corpus, whatever the filters. Empty when data/cite.json could not be read (see terms_not_found_partial_index).
+        terms_absent_under_filters:
+          type: array
+          items: { type: string }
+          description: Terms present in the corpus but in none of the records the field filters and options leave.
+        terms_not_found_partial_index:
+          type: array
+          items: { type: string }
+          description: Present only when data/cite.json could not be read (or is of version 1), so the index holds the subject headings and containers graph.json keeps and no others. The terms it did not find; none of them is reported as absent.
+        searched_fields:
+          type: array
+          items: { type: string }
+          description: The fields a free-text term was looked for in, in words ("title", "authors", "subject headings", "journal or volume", "year", "language", "theme labels", "abstract"); on a partial index the headings and containers are named with the graph thresholds.
+        per_term:
+          type: object
+          additionalProperties: { type: integer }
+          description: For each term, the number of records in scope that carry it.
+        per_term_counted:
+          type: object
+          additionalProperties: { type: integer }
+          description: For each term, the records in scope that carry it and count in the density figures.
+        carrying_all_terms:
+          type: integer
+          description: Records carrying every term. This is the answer to the question asked.
+        carrying_all_terms_counted:
+          type: integer
+          description: The records carrying every term that count in the density figures.
+        widened:
+          type: boolean
+          description: True when fewer than ten records carry every term and the list was relaxed to fewer terms, adding at least one record.
+        widened_to_terms:
+          type: integer
+          description: Present when widened; the number of terms a listed record carries at least.
+        listed: { type: integer, description: "Records listed in `results`, before --limit." }
+        counted_in_density: { type: integer, description: "Listed records that count in the density figures." }
+        corpus_density_total: { type: integer, description: "Records that count in the density figures, in the population the options leave." }
+        filed_under_heading:
+          type: integer
+          description: Present when the query names a vocabulary heading; records in scope filed under it.
+        filed_under_heading_counted:
+          type: integer
+          description: Present with filed_under_heading; the records filed under the heading that count in the density figures.
+        heading: { type: string, description: "The heading as typed, outer punctuation removed." }
+        reliability:
+          $ref: "#/components/schemas/Reliability"
+          description: What the headline figure rests on, computed on the counted records carrying every term (all counted matches for a one-term or field-only query).
+        filters:
+          type: array
           items:
             type: object
-            required: [source, source_id]
+            required: [field, value, negated]
             properties:
-              source: { type: string }
-              source_id: { type: string }
-        abstract: { $ref: "#/components/schemas/Abstract" }
+              field: { type: string, enum: [authors, year, lang, type, works, themes, domains, approaches, container] }
+              value: { type: string }
+              negated: { type: boolean }
+        phrases:
+          type: array
+          items: { type: string }
+        excluded:
+          type: array
+          items: { type: string }
+        restricted_to: { $ref: "#/components/schemas/Restriction" }
+        results:
+          type: array
+          description: Listed records in reading order (terms carried, then year descending with undated records last, then title), cut to --limit.
+          items: { $ref: "#/components/schemas/Record" }
+        shelf_only:
+          type: array
+          description: Records reached only through the heading, never counted as textual matches, cut to --limit.
+          items: { $ref: "#/components/schemas/Record" }
 
-    Abstract:
-      type: object
-      description: |
-        Returned only when both the database and the link to its record are
-        known. A summary with one and not the other is withheld.
-      required: [text, source, source_label, url]
-      properties:
-        text: { type: string }
-        source: { type: string, description: Database key, as in ATTRIBUTION.md. }
-        source_label: { type: string, description: The name to print. }
-        url: { type: string, format: uri, description: The donor record. }
-        generated:
-          type: boolean
-          description: True when the summary was written by the project itself.
+    GapVerdict:
+      description: Printed by `gap <query>`.
+      allOf:
+        - type: object
+          required: [question, answer]
+          properties:
+            question: { type: string }
+            answer: { type: string, description: "The verdict as one English sentence." }
+        - $ref: "#/components/schemas/SearchVerdict"
 
-    Node:
-      type: object
-      required: [id, label, kind, notices]
+    TopSource:
+      type: [object, "null"]
+      description: The source label holding the most counted records, ties broken by label; null when nothing is counted.
+      required: [source, records, share_pct]
       properties:
-        id: { type: string }
-        label: { type: string }
+        source: { type: string, description: "Source label, as in `src` of graph.json." }
+        records: { type: integer }
+        share_pct: { type: integer, description: "Its share of the counted records, rounded to a whole percentage." }
+
+    Reliability:
+      type: object
+      description: The tally the Explorer prints under a headline figure (Method, section 4).
+      required: [counted, review_flagged, with_abstract, no_year, top_source]
+      properties:
+        counted: { type: integer }
+        review_flagged: { type: integer }
+        with_abstract: { type: integer }
+        no_year: { type: integer }
+        top_source: { $ref: "#/components/schemas/TopSource" }
+
+    QueryError:
+      type: object
+      required: [kind, token, field, value, message]
+      properties:
         kind:
           type: string
-          enum: [domain, theme, work, approach]
-        notices: { type: integer, description: Citable records carried by this node. }
-        path:
+          enum: [unknown_field, empty_value, unclosed_quote, invalid_year, reversed_year_range,
+                 unknown_language, unknown_type, unknown_key]
+        token: { type: string, description: "The part of the query at fault, as typed." }
+        field: { type: ["string", "null"] }
+        value: { type: ["string", "null"] }
+        message: { type: string }
+
+    QueryRefusal:
+      type: object
+      description: Printed with exit status 2 by `search --json` and `gap` when the query was not evaluated.
+      required: [error, message]
+      properties:
+        query: { type: string, description: "Present for search." }
+        question: { type: string, description: "Present for gap." }
+        error:
+          type: string
+          enum: [query_not_understood, no_searchable_term]
+        message: { type: string }
+        query_errors:
+          type: array
+          items: { $ref: "#/components/schemas/QueryError" }
+          description: Present for query_not_understood.
+        dropped_terms:
+          type: array
+          items: { type: string }
+          description: Present for no_searchable_term.
+
+    DensityVerdict:
+      type: object
+      description: Printed by `density <kind> <key>`. The heading is the query `<kind>:<key>`, so a key prefix covers every key it begins.
+      required: [kind, key, matched_keys, listed, counted_in_density, corpus_density_total, by_decade, counted_undated,
+                 review_flagged, with_abstract, no_year, top_source, results]
+      properties:
+        kind: { type: string, enum: [theme, work, approach, domain] }
+        key: { type: string }
+        label: { type: string, description: "Present when the key is a full key." }
+        matched_keys:
+          type: array
+          items: { type: string }
+        restricted_to: { $ref: "#/components/schemas/Restriction" }
+        listed: { type: integer }
+        counted_in_density: { type: integer }
+        corpus_density_total: { type: integer }
+        by_decade:
+          type: object
+          additionalProperties: { type: integer }
+          description: Counted records by decade of publication.
+        counted_undated: { type: integer, description: "Counted records without a year, outside by_decade." }
+        review_flagged: { type: integer, description: "Counted records whose classification is flagged for review." }
+        with_abstract: { type: integer, description: "Counted records that carry an abstract." }
+        no_year: { type: integer, description: "Counted records without a year." }
+        top_source: { $ref: "#/components/schemas/TopSource" }
+        results:
+          type: array
+          items: { $ref: "#/components/schemas/Record" }
+
+    DensityRefusal:
+      type: object
+      description: Printed with exit status 2 when no key of that kind begins with the key given.
+      required: [error, kind, key, message, did_you_mean]
+      properties:
+        error: { type: string, const: unknown_key }
+        kind: { type: string, enum: [theme, work, approach, domain] }
+        key: { type: string }
+        message: { type: string }
+        did_you_mean:
           type: array
           items: { type: string }
 
-    DensityParameters:
+    AuthorView:
+      type: object
+      description: >-
+        Printed by `author <id|name>`: one author entry of the graph, the name as the catalogue writes it,
+        and the records its author edges reach. The Explorer's author view prints the same figures. Other
+        spellings of the same scholar are other entries and are not merged. Figures count the counted
+        records; `co_authors` carries names only, in alphabetical order.
+      required: [id, label, note, listed, counted_in_density, mentioned_only, held_aside, corpus_density_total,
+        by_decade, counted_undated, themes, works, approaches, languages, containers, co_authors, results]
+      properties:
+        id: { type: string, description: "Author entry id in graph.json, such as a:crouzel-henri." }
+        label: { type: string, description: "The name as the catalogue writes it." }
+        note: { type: string }
+        listed: { type: integer, description: "Records under this entry, counted or not." }
+        counted_in_density: { type: integer }
+        mentioned_only: { type: integer }
+        held_aside: { type: integer }
+        corpus_density_total: { type: integer }
+        by_decade:
+          type: object
+          additionalProperties: { type: integer }
+          description: Counted records by decade of publication.
+        counted_undated: { type: integer }
+        review_flagged: { type: integer }
+        with_abstract: { type: integer }
+        no_year: { type: integer }
+        top_source: { $ref: "#/components/schemas/TopSource" }
+        themes: { type: array, items: { $ref: "#/components/schemas/AuthorHeading" } }
+        works: { type: array, items: { $ref: "#/components/schemas/AuthorHeading" } }
+        approaches: { type: array, items: { $ref: "#/components/schemas/AuthorHeading" } }
+        languages:
+          type: object
+          additionalProperties: { type: integer }
+          description: Counted records by language code as the catalogue stores it; the empty key is no code.
+        containers:
+          type: array
+          items:
+            type: object
+            required: [title, counted]
+            properties:
+              title: { type: string }
+              counted: { type: integer }
+          description: Journals and volumes as graph.json holds them, which is only those five records share.
+        co_authors:
+          type: array
+          items:
+            type: object
+            required: [id, label]
+            properties:
+              id: { type: string }
+              label: { type: string }
+        results:
+          type: array
+          items: { $ref: "#/components/schemas/Record" }
+          description: The records in order of publication, the undated last, up to --limit.
+
+    AuthorHeading:
+      type: object
+      required: [key, label, counted]
+      properties:
+        key: { type: string }
+        label: { type: string }
+        counted: { type: integer }
+
+    AuthorRefusal:
+      type: object
+      description: Printed with exit status 1 when no entry, or more than one, is written as the name given.
+      required: [error, author, did_you_mean]
+      properties:
+        error: { type: string, enum: [unknown_author, ambiguous_author] }
+        author: { type: string }
+        did_you_mean:
+          type: array
+          items:
+            type: object
+            properties:
+              id: { type: string }
+              label: { type: string }
+
+    VocabularyEntry:
+      type: object
+      required: [key, label, labels, aliases, records, counted_in_density]
+      properties:
+        key: { type: string }
+        label: { type: string }
+        labels:
+          type: object
+          additionalProperties: { type: string }
+          description: Labels by language code (de, fr, it).
+        aliases:
+          type: array
+          items: { type: string }
+        records: { type: integer, description: "Records filed under the key, in the population the options leave." }
+        counted_in_density: { type: integer }
+
+    Vocabulary:
+      type: object
+      description: Printed by `vocabulary [kind]`; one array per kind asked, entries by number of records.
+      properties:
+        domains: { type: array, items: { $ref: "#/components/schemas/VocabularyEntry" } }
+        themes: { type: array, items: { $ref: "#/components/schemas/VocabularyEntry" } }
+        works: { type: array, items: { $ref: "#/components/schemas/VocabularyEntry" } }
+        approaches: { type: array, items: { $ref: "#/components/schemas/VocabularyEntry" } }
+        restricted_to: { $ref: "#/components/schemas/Restriction" }
+
+    Coverage:
+      type: object
+      description: Printed by `coverage`, over every record of the index.
+      required: [records, counted_in_density, with_abstract, with_abstract_pct, with_subjects,
+                 with_theme_tag, naming_a_work_of_origen, with_doi, by_language, searched_fields, caveat]
+      properties:
+        records: { type: integer }
+        counted_in_density: { type: integer }
+        with_abstract: { type: integer }
+        with_abstract_pct: { type: number }
+        with_subjects: { type: integer, description: "Records carrying at least one subject heading, every heading counted (data/cite.json), not only those graph.json keeps." }
+        with_theme_tag: { type: integer }
+        naming_a_work_of_origen: { type: integer }
+        with_doi: { type: integer }
+        by_language:
+          type: object
+          additionalProperties: { type: integer }
+          description: Records by stored language code; "?" for records without one.
+        searched_fields:
+          type: array
+          items: { type: string }
+          description: The fields a free-text search reads, as in SearchVerdict.
+        caveat: { type: string }
+
+    Stats:
       type: object
       description: |
-        The five inputs a density depends on. A density is comparable only with
-        one computed under the same five, which is why they travel with it.
+        Printed by `stats`; data/stats.json as published, unchanged. The top-level series
+        count the records kept (every work cluster on the map); `counted` holds the same series
+        on the counted records (relevance core or partial), the population every published
+        figure counts; `population` says which is which.
       properties:
-        vocabulary_version: { type: string }
-        prompt_version: { type: string }
-        min_relevance: { $ref: "#/components/schemas/Relevance" }
-        max_nodes: { type: integer }
-        engine:
-          type: string
-          enum: [deterministic, assisted]
-          description: A density meant to be cited is produced by the deterministic engine.
+        generated: { type: string }
+        population:
+          type: object
+          description: What the top-level series and the `counted` series each count, in words.
+        counted:
+          type: object
+          description: totals, by_year, by_decade, by_format, by_language, top_subjects and top_containers, on the counted records.
+        totals: { type: object }
+        by_year: { type: object }
+        by_decade: { type: object }
+        by_format: { type: object }
+        by_language: { type: object }
+        top_subjects: {}
+        top_containers: {}
+        graph_thresholds: { type: object }
 
-    Error:
+    PrimaryLayer:
       type: object
-      required: [error]
+      description: Printed by `primary`; data/primary-layer-summary.json as published, unchanged. These records are editions, translations and manuscript witnesses of Origen's works, and they are never counted in a density.
       properties:
-        error: { type: string }
-        parameter: { type: string }
+        generated: { type: string }
+        what: { type: string }
+        records: { type: integer }
+        with_year: { type: integer }
+        year_min: { type: integer }
+        year_max: { type: integer }
+        before_1600: { type: integer }
+        before_1450_manuscripts: { type: integer }
+        by_source: { type: object, additionalProperties: { type: integer } }
+        by_language: { type: object, additionalProperties: { type: integer } }
+        by_century: { type: object, additionalProperties: { type: integer } }
+        caveat: { type: string }
+
+    Claims:
+      type: object
+      description: Printed by `claims [query]`. The query is matched, case-insensitively and as a substring, against statement, scholar name, author vocabulary and the identifiers of what the claim is about.
+      required: [schema_version, claims, matched]
+      properties:
+        schema_version: { type: string }
+        query: { type: string }
+        claims:
+          type: array
+          items: { $ref: "#/components/schemas/ScholarPosition" }
+        matched: { type: integer, description: "Claims matching, before --limit." }
+        note: { type: string, description: "The release policy of the evidence projection." }
+
+    ScholarPosition:
+      type: object
+      required: [id, scholar, statement, statement_language, claim_kind, scope, evidence]
+      properties:
+        id: { type: string }
+        type: { type: string }
+        document_id: { type: string }
+        scholar:
+          type: object
+          required: [name]
+          properties:
+            name: { type: string }
+            orcid: { type: ["string", "null"], format: uri }
+        statement: { type: string }
+        statement_language: { type: string, pattern: "^[a-z]{2,3}$" }
+        claim_kind: { type: string }
+        belief_status: { type: string }
+        scope: { type: string }
+        about:
+          type: array
+          items:
+            type: object
+            required: [id, kind]
+            properties:
+              id: { type: string }
+              kind: { type: string }
+        author_vocabulary:
+          type: array
+          items: { type: string }
+        bibliographic_record_ids:
+          type: array
+          items: { type: string }
+        relations:
+          type: array
+        human_reviewed: { type: boolean }
+        needs_review: { type: boolean }
+        evidence:
+          type: array
+          minItems: 1
+          items: { $ref: "#/components/schemas/Evidence" }
+
+    Evidence:
+      type: object
+      required: [id, quote, quote_release, language, selectors]
+      properties:
+        id: { type: string }
+        quote:
+          type: ["string", "null"]
+          description: Null when the source has no reviewed public-quotation clearance.
+        quote_release: { type: string }
+        language: { type: string }
+        selectors:
+          type: array
+          minItems: 1
+          items:
+            type: object
+            required: [pdf_page, printed_page, page_text_sha256, text_position_selector]
+            properties:
+              pdf_page: { type: integer, minimum: 1 }
+              printed_page: { type: string }
+              printed_page_confidence: { type: number, minimum: 0, maximum: 1 }
+              page_text_sha256: { type: string, pattern: "^[0-9a-f]{64}$" }
+              text_position_selector: { type: object }
+              text_quote_selector:
+                type: object
+                description: Present only when verbatim text is cleared for release.
+
+    Crossings:
+      description: >-
+        Printed by `crossings <view>`: one of the three tables of the Observatory, computed by
+        `site/assets/observatory-core.js`, the file the Observatory page runs. Every count is a count of
+        the records classed core or partial. A record filed under several headings is counted once in
+        each of their cells, so the cells of a row can add up to more than its total. A count is a
+        count: an empty cell says that no counted record sits there, and nothing more.
+      oneOf:
+        - $ref: "#/components/schemas/CrossingThemeDecade"
+        - $ref: "#/components/schemas/CrossingWorkDomain"
+        - $ref: "#/components/schemas/CrossingDomainLanguage"
+      discriminator:
+        propertyName: view
+
+    CrossingDrift:
+      type: [object, "null"]
+      description: >-
+        Counted records of the row in each of the two periods, and their share of all the counted records
+        dated in that period. Null when both counts are under `drift_floor`.
+      required: [from, to, from_share, to_share]
+      properties:
+        from: { type: integer, description: "Records of the row in the first period." }
+        to: { type: integer, description: "Records of the row in the second period." }
+        from_share: { type: number, description: "Percentage of the first period, one decimal." }
+        to_share: { type: number, description: "Percentage of the second period, one decimal." }
+
+    CrossingThemeDecade:
+      type: object
+      description: Printed by `crossings theme-decade`. Domains and their themes against decades of publication.
+      required: [view, counted, columns, latest_year, periods, drift_floor, rows, column_totals, envelope, themes_per_record]
+      properties:
+        view: { type: string, const: theme-decade }
+        counted: { type: integer, description: "Counted records read." }
+        columns:
+          type: array
+          items: { type: string }
+          description: Column keys, in order. `before-1950` for earlier years, one key per decade from 1950 (such as `1970`), `undated` last.
+        latest_year: { type: ["integer", "null"], description: "The latest year of a counted record." }
+        periods:
+          type: array
+          description: The two periods compared by `drift`, 1980 to 1999 and 2010 to `latest_year`.
+          items:
+            type: object
+            required: [from, to, records]
+            properties:
+              from: { type: integer }
+              to: { type: ["integer", "null"] }
+              records: { type: integer, description: "Counted records dated in the period." }
+        drift_floor: { type: integer }
+        rows:
+          type: array
+          description: One row per domain, in vocabulary order, each with its themes.
+          items:
+            type: object
+            required: [key, label, total, cells, drift, leaves]
+            properties:
+              key: { type: string, description: "Domain key from `vocabulary domains`." }
+              label: { type: string }
+              total: { type: integer, description: "Counted records filed under the domain." }
+              cells:
+                type: array
+                items: { type: integer }
+                description: One count per entry of `columns`.
+              drift: { $ref: "#/components/schemas/CrossingDrift" }
+              leaves:
+                type: array
+                items:
+                  type: object
+                  required: [key, label, total, cells, drift]
+                  properties:
+                    key: { type: string, description: "Theme key from `vocabulary themes`." }
+                    label: { type: string }
+                    total: { type: integer }
+                    cells:
+                      type: array
+                      items: { type: integer }
+                    drift: { $ref: "#/components/schemas/CrossingDrift" }
+        column_totals:
+          type: array
+          items: { type: integer }
+          description: Counted records per column, each record once.
+        envelope:
+          type: array
+          description: The same columns for each source label, by number of records. A record held by several sources is counted under each.
+          items:
+            type: object
+            required: [source, total, cells]
+            properties:
+              source: { type: string, description: "Source label, as in `src` of graph.json." }
+              total: { type: integer }
+              cells:
+                type: array
+                items: { type: integer }
+        themes_per_record:
+          type: object
+          additionalProperties: { type: integer }
+          description: Counted records by number of themes they carry; the key is that number.
+
+    CrossingWorkDomain:
+      type: object
+      description: Printed by `crossings work-domain`. Works of Origen against domains.
+      required: [view, counted, without_work, work_floor, thick_floor, columns, rows, cells, empty_cells, thin]
+      properties:
+        view: { type: string, const: work-domain }
+        counted: { type: integer }
+        without_work: { type: integer, description: "Counted records that name no work." }
+        work_floor: { type: integer, description: "A work is a row when at least this many counted records name it." }
+        thick_floor: { type: integer, description: "A work named by more records than this has its empty cells listed in `thin`." }
+        columns:
+          type: array
+          items:
+            type: object
+            required: [key, label]
+            properties:
+              key: { type: string, description: "Domain key." }
+              label: { type: string }
+        rows:
+          type: array
+          description: Works by number of counted records, then by key.
+          items:
+            type: object
+            required: [key, label, total, cells]
+            properties:
+              key: { type: string, description: "Work key from `vocabulary works`." }
+              label: { type: string }
+              total: { type: integer }
+              cells:
+                type: array
+                items: { type: integer }
+                description: One count per entry of `columns`.
+        cells: { type: integer, description: "Rows times columns." }
+        empty_cells: { type: integer, description: "Cells that hold no counted record." }
+        thin:
+          type: array
+          items:
+            type: object
+            required: [key, label, total, empty]
+            properties:
+              key: { type: string }
+              label: { type: string }
+              total: { type: integer }
+              empty:
+                type: array
+                items: { type: string }
+                description: Domain keys of the empty cells.
+
+    CrossingLanguageRow:
+      type: object
+      required: [key, label, total, cells, shares]
+      properties:
+        key: { type: string }
+        label: { type: string }
+        total: { type: integer }
+        cells:
+          type: array
+          items: { type: integer }
+          description: One count per entry of `columns`.
+        shares:
+          type: array
+          items: { type: number }
+          description: Each cell as a percentage of the row total, one decimal.
+
+    CrossingDomainLanguage:
+      type: object
+      description: Printed by `crossings domain-lang`. Domains and their themes against the language of the record.
+      required: [view, counted, columns, baseline, baseline_shares, rows, leaf_floor, zero_languages, zero]
+      properties:
+        view: { type: string, const: domain-lang }
+        counted: { type: integer }
+        columns:
+          type: array
+          items: { type: string }
+          description: The languages the Observatory names (en, de, it, fr, es), then `oth` for any other code or none.
+        baseline:
+          type: array
+          items: { type: integer }
+          description: Counted records per language.
+        baseline_shares:
+          type: array
+          items: { type: number }
+        rows:
+          type: array
+          description: One row per domain, in vocabulary order, each with its themes in `leaves`.
+          items:
+            allOf:
+              - $ref: "#/components/schemas/CrossingLanguageRow"
+              - type: object
+                required: [leaves]
+                properties:
+                  leaves:
+                    type: array
+                    items: { $ref: "#/components/schemas/CrossingLanguageRow" }
+        leaf_floor: { type: integer, description: "A theme of at least this many counted records has its empty language cells listed in `zero`." }
+        zero_languages:
+          type: array
+          items: { type: string }
+          description: The languages whose empty cells are listed.
+        zero:
+          type: array
+          items:
+            type: object
+            required: [key, label, total, languages]
+            properties:
+              key: { type: string, description: "Theme key." }
+              label: { type: string }
+              total: { type: integer }
+              languages:
+                type: array
+                items: { type: string }
+                description: Codes from `zero_languages` with no counted record under the theme.

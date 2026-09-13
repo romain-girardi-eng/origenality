@@ -7,8 +7,8 @@ third-party script anywhere, and the security policy served with every page says
 so in a form a browser enforces.
 
 Two audiences read a site before a human does: the search crawlers, and the
-crawlers that feed answers in ChatGPT, Perplexity, Claude and Google's AI
-overviews. The second kind quotes passages rather than ranking pages, so the
+crawlers that feed the generated answers of search and assistant products. The
+second kind quotes passages rather than ranking pages, so the
 files below are written to be quotable: figures with their perimeter, answers
 that stand on their own, and a machine-readable summary at `/llms.txt`.
 
@@ -17,9 +17,11 @@ that stand on their own, and a machine-readable summary at `/llms.txt`.
 | File | What it does |
 |---|---|
 | `_headers` | security policy and cache, applied by Cloudflare Pages |
-| `_redirects` | the short addresses, `/` first of all |
+| `_redirects` | the short addresses, `/` first of all, all permanent (`301`) |
+| `404.html` | the answer, with status `404`, to any address that matches no file |
 | `robots.txt` | opens the site to search and to the AI crawlers, points at the sitemap |
-| `sitemap.xml` | the five pages and the documentation, dated from git |
+| `sitemap.xml` | the five pages and the documentation, each dated by its content |
+| `data/sitemap-dates.json` | the SHA-256 of each document in the sitemap and the date it last changed |
 | `llms.txt` | the short guide for an agent: pages, data files, key facts, contact |
 | `llms-full.txt` | the read me and the methodology in one file |
 | `scripts/build_seo_assets.py` | writes the three files above, `--check` says if they are stale |
@@ -35,16 +37,29 @@ loaded from elsewhere.
 address their assets relatively, so a `200` rewrite of `/` onto
 `/site/index.html` would leave the browser at `/` and resolve `assets/base.css`
 to `/assets/base.css`: a 404 on the stylesheet, the fonts and the script. `/`
-therefore answers `302` to `/site/welcome`. A rewrite becomes possible the day the
-pages carry absolute paths, and not before.
+therefore answers `301` to `/site/welcome`. The redirect is permanent because the
+`/site/` layout is settled: the canonical tags and the sitemap give it, and the
+JSON-LD `WebSite` keeps `https://origenality.com/` as the address of the site.
+Browsers cache a `301`. If the pages ever move to the root, these addresses have
+to keep answering (a `200` rewrite to the new page), never go back to `302`.
 
 **Cloudflare Pages drops the `.html`.** A request for `/site/methode.html`
 answers `308` to `/site/methode`, and that extensionless form is what the site
 serves with a `200`. The canonical tags and the sitemap therefore give
-`https://origenality.com/site/methode`, never the file name. The four vanity
-paths in `_redirects` point at the `.html` file, which costs one further hop
-(`302` then `308`); pointing them at `/site/methode` would spend one redirect
-instead of two.
+`https://origenality.com/site/methode`, never the file name. The four short
+addresses in `_redirects` (`/explorer`, `/observatory`, `/method`, `/credits`)
+point at that extensionless form, so each costs a single `301`. Two more send
+`/site/llms.txt` and `/site/robots.txt` to the files at the root, where agents
+look for them first. The links between pages keep the `.html` name, so following
+one costs a `308`.
+
+**An unknown address answers 404.** Without a `404.html` at the root of the
+deployment, Pages answered any unknown path with `index.html` and a `200`,
+`/data/*.json` included. The page it serves now carries `noindex`, no canonical
+tag and no script, and it addresses its stylesheets and links from the root
+(`/site/assets/base.css`), since it is served at every depth.
+`python3 scripts/qa_checks.py served-pages` fails if the file is missing,
+indexable, canonised, or uses a relative path.
 
 **The policy allows inline style attributes, and nothing else.** The charts and
 the legend are drawn by writing `style="width: 42%"` into the markup from
@@ -68,13 +83,24 @@ code and raise no violation under `script-src 'self'`; that too was checked in a
 browser, on all five pages, with a listener on `securitypolicyviolation` and
 zero events recorded.
 
-**Cache is short where the name is stable.** No asset carries a hash in its
-name, so `explorer.js` stays `explorer.js` across builds and a year of
-`immutable` would pin an old version in a reader's browser. The fonts, whose
-content only changes with their name, keep the year. Everything else takes ten
-minutes of cache with `stale-while-revalidate`, which serves the copy at hand
-while the browser fetches the new one. Hash the file names in the build and the
-whole of `/site/assets/` can move to `immutable`.
+**Cache follows the fingerprint.** File names stay stable (`explorer.js` is
+`explorer.js` from one build to the next), but every reference to a stylesheet
+or a script carries `?v=` and the first eight hex digits of the SHA-256 of the
+file as served, in the pages and in the ES-module imports alike
+(`scripts/stamp_assets.py`, verified by `--check`). The address changes when the
+bytes change, so `/site/assets/*.js` and `*.css` take a year of `immutable`, and
+so do the fonts. The HTML pages and `404.html` take `max-age=0,
+must-revalidate`, because they hold the fingerprints. What changes without a
+fingerprint takes a short cache with `stale-while-revalidate`: ten minutes for
+`/data/*` and the JSON under `/site/assets/`, a week for the marks and the share
+image. `/data/*` also sends `Access-Control-Allow-Origin: *`, since those files
+are meant to be reused. The patterns in `_headers` do not overlap: when two rules
+set the same header, Pages joins their values with a comma.
+
+The zone can override all of this. A zone-level Browser Cache TTL (four hours by
+default) replaces any shorter `max-age`, so until the zone is set to respect
+existing headers, the `600` and the `max-age=0` above arrive as `14400`. Only a
+`curl -sI` on the deployed site shows which one a reader receives.
 
 **The share image is drawn, not typed.** `build_og_image.py` renders a 1200×630
 PNG from the site's own fonts and colours, and takes its figure from the same
@@ -94,23 +120,50 @@ python3 scripts/build_seo_assets.py --check    # exits 1 if one of them is stale
 python3 site/tools/build_og_image.py           # site/assets/marks/og.png
 ```
 
-The first needs nothing but the standard library and git. The second needs
+The first needs nothing but the standard library. The second needs
 Pillow and fontTools with brotli, which is why it sits with the build tools
 rather than with the commands a fresh clone runs; its output is committed, so
 nobody has to run it to serve the site.
 
-Run `build_seo_assets.py --check` after any commit that touches a page or a
-document: the dates in the sitemap come from the last commit of each file.
+Run `build_seo_assets.py --check` after any change to a page or a document. A
+document's `lastmod` is the date its SHA-256 last changed, kept in
+`data/sitemap-dates.json`; the check fails when a document has changed and its
+date has not. No git history enters the calculation, since the working tree and
+the public tree do not share one. Run `stamp_assets.py` before it, because stamping
+changes the pages.
 
 ## Checking a deployment
 
 ```bash
-curl -sI https://origenality.com/                     # 302 to /site/welcome
-curl -sI https://origenality.com/site/methode.html    # 308 to /site/methode
-curl -s  https://origenality.com/robots.txt | head -5 # ours, not Cloudflare's default
-curl -s  https://origenality.com/llms.txt  | head -5
-curl -sI https://origenality.com/site/assets/fonts/literata-var.woff2 | grep -i cache
-curl -sI https://origenality.com/site/methode | grep -i 'content-security\|permissions\|referrer'
+SITE=https://origenality.com
+
+# redirects: 301 with the right Location, 308 for a file name
+curl -sI $SITE/                          | grep -i '^HTTP\|^location'   # 301, /site/welcome
+curl -sI $SITE/explorer                  | grep -i '^HTTP\|^location'   # 301, /site/
+curl -sI $SITE/method                    | grep -i '^HTTP\|^location'   # 301, /site/methode
+curl -sI $SITE/site/llms.txt             | grep -i '^HTTP\|^location'   # 301, /llms.txt
+curl -sI $SITE/site/methode.html         | grep -i '^HTTP\|^location'   # 308, /site/methode
+
+# a real 404, at any depth and under /data/
+curl -s -o /dev/null -w '%{http_code}\n' $SITE/no-such-page            # 404
+curl -s -o /dev/null -w '%{http_code}\n' $SITE/site/a/b/c              # 404
+curl -s -o /dev/null -w '%{http_code}\n' $SITE/data/no-such-file.json  # 404
+curl -s $SITE/no-such-page | grep -c 'noindex'                          # 1
+
+# the policy on a page
+curl -sI $SITE/site/methode | grep -i 'content-security\|permissions\|referrer\|strict-transport'
+
+# cache: pages revalidate, stamped assets and fonts are immutable, data is short
+curl -sI $SITE/site/methode | grep -i '^cache-control'                  # max-age=0, must-revalidate
+curl -sI "$SITE/site/$(curl -s $SITE/site/methode | grep -o 'assets/base.css?v=[0-9a-f]*' | head -1)" \
+  | grep -i '^cache-control'                                            # max-age=31536000, immutable
+curl -sI $SITE/site/assets/fonts/literata-var.woff2 | grep -i '^cache-control'   # immutable
+curl -sI $SITE/data/graph.json | grep -i '^cache-control\|^access-control'      # max-age=600, *
+# a max-age of 14400 on any of these means the zone's Browser Cache TTL overrides _headers
+
+# the files agents read: ours, not the host's defaults
+curl -s  $SITE/robots.txt | head -5
+curl -s  $SITE/llms.txt   | head -5
 ```
 
 Cloudflare serves a managed `robots.txt` when a site has none, which is what
@@ -147,8 +200,7 @@ property covers `www`, the apex and every path in one go. Once verified, submit
 `https://origenality.com/sitemap.xml`.
 
 **Bing Webmaster Tools.** Import the Search Console property rather than
-verifying again. Bing feeds Copilot, and its index is the one several AI
-products read.
+verifying again. Several assistant products read the Bing index.
 
 **IndexNow.** Cloudflare can do it without a line of code: in the zone, under
 Caching, Configuration, turn on Crawler Hints. Cloudflare then notifies IndexNow

@@ -10,10 +10,16 @@ bibliothèque standard seule.
     python3 scripts/qa_checks.py isbn --corpus <autre corpus.jsonl>
     python3 scripts/qa_checks.py abstract-rights
     python3 scripts/qa_checks.py projections
+    python3 scripts/qa_checks.py vocabulary
+    python3 scripts/qa_checks.py site-codes [--root DIR]
+    python3 scripts/qa_checks.py served-pages [--root DIR]
     python3 scripts/qa_checks.py all
 
 Sortie 0 quand la propriété tient, 1 sinon. `isbn` tolère les ISBN séparés par
-le garde de tomaison et les nomme au lieu de les taire.
+le garde de tomaison et les nomme au lieu de les taire. `site-codes` et
+`served-pages` ne lisent que des fichiers publiés : ils tournent sans corpus
+fusionné, dans les deux géométries, et sur l'arbre désigné par `--root` (la
+copie que `scripts/deploy_pages.sh` s'apprête à déployer).
 """
 from __future__ import annotations
 
@@ -21,19 +27,30 @@ import argparse
 import collections
 import glob
 import json
+import os
+import re
 import sys
+from html.parser import HTMLParser
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "pipeline"))
+sys.path.insert(0, str(ROOT / "semantic"))
 
 from merge_dedup import (  # noqa: E402
     ISBN_FIELDS, MAX_ISBN_YEAR_GAP, norm_isbn, text_volume_signature, value_key,
 )
 from fields import norm_year  # noqa: E402
+from tags_io import read_tags  # noqa: E402
+from vocabulary_io import AXIS_FILES, load_vocabulary  # noqa: E402
 
 DEFAULT_CORPUS = ROOT / "data" / "merged" / "corpus.jsonl"
 DEFAULT_CITATIONS = ROOT / "data" / "derived" / "citations.jsonl"
+DEFAULT_WAVES = ROOT / "semantic" / "waves"
+
+# Les axes que le classeur assigne, et le champ de l'enregistrement qui les porte.
+ASSIGNED_AXES = {"works": "works", "themes": "themes",
+                 "approaches": "approaches", "relevance": "relevance"}
 
 
 def shown(path: Path) -> str:
@@ -235,13 +252,320 @@ def check_projections(citations: Path, corpus: Path) -> int:
     return 1 if problems else 0
 
 
+def retired_values(vocabulary_dir=None) -> dict[str, set]:
+    """Valeurs du vocabulaire dont le `status` n'est pas « active ».
+
+    Le champ est déclaré sur chaque valeur des quatre axes mais aucun code du
+    classement ne le lit : le rendre au moins mesurable est le minimum, faute
+    de quoi retirer une valeur ne serait qu'une note dans un fichier.
+    """
+    vocab = load_vocabulary(vocabulary_dir)
+    out = {}
+    for axis in AXIS_FILES:
+        table = getattr(vocab, axis)
+        out[axis] = {identifier for identifier, entry in table.items()
+                     if str(entry.get("status", "active")) != "active"}
+    return out
+
+
+def assigned_values(waves: Path) -> dict[str, collections.Counter]:
+    """Ce que les vagues assignent effectivement, axe par axe."""
+    counts = {axis: collections.Counter() for axis in ASSIGNED_AXES}
+    for path in sorted(glob.glob(str(waves / "*" / "tags.jsonl"))):
+        for record in read_tags(path, keep_unidentified=False):
+            for axis, field in ASSIGNED_AXES.items():
+                value = record.get(field)
+                if isinstance(value, list):
+                    counts[axis].update(str(v) for v in value)
+                elif value is not None:
+                    counts[axis][str(value)] += 1
+    return counts
+
+
+def check_vocabulary(waves: Path = DEFAULT_WAVES, vocabulary_dir=None) -> int:
+    """Aucune valeur retirée du vocabulaire n'est encore assignée dans les vagues.
+
+    Aujourd'hui toutes les valeurs sont actives et le contrôle ne dit rien. Il
+    parlera le jour où l'une passera à `retired` : sans lui, elle resterait
+    assignable sans que rien ne le signale, et l'aval — qui, lui, filtre déjà
+    sur `status` — la ferait disparaître des écrans sans l'annoncer.
+    """
+    retired = retired_values(vocabulary_dir)
+    counts = assigned_values(Path(waves))
+    total_retired = sum(len(v) for v in retired.values())
+    print("vagues lues                     : %s" % shown(waves))
+    print("valeurs retirées du vocabulaire : %d" % total_retired)
+    problems = []
+    for axis in sorted(retired):
+        for identifier in sorted(retired[axis]):
+            used = counts.get(axis, collections.Counter()).get(identifier, 0)
+            print("   %-12s %-40s assignée %d fois" % (axis, identifier, used))
+            if used:
+                problems.append("%s : %s est retirée du vocabulaire et pourtant "
+                                "assignée %d fois" % (axis, identifier, used))
+    for line in problems:
+        print("   VALEUR RETIRÉE ENCORE ASSIGNÉE  %s" % line)
+    print("valeurs retirées en usage       : %d" % len(problems))
+    return 1 if problems else 0
+
+
+# ---------------------------------------------------------------------------
+# Ce que les pages lisent : codes de langue, poids, pages servies
+# ---------------------------------------------------------------------------
+LANGS_BLOCK = re.compile(r"\bLANGS\s*=\s*\[(.*?)\]\s*;", re.DOTALL)
+LANG_CODE = re.compile(r"""\bcode\s*:\s*['"]([^'"]+)['"]""")
+OTHER_LANG = "oth"
+LANG_SCREENS = ("explorer.js", "observatory.js")
+COUNTED_RELEVANCE = ("core", "partial")
+
+
+def site_geometry(root: Path) -> tuple[Path, Path]:
+    """(pages, couche de données) dans la géométrie de cet arbre.
+
+    La règle de site/build-c/tools/tree_paths.py : `site/build-c/` et
+    `site/data/` dans le dépôt de travail, `site/` et `data/` dans l'arbre
+    public.
+    """
+    pages = root / "site" / "build-c"
+    if not (pages / "index.html").is_file():
+        pages = root / "site"
+    data = root / "site" / "data"
+    if not (data / "graph.json").is_file():
+        data = root / "data"
+    return pages, data
+
+
+def relative_to(path: Path, root: Path) -> str:
+    """Chemin relatif à l'arbre contrôlé, jamais un chemin de machine."""
+    return Path(os.path.relpath(path, root)).as_posix()
+
+
+def page_lang_codes(script: Path) -> list[str] | None:
+    """Les codes du tableau LANGS d'un script de page, dans l'ordre de la légende."""
+    block = LANGS_BLOCK.search(script.read_text(encoding="utf-8"))
+    if not block:
+        return None
+    return LANG_CODE.findall(block.group(1)) or None
+
+
+def check_site_codes(root: Path = ROOT) -> int:
+    """Les langues que les pages nomment sont celles que les données portent.
+
+    Audit du 13/09 (OR-04) : la carte en ligne nommait ses langues en codes
+    MARC (eng, ger, fre) quand graph.json les porte en ISO 639-1 (en, de, fr).
+    Chaque langue de la légende comptait zéro notice, tout tombait dans
+    « autre », chaque requête lang: répondait « rien », et aucun contrôle ne
+    comparait les deux fichiers. Celui-ci échoue quand une langue nommée par
+    l'Explorer ou l'Observatoire ne compte aucune notice de la population
+    comptée (core + partial, la règle de toutes les pages), quand plus de la
+    moitié de cette population tombe hors des langues nommées, quand les deux
+    écrans ne nomment pas les mêmes langues, et quand les identifiants de
+    weights.json ne sont pas ceux des notices du graphe (la jointure de
+    l'Explorer se fait sur `ppn`).
+    """
+    pages, data = site_geometry(root)
+    graph_path = data / "graph.json"
+    semantic_path = pages / "assets" / "semantic.json"
+    weights_path = pages / "assets" / "weights.json"
+    problems = ["%s absent" % relative_to(path, root)
+                for path in (graph_path, semantic_path, weights_path) if not path.is_file()]
+    if problems:
+        for line in problems:
+            print("   CODES EN DÉFAUT  %s" % line)
+        print("codes et identifiants en défaut : %d" % len(problems))
+        return 1
+
+    graph = json.loads(graph_path.read_text(encoding="utf-8"))
+    tags = json.loads(semantic_path.read_text(encoding="utf-8")).get("byPpn") or {}
+    records = [node for node in graph.get("nodes") or [] if node.get("k") == "pub"]
+    counted = [node for node in records if node.get("ppn")
+               and (tags.get(node["ppn"]) or {}).get("r") in COUNTED_RELEVANCE]
+    languages = collections.Counter(str(node.get("lang") or "") for node in counted)
+    print("couche de données                : %s" % relative_to(graph_path, root))
+    print("notices comptées (core, partial) : %d sur %d" % (len(counted), len(records)))
+    print("codes les plus portés            : %s" % ", ".join(
+        "%s %d" % (code or "(vide)", number) for code, number in languages.most_common(8)))
+
+    named_by_screen: dict[str, list[str]] = {}
+    for name in LANG_SCREENS:
+        script = pages / "assets" / name
+        shown_script = relative_to(script, root)
+        if not script.is_file():
+            problems.append("%s absent" % shown_script)
+            continue
+        codes = page_lang_codes(script)
+        if not codes:
+            problems.append("%s : aucun tableau LANGS lisible" % shown_script)
+            continue
+        named = [code for code in codes if code != OTHER_LANG]
+        named_by_screen[name] = named
+        other = sum(number for code, number in languages.items() if code not in named)
+        print("%-33s: %s, hors légende %d" % (shown_script, ", ".join(
+            "%s %d" % (code, languages.get(code, 0)) for code in named), other))
+        for code in named:
+            if not languages.get(code):
+                problems.append("%s : la langue « %s » ne compte aucune notice comptée"
+                                % (shown_script, code))
+        if counted and other * 2 > len(counted):
+            problems.append("%s : %d notices comptées sur %d tombent hors des langues nommées"
+                            % (shown_script, other, len(counted)))
+    if (len(named_by_screen) == len(LANG_SCREENS)
+            and len({frozenset(codes) for codes in named_by_screen.values()}) > 1):
+        problems.append("l'Explorer et l'Observatoire ne nomment pas les mêmes langues : %s"
+                        % " ; ".join("%s %s" % (name, ",".join(codes))
+                                     for name, codes in named_by_screen.items()))
+
+    weights = json.loads(weights_path.read_text(encoding="utf-8"))
+    weighted = set((weights.get("w") or {}).keys())
+    identifiers = {node["ppn"] for node in records if node.get("ppn")}
+    missing, unknown = sorted(identifiers - weighted), sorted(weighted - identifiers)
+    print("%-33s: %d identifiants pour %d notices au graphe, %d sans poids, %d inconnus"
+          % (relative_to(weights_path, root), len(weighted), len(identifiers),
+             len(missing), len(unknown)))
+    if missing or unknown:
+        problems.append("%s : identifiants différents du graphe (sans poids : %d, ex. %s ; "
+                        "inconnus du graphe : %d, ex. %s)"
+                        % (relative_to(weights_path, root), len(missing),
+                           ", ".join(missing[:3]) or "aucun", len(unknown),
+                           ", ".join(unknown[:3]) or "aucun"))
+    total = weights.get("total")
+    if total is not None and total != len(records):
+        problems.append("%s : total %s, le graphe porte %d notices"
+                        % (relative_to(weights_path, root), total, len(records)))
+
+    for line in problems:
+        print("   CODES EN DÉFAUT  %s" % line)
+    print("codes et identifiants en défaut : %d" % len(problems))
+    return 1 if problems else 0
+
+
+class PageAudit(HTMLParser):
+    """Scripts, gestionnaires d'événements et références d'une page HTML."""
+
+    def __init__(self) -> None:
+        super().__init__(convert_charrefs=True)
+        self.scripts: list[tuple[int, dict, str]] = []
+        self.handlers: list[tuple[int, str, str]] = []
+        self.references: list[tuple[int, str, str]] = []
+        self.meta: list[dict] = []
+        self.links: list[dict] = []
+        self._script: list | None = None
+
+    def handle_starttag(self, tag, attrs):
+        line = self.getpos()[0]
+        values = {name: value or "" for name, value in attrs}
+        for name, value in values.items():
+            if name.startswith("on"):
+                self.handlers.append((line, tag, name))
+            elif name in ("href", "src", "action") and value.strip().lower().startswith("javascript:"):
+                self.handlers.append((line, tag, name))
+            if name in ("href", "src") and value:
+                self.references.append((line, tag, value))
+        if tag == "meta":
+            self.meta.append(values)
+        elif tag == "link":
+            self.links.append(values)
+        elif tag == "script":
+            self._script = [line, values, ""]
+
+    def handle_data(self, data):
+        if self._script is not None:
+            self._script[2] += data
+
+    def handle_endtag(self, tag):
+        if tag == "script" and self._script is not None:
+            self.scripts.append((self._script[0], self._script[1], self._script[2]))
+            self._script = None
+
+
+def check_served_pages(root: Path = ROOT) -> int:
+    """Les pages tiennent sous la politique du site, et une adresse inconnue répond 404.
+
+    La politique de `_headers` est `script-src 'self'` : un script en ligne ou un
+    gestionnaire `on…=` y est bloqué, et le navigateur l'écrit en erreur de
+    console. La page racine redirigeait par un script en ligne que la politique
+    bloquait (audit du 13/09, OR-33). Sans `404.html` à la racine du
+    déploiement, Cloudflare Pages sert `index.html` en 200 pour toute adresse
+    absente, fichiers JSON de /data/ compris (OR-33, OR-42). Le contrôle échoue
+    sur un script en ligne autre qu'un bloc de données JSON-LD, sur un
+    gestionnaire d'événement ou une URL javascript:, sur un `404.html` absent,
+    indexable ou canonisé, et sur un `404.html` qui adresse un fichier en
+    relatif alors qu'il est servi à toutes les profondeurs.
+    """
+    pages, _data = site_geometry(root)
+    documents = sorted(root.glob("*.html")) + sorted(pages.glob("*.html"))
+    documents = [page for page in documents if not re.search(r" \d+\.html$", page.name)]
+    problems = []
+    not_found = root / "404.html"
+    if not not_found.is_file():
+        problems.append("404.html absent à la racine : Pages servirait index.html en 200 "
+                        "pour toute adresse inconnue")
+    for page in documents:
+        audit = PageAudit()
+        audit.feed(page.read_text(encoding="utf-8"))
+        audit.close()
+        shown_page = relative_to(page, root)
+        for line, attributes, body in audit.scripts:
+            if attributes.get("src"):
+                if body.strip():
+                    problems.append("%s:%d : script à la fois externe et en ligne" % (shown_page, line))
+                continue
+            if attributes.get("type", "").strip().lower() == "application/ld+json":
+                continue
+            problems.append("%s:%d : script en ligne, bloqué par script-src 'self'"
+                            % (shown_page, line))
+        for line, tag, name in audit.handlers:
+            problems.append("%s:%d : <%s %s> exécute du code dans le balisage"
+                            % (shown_page, line, tag, name))
+        if page == not_found:
+            robots = " ".join(meta.get("content", "") for meta in audit.meta
+                              if meta.get("name", "").lower() == "robots")
+            if "noindex" not in robots:
+                problems.append("%s : pas de <meta name=\"robots\" content=\"noindex\">" % shown_page)
+            if any("canonical" in link.get("rel", "").lower().split() for link in audit.links):
+                problems.append("%s : une page d'erreur ne porte pas d'adresse canonique" % shown_page)
+            for line, tag, value in audit.references:
+                if not value.startswith(("/", "#", "https://", "http://", "mailto:", "data:")):
+                    problems.append("%s:%d : « %s » est relatif, et la page est servie à toutes "
+                                    "les profondeurs" % (shown_page, line, value))
+    print("pages lues                      : %d (racine et %s)"
+          % (len(documents), relative_to(pages, root)))
+    print("404.html à la racine            : %s" % ("présent" if not_found.is_file() else "absent"))
+    for line in problems:
+        print("   PAGE EN DÉFAUT  %s" % line)
+    print("pages en défaut                 : %d" % len(problems))
+    return 1 if problems else 0
+
+
 def main(argv):
     parser = argparse.ArgumentParser(
         description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument("check", choices=("isbn", "abstract-rights", "projections", "all"))
+    parser.add_argument("check", choices=("isbn", "abstract-rights", "projections",
+                                         "vocabulary", "site-codes", "served-pages", "all"))
     parser.add_argument("--corpus", type=Path, default=DEFAULT_CORPUS)
     parser.add_argument("--citations", type=Path, default=DEFAULT_CITATIONS)
+    parser.add_argument("--waves", type=Path, default=DEFAULT_WAVES)
+    parser.add_argument("--root", type=Path, default=ROOT,
+                        help="arbre lu par site-codes et served-pages (défaut : ce dépôt)")
     arguments = parser.parse_args(argv)
+    root = arguments.root.resolve()
+
+    # Le contrôle du vocabulaire ne lit que des fichiers publiés : il tourne
+    # dans un clone, corpus fusionné ou non, et n'a donc pas à passer le garde
+    # qui suit.
+    if arguments.check == "vocabulary":
+        return check_vocabulary(arguments.waves)
+    # Les contrôles du site ne lisent que des fichiers publiés, eux aussi.
+    if arguments.check == "site-codes":
+        return check_site_codes(root)
+    if arguments.check == "served-pages":
+        return check_served_pages(root)
+    site_status = 0
+    if arguments.check == "all":
+        site_status |= check_site_codes(root)
+        print()
+        site_status |= check_served_pages(root)
+        print()
 
     # Ces mesures portent sur le corpus fusionné, qui n'est pas dans le dépôt
     # public : il est volumineux et plusieurs bases demandent que leur dump ne
@@ -254,7 +578,7 @@ def main(argv):
               "pipeline/merge_dedup.py --out-dir data/merged.", file=sys.stderr)
         return 1
 
-    status = 0
+    status = site_status
     if arguments.check in ("isbn", "all"):
         status |= check_isbn(arguments.corpus)
     if arguments.check in ("abstract-rights", "all"):
@@ -265,6 +589,9 @@ def main(argv):
         if arguments.check == "all":
             print()
         status |= check_projections(arguments.citations, arguments.corpus)
+    if arguments.check == "all":
+        print()
+        status |= check_vocabulary(arguments.waves)
     return status
 
 
