@@ -14,7 +14,12 @@ const particleFragmentShader = "\n  precision highp float;\n  varying float vSpe
 
 const SPACING_SAMPLE_TARGET = 3000;
 const PALETTE_STRIDE = 8;
-const LANG_PAL = { eng: 0, ita: 1, ger: 2, spa: 3, oth: 4, fre: 5 };
+// Keyed by the legend codes explorer.js sends in `node.lang` (its `lkey`), which
+// are the ISO 639-1 codes graph.json carries. They were MARC (eng, ger, fre) here
+// long after the data moved to ISO, so every node fell through to `oth` and the
+// whole field was drawn graphite: the map lost its colour without losing a check.
+// scripts/qa_checks.py (site-codes) now compares these keys with the legend.
+const LANG_PAL = { en: 0, it: 1, de: 2, es: 3, oth: 4, fr: 5 };
 
 function hex01(hex) {
   const n = parseInt(hex.slice(1), 16);

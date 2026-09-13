@@ -3,7 +3,7 @@
    of grains from the earlier personal-graph particle engine. Language tints the grain.
    Named from the controlled vocabulary: theme domains and their leaves, or
    the works of Origen. Romain Girardi, 2026. */
-import { createDustField } from './dust-field.js?v=497d3748';
+import { createDustField } from './dust-field.js?v=6a4f2d77';
 
 (function () {
   'use strict';

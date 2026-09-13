@@ -54,8 +54,14 @@ def langs(*codes: str) -> str:
     return "(function () {\n  var LANGS = [\n%s\n  ];\n})();\n" % rows
 
 
+def pal(*codes: str) -> str:
+    """La table du champ WebGL : une langue, un emplacement de palette."""
+    slots = ", ".join("%s: %d" % (code, number) for number, code in enumerate(codes))
+    return "const LANG_PAL = { %s };\nexport function createDustField() { return null; }\n" % slots
+
+
 def site_tree(name, private=True, explorer=None, observatory=None,
-              languages=None, relevance=None, weights=None):
+              languages=None, relevance=None, weights=None, field=None):
     """Un arbre minimal : pages, graph.json, semantic.json, weights.json."""
     root = scratch(name)
     pages = root / "site" / "build-c" if private else root / "site"
@@ -75,6 +81,7 @@ def site_tree(name, private=True, explorer=None, observatory=None,
         {"total": len(identifiers), "w": {key: {"w": 0.5} for key in identifiers}}))
     write(pages / "assets" / "explorer.js", explorer or langs("en", "de", "oth"))
     write(pages / "assets" / "observatory.js", observatory or explorer or langs("en", "de", "oth"))
+    write(pages / "assets" / "dust-field.js", field or pal("en", "de", "oth"))
     return root
 
 
@@ -123,6 +130,33 @@ class SiteCodesTest(unittest.TestCase):
         self.assertEqual(status, 1)
         self.assertIn("sans poids : 1, ex. OR0009", output)
         self.assertIn("inconnus du graphe : 1, ex. ORstale", output)
+
+    def test_the_field_palette_must_name_the_legend_languages(self):
+        """Le cas trouvé le 13/09 : la carte dessinée en une seule couleur.
+
+        Le champ WebGL traduit la langue d'une notice en emplacement de palette
+        avec sa propre table. Restée en codes MARC quand les données étaient
+        passées en ISO, elle renvoyait chaque notice sur « oth » : les points
+        sortaient tous en graphite, la légende restait juste, et les deux
+        écrans contrôlés jusque-là ne montraient rien.
+        """
+        root = site_tree("codes-field-marc", field=pal("eng", "ger", "oth"))
+        status, output = quietly(qa_checks.check_site_codes, root)
+        self.assertEqual(status, 1)
+        self.assertIn("« eng » ne couvre aucune notice comptée", output)
+        self.assertIn("ne nomme pas les langues de la légende", output)
+
+    def test_the_field_palette_needs_a_fallback_slot(self):
+        root = site_tree("codes-field-nofallback", field=pal("en", "de"))
+        status, output = quietly(qa_checks.check_site_codes, root)
+        self.assertEqual(status, 1)
+        self.assertIn("pas d'emplacement « oth »", output)
+
+    def test_a_field_without_a_palette_fails(self):
+        root = site_tree("codes-field-none", field="export function createDustField() {}\n")
+        status, output = quietly(qa_checks.check_site_codes, root)
+        self.assertEqual(status, 1)
+        self.assertIn("aucune table LANG_PAL lisible", output)
 
     def test_a_missing_legend_fails(self):
         root = site_tree("codes-nolegend", explorer="(function () {})();\n")

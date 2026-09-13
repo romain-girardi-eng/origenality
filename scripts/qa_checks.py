@@ -316,6 +316,14 @@ LANGS_BLOCK = re.compile(r"\bLANGS\s*=\s*\[(.*?)\]\s*;", re.DOTALL)
 LANG_CODE = re.compile(r"""\bcode\s*:\s*['"]([^'"]+)['"]""")
 OTHER_LANG = "oth"
 LANG_SCREENS = ("explorer.js", "observatory.js")
+# Le champ WebGL de la carte tient sa propre table : elle traduit la langue d'une
+# notice en emplacement de palette, donc elle décide de la couleur des points.
+# Elle est restée en codes MARC après le passage des données en ISO, si bien que
+# tout retombait sur « oth » et que la carte se dessinait entièrement en
+# graphite. Les deux écrans étaient contrôlés, ce troisième fichier non.
+LANG_FIELD = "dust-field.js"
+LANG_PAL_BLOCK = re.compile(r"\bLANG_PAL\s*=\s*\{([^}]*)\}")
+LANG_PAL_KEY = re.compile(r"([A-Za-z_][A-Za-z0-9_-]*)\s*:\s*\d+")
 COUNTED_RELEVANCE = ("core", "partial")
 
 
@@ -414,6 +422,35 @@ def check_site_codes(root: Path = ROOT) -> int:
         problems.append("l'Explorer et l'Observatoire ne nomment pas les mêmes langues : %s"
                         % " ; ".join("%s %s" % (name, ",".join(codes))
                                      for name, codes in named_by_screen.items()))
+
+    field = pages / "assets" / LANG_FIELD
+    legend = named_by_screen.get("explorer.js")
+    if not field.is_file():
+        problems.append("%s absent" % relative_to(field, root))
+    else:
+        shown_field = relative_to(field, root)
+        block = LANG_PAL_BLOCK.search(field.read_text(encoding="utf-8"))
+        if not block:
+            problems.append("%s : aucune table LANG_PAL lisible" % shown_field)
+        else:
+            keys = LANG_PAL_KEY.findall(block.group(1))
+            named_field = [code for code in keys if code != OTHER_LANG]
+            print("%-33s: %s, hors légende %d" % (shown_field, ", ".join(
+                "%s %d" % (code, languages.get(code, 0)) for code in named_field),
+                sum(number for code, number in languages.items() if code not in named_field)))
+            for code in named_field:
+                if not languages.get(code):
+                    problems.append("%s : la couleur « %s » ne couvre aucune notice comptée"
+                                    % (shown_field, code))
+            if legend is not None and set(named_field) != set(legend):
+                problems.append("%s : la palette du champ ne nomme pas les langues de la "
+                                "légende (champ %s ; légende %s)"
+                                % (shown_field, ",".join(sorted(named_field)),
+                                   ",".join(sorted(legend))))
+            if OTHER_LANG not in keys:
+                problems.append("%s : la palette n'a pas d'emplacement « %s », donc une "
+                                "langue inconnue n'a pas de couleur de repli"
+                                % (shown_field, OTHER_LANG))
 
     weights = json.loads(weights_path.read_text(encoding="utf-8"))
     weighted = set((weights.get("w") or {}).keys())
